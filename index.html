@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Battle for Washington</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BFW">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+
+<style>
+:root{
+  --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f7;--border:#dde1ec;
+  --text:#1a1d2e;--muted:#8890b0;--accent:#e63946;--blue:#2563eb;
+  --green:#059669;--gold:#d97706;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.10);
+  --rl:#e63946;--bl:#2563eb;--ol:#f4a636;--gl:#059669;--sl:#8890b0;--yl:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* JOIN */
+#screenJoin{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
+.join-logo{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--text);line-height:1;margin-bottom:4px;text-align:center;}
+.join-logo span{color:var(--accent);}
+.join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.5px;text-transform:uppercase;}
+.join-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.join-card h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--muted);margin-bottom:16px;}
+.join-divider{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;position:relative;}
+.join-divider::before,.join-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+.join-divider::before{left:0;}.join-divider::after{right:0;}
+.code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:10px;width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
+.code-input:focus{border-color:var(--accent);}
+.hbtn{width:100%;padding:13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;}
+.hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(230,57,70,.3);}
+.hbtn.s{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
+
+/* HOST SETUP */
+#screenHostSetup{padding:20px;overflow-y:auto;background:var(--bg);}
+.setup-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);}
+.setup-form h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:18px;}
+.team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 12px;margin-bottom:7px;}
+.tcd{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.cpp{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;z-index:800;box-shadow:var(--shadow-lg);}
+.cpr{display:flex;gap:6px;flex-wrap:wrap;}
+.csw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.csw:hover{transform:scale(1.2);}.csw.sel{border-color:var(--text);}
+
+/* LOBBY */
+#screenLobby{background:var(--bg);}
+.lobby-header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow);}
+.lobby-code{font-family:'DM Mono',monospace;font-size:30px;font-weight:700;letter-spacing:8px;color:var(--accent);}
+.lobby-code-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+.lobby-body{padding:16px;flex:1;overflow-y:auto;}
+.lsec{margin-bottom:20px;}
+.lsec h3{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
+.player-name{font-weight:700;font-size:14px;}
+.team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* WAITING */
+#screenWaiting{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
+
+/* MAIN APP */
+#screenApp{background:var(--bg);}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:200;box-shadow:var(--shadow);}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;color:var(--text);}
+.logo span{color:var(--accent);}
+.hright{display:flex;align-items:center;gap:8px;}
+.clock{font-family:'DM Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:1.5px;}
+.clock.lunch{color:var(--green);}.clock.ended{color:var(--muted);}
+.gpill{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.gpill.live{background:#dcfce7;color:var(--green);border-color:#bbf7d0;}
+.gpill.lunch{background:#fef3c7;color:var(--gold);border-color:#fde68a;}
+.gpill.ended{background:var(--surface2);color:var(--muted);}
+.myteam-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:white;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:44px;z-index:200;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-2px;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* PANELS */
+.panel{display:none;padding:14px 16px;}
+.panel.active{display:block;}
+#panel-map{display:none;padding:0;}
+#panel-map.active{display:block;position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;}
+/* MAP */
+#mapWrap{position:absolute;top:90px;left:0;right:0;bottom:0;}
+#mapEl{position:absolute;inset:0;width:100%;height:100%;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow);}
+label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--accent);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn:hover{opacity:.85;transform:translateY(-1px);}.btn:active{transform:scale(.97);}
+.btn-p{background:var(--accent);color:white;}.btn-b{background:var(--blue);color:white;}
+.btn-g{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+.btn-gr{background:var(--green);color:white;}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;}.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;}
+.stitle{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;margin-top:16px;}
+.stitle:first-child{margin-top:0;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.empty{text-align:center;color:var(--muted);padding:32px 0;font-size:13px;}
+
+/* STATUS */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px;}
+.tsc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);}
+.tsc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.tsn{font-weight:700;font-size:13px;margin-bottom:4px;}
+.tsl2{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.lname{color:var(--text);font-weight:500;}
+.tss{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.tst{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.pd{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:ping 2s infinite;}
+.sdd{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+@keyframes ping{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* SCORES */
+.scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.tscc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.tsrk{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--muted);}
+.tsn2{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;}
+.bsc{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1;margin-bottom:2px;}
+.brkd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.btbl{width:100%;border-collapse:collapse;font-size:12px;}
+.btbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);}
+.btbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.btbl tr:last-child td{border-bottom:none;}
+
+/* MAP overlays */
+.leaflet-container{background:#e8edf5 !important;}
+.leaflet-tile{filter:brightness(.97) saturate(.65);}
+.zt{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:5px 9px;box-shadow:var(--shadow);}
+.mleg{position:absolute;bottom:14px;left:14px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11px;box-shadow:var(--shadow);pointer-events:none;}
+.mleg h4{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+.lr{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.ll{width:18px;height:3px;border-radius:2px;}
+.mzl{position:absolute;top:8px;right:8px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:10px;padding:10px;max-height:calc(100% - 40px);overflow-y:auto;width:165px;box-shadow:var(--shadow);}
+.mzl h4{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;}
+.mzr{display:flex;align-items:center;gap:5px;padding:4px 5px;font-size:11px;cursor:pointer;border-radius:5px;transition:background .1s;}
+.mzr:hover{background:var(--surface2);}
+.mzd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.mzc{font-family:'DM Mono',monospace;color:var(--muted);font-size:10px;width:26px;flex-shrink:0;}
+.mznm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;}
+.loc-pulse{width:16px;height:16px;border-radius:50%;border:2px solid white;animation:locpulse 1.5s infinite;}
+@keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+
+/* ZONES */
+.zone-region-header{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);padding:8px 0 6px;border-bottom:2px solid var(--border);margin-bottom:10px;margin-top:16px;}
+.zone-region-header:first-of-type{margin-top:0;}
+.zone-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
+.zone-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
+.zone-card:hover{box-shadow:var(--shadow-lg);}
+.zone-card.controlled{border-left:4px solid;}
+.zone-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
+.zone-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.zone-name-t{font-weight:700;font-size:13px;flex:1;}
+.zone-area{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.zone-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.chip{display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;background:var(--surface2);border:1px solid var(--border);}
+.chip-dot{width:6px;height:6px;border-radius:50%;}
+.unclaimed{font-size:11px;color:var(--muted);font-style:italic;}
+.line-dots{display:flex;gap:3px;margin-top:5px;}
+.line-dot{width:7px;height:7px;border-radius:50%;}
+
+/* SHOP */
+.cc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
+.cc h4{font-weight:700;font-size:13px;margin-bottom:2px;}
+.cc p{font-size:12px;color:var(--muted);line-height:1.4;}
+.ctmr{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap;font-weight:700;flex-shrink:0;}
+.ctmr.exp{color:var(--muted);}
+.cdism{font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
+.addf{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;}
+.addf h3{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:14px;color:var(--muted);margin-bottom:12px;}
+.loc-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.6;}
+.loc-banner b{color:var(--accent);}
+
+/* LOG */
+.le{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.lt{font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap;font-size:10px;margin-top:2px;flex-shrink:0;}
+
+/* MODALS */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);}
+.mo.open{display:flex;}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.md h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:4px;}
+.mdm{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.dr{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
+.drl{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px;}
+.dd{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dr input[type=number]{width:80px;margin:0;text-align:center;}
+.ev{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.mac{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+
+/* NOTIF */
+.notif-banner{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--accent);color:white;padding:12px 20px;font-size:13px;font-weight:700;text-align:center;transform:translateY(-100%);transition:transform .3s;box-shadow:var(--shadow-lg);}
+.notif-banner.show{transform:translateY(0);}
+
+@media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="notif-banner" id="notifBanner"></div>
+
+<!-- JOIN -->
+<div class="screen active" id="screenJoin">
+  <div style="text-align:center;margin-bottom:4px;padding-top:40px;">
+    <div class="join-logo">Battle for <span>Washington</span></div>
+    <div class="join-sub">DMV Transit Strategy Game</div>
+  </div>
+  <div class="join-card" style="margin:0 auto;">
+    <h2>Join a Game</h2>
+    <label>Your Name</label>
+    <input type="text" id="joinName" placeholder="Enter your name" maxlength="24">
+    <label>Game Code</label>
+    <input class="code-input" id="joinCode" placeholder="XXXXX" maxlength="5" oninput="this.value=this.value.toUpperCase()">
+    <button class="hbtn p" onclick="joinGame()">Join Game →</button>
+    <div class="join-divider">or</div>
+    <button class="hbtn s" onclick="showScreen('screenHostSetup')">Host a New Game</button>
+  </div>
+</div>
+
+<!-- HOST SETUP -->
+<div class="screen" id="screenHostSetup">
+  <div class="setup-form" style="margin:20px auto;">
+    <h2>Host Setup</h2>
+    <label>Your Name</label>
+    <input type="text" id="hostName" placeholder="Your name">
+    <label>Firebase Database URL</label>
+    <input type="text" id="hostFbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com">
+    <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:12px;">Players never see this — stored on your device only.</p>
+    <div class="divider"></div>
+    <label>Game Times</label>
+    <div class="fr">
+      <div><label>Game Start</label><input type="time" id="cfgStart" value="10:00"></div>
+      <div><label>Game End</label><input type="time" id="cfgEnd" value="19:00"></div>
+    </div>
+    <div class="fr">
+      <div><label>Lunch Start</label><input type="time" id="cfgLunchStart" value="12:00"></div>
+      <div><label>Lunch End</label><input type="time" id="cfgLunchEnd" value="13:00"></div>
+    </div>
+    <div><label>Scoring Time</label><input type="time" id="cfgScore" value="18:00" style="max-width:160px"></div>
+    <div class="divider"></div>
+    <label>Teams</label>
+    <div id="teamSetupList" style="margin-bottom:10px;"></div>
+    <button class="btn btn-g btn-sm" onclick="addTeam()" style="margin-bottom:16px;">+ Add Team</button>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-g" onclick="showScreen('screenJoin')">← Back</button>
+      <button class="btn btn-p" style="flex:1" onclick="createGame()">Generate Game Code →</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div class="screen" id="screenLobby">
+  <div class="lobby-header">
+    <div>
+      <div class="lobby-code-label">Game Code</div>
+      <div class="lobby-code" id="lobbyCode">—</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Share with your players</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-g btn-sm" onclick="copyCode()">Copy Code</button>
+        <button class="btn btn-p btn-sm" onclick="startGame()">Start Game ▶</button>
+      </div>
+    </div>
+  </div>
+  <div class="lobby-body">
+    <div class="lsec">
+      <h3>Players in Lobby</h3>
+      <div id="lobbyPlayerList"><div class="empty">Waiting for players to join…</div></div>
+    </div>
+    <div class="lsec">
+      <h3>Teams</h3>
+      <div id="lobbyTeamList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div class="screen" id="screenWaiting" style="align-items:center;justify-content:center;padding:32px;background:var(--surface);">
+  <div style="text-align:center;">
+    <div style="font-size:48px;margin-bottom:20px;">⏳</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:8px;">Waiting for Host</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px;" id="waitingMsg">You'll be assigned to a team shortly…</div>
+    <div id="waitingTeam" style="display:none;margin-top:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">You're on</div>
+      <div id="waitingTeamName" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="screen" id="screenApp">
+  <header>
+    <div class="logo">Battle for <span>Washington</span></div>
+    <div class="hright">
+      <div id="myTeamBadge" class="myteam-badge" style="display:none;"></div>
+      <div class="gpill" id="gspill">Lobby</div>
+      <div class="clock" id="gclock">--:--</div>
+    </div>
+  </header>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('status')">Status</div>
+    <div class="tab" onclick="switchTab('scores')">Scores</div>
+    <div class="tab" onclick="switchTab('map')">Map</div>
+    <div class="tab" onclick="switchTab('zones')">Zones</div>
+    <div class="tab" onclick="switchTab('shop')">Shop</div>
+    <div class="tab" onclick="switchTab('log')">Log</div>
+  </div>
+
+  <div class="panel active" id="panel-status">
+    <div class="stitle">Team Locations</div>
+    <div class="sg" id="sg"></div>
+    <p style="font-size:11px;color:var(--muted)" id="locHint"></p>
+  </div>
+
+  <div class="panel" id="panel-scores">
+    <div class="scg" id="scg"></div>
+    <div class="stitle">Bonus Points</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="btbl"><thead><tr><th>Bonus</th><th>Worth</th><th>Leader</th><th>Terminals</th></tr></thead><tbody id="btbd"></tbody></table>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-map">
+    <div id="mapWrap">
+      <div id="mapEl"></div>
+      <div class="mleg">
+        <h4>Metro Lines</h4>
+        <div class="lr"><div class="ll" style="background:var(--rl)"></div>Red</div>
+        <div class="lr"><div class="ll" style="background:var(--bl)"></div>Blue</div>
+        <div class="lr"><div class="ll" style="background:var(--ol)"></div>Orange</div>
+        <div class="lr"><div class="ll" style="background:var(--gl)"></div>Green</div>
+        <div class="lr"><div class="ll" style="background:var(--yl)"></div>Yellow</div>
+        <div class="lr"><div class="ll" style="background:var(--sl)"></div>Silver</div>
+      </div>
+      <div class="mzl"><h4>Zones</h4><div id="mzlInner"></div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-zones"><div id="zoneContainer"></div></div>
+
+  <div class="panel" id="panel-shop">
+    <div class="stitle">Active Effects</div>
+    <div id="locBanners"></div>
+    <div id="cl"><div class="empty">No active effects</div></div>
+    <div class="addf" id="shopForm">
+      <h3>Log Shop Purchase</h3>
+      <div class="fr">
+        <div><label>Purchasing Team</label><select id="cCaster"></select></div>
+        <div><label>Target Team</label><select id="cTarget"><option value="">— none —</option></select></div>
+      </div>
+      <div><label>Item</label>
+        <select id="cItem" onchange="onItemChange()">
+          <option value="Quick Draw|0|instant">Quick Draw (1 FC) — draw 2 cards</option>
+          <option value="Spy|0|instant">Spy (1 FC) — see target's hand</option>
+          <option value="Locate|30|locate">Locate (1 FC) — GPS track target 30 min</option>
+          <option value="Redraw Hand|0|instant">Redraw Hand (2 FC) — new 6 cards</option>
+          <option value="Interstate Travellers|120|timed">Interstate Travellers (2 FC) — discard on state crossings</option>
+          <option value="Steal|0|instant">Steal (2 FC) — take up to 2 cards</option>
+          <option value="Forced Detour|0|instant">Forced Detour (2 FC) — random metro stop</option>
+          <option value="Transit Cost|120|timed">Transit Cost (3 FC) — discard on chosen line</option>
+          <option value="Line Lockdown|120|timed">Line Lockdown (3 FC) — no captures on line</option>
+        </select>
+      </div>
+      <div><label>Notes</label><input type="text" id="cNotes" placeholder="e.g. Blue line"></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:var(--muted)" id="cDurNote"></span>
+        <button class="btn btn-p btn-sm" style="margin-left:auto" onclick="addCurse()">Log Purchase</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-log">
+    <div id="ll"><div class="empty">No events yet</div></div>
+    <div id="endGameSection" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fecaca;color:var(--accent);width:100%;" onclick="confirmEndGame()">⏹ End Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="mo" id="depMo">
+  <div class="md">
+    <h2 id="dmTitle"></h2>
+    <div class="mdm" id="dmMeta"></div>
+    <div id="dmRows"></div>
+    <p style="font-size:11px;color:var(--muted);margin-top:6px;">Depositing confirms your team is in this zone right now.</p>
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="closeDep()">Cancel</button>
+      <button class="btn btn-p btn-sm" onclick="submitDep()">Deposit Cards</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOCATION MODAL -->
+<div class="mo" id="locMo">
+  <div class="md" style="max-width:360px;">
+    <h2 id="locMoTitle">Update Location</h2>
+    <label>Last Seen Zone</label>
+    <select id="locZSel"></select>
+    <label>Notes (optional)</label>
+    <input type="text" id="locNotes" placeholder="e.g. heading to metro…">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="closeLocMo()">Cancel</button>
+      <button class="btn btn-gr btn-sm" onclick="submitLoc()">Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="cpp" id="cpp" style="display:none"><div class="cpr" id="cpr"></div></div>
+
+<!-- CURSE ALERT (full-screen takeover) -->
+<div id="curseAlertScreen" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(230,57,70,.97);color:white;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
+  <div style="font-size:64px;margin-bottom:16px;" id="curseAlertIcon">⚠️</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
+  <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="curseAlertItem"></div>
+  <div style="font-size:15px;opacity:.85;margin-bottom:40px;line-height:1.6;max-width:320px;" id="curseAlertBody"></div>
+  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:12px;padding:16px 40px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.2);">I UNDERSTAND — DISMISS</button>
+</div>
+
+<!-- END GAME CONFIRM -->
+<div class="mo" id="endGameMo">
+  <div class="md" style="max-width:340px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">🏁</div>
+    <h2 style="margin-bottom:6px;">End the Game?</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">This will freeze all scores and show the final results to everyone. This cannot be undone.</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-g" style="flex:1" onclick="document.getElementById('endGameMo').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" style="flex:1" onclick="endGame()">End Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL SCORES -->
+<div class="mo" id="finalScoresMo">
+  <div class="md" style="max-width:480px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:36px;margin-bottom:8px;">🏆</div>
+      <h2>Final Scores</h2>
+      <p style="font-size:12px;color:var(--muted);margin-top:4px;">Game over — here's how it ended</p>
+    </div>
+    <div id="finalScoresList"></div>
+    <div style="margin-top:16px;text-align:center;">
+      <button class="btn btn-p btn-sm" onclick="returnToHome()">← Back to Home</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="./game-data.js"></script>
+<script src="./game-logic.js"></script>
+</body>
+</html>

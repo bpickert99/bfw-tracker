@@ -1,0 +1,608 @@
+// ═══════════════════════════
+// ZONE & MAP DATA
+// ═══════════════════════════
+// Polygons follow actual political boundaries, streets, and county lines
+const ZONES=[
+  // DC WARDS — follow real street boundaries per 2022 redistricting
+  {code:"DC1",name:"Ward 1",area:2.53,region:"DC",lines:["green","yellow"],stops:"Shaw/Howard U, U Street, Columbia Heights",
+   poly:ZONE_POLYS["DC1"]},
+
+  {code:"DC2",name:"Ward 2",area:7.11,region:"DC",lines:["green","yellow","red","blue","orange","silver"],stops:"Mt. Vernon Sq., Gallery Place, Dupont Circle, Farragut North, Smithsonian, Metro Center, Foggy Bottom",
+   poly:ZONE_POLYS["DC2"]},
+
+  {code:"DC3",name:"Ward 3",area:11.00,region:"DC",lines:["red"],stops:"Woodley Park, Cleveland Park, Van Ness, Tenleytown",
+   poly:ZONE_POLYS["DC3"]},
+
+  {code:"DC4",name:"Ward 4",area:9.29,region:"DC",lines:["green","yellow","red"],stops:"Georgia Ave./Petworth, Takoma",
+   poly:ZONE_POLYS["DC4"]},
+
+  {code:"DC5",name:"Ward 5",area:10.40,region:"DC",lines:["red","green","yellow"],stops:"Fort Totten, Brookland/CUA, Rhode Island Ave.",
+   poly:ZONE_POLYS["DC5"]},
+
+  {code:"DC6",name:"Ward 6",area:6.80,region:"DC",lines:["red","blue","orange","silver","green","yellow"],stops:"Union Station, Judiciary Sq., L'Enfant Plaza, Capitol South, Eastern Market, Waterfront",
+   poly:ZONE_POLYS["DC6"]},
+
+  {code:"DC7",name:"Ward 7",area:9.21,region:"DC",lines:["blue","orange","silver"],stops:"Stadium Armory, Minnesota Ave., Deanwood, Benning Road",
+   poly:ZONE_POLYS["DC7"]},
+
+  {code:"DC8",name:"Ward 8",area:12.60,region:"DC",lines:["green"],stops:"Navy Yard, Anacostia, Congress Heights",
+   poly:ZONE_POLYS["DC8"]},
+
+  // VIRGINIA
+  {code:"VA1",name:"Loudoun Co.",area:522.00,region:"VA",lines:["silver"],stops:"Dulles Airport, Loudoun Gateway, Ashburn",
+   poly:ZONE_POLYS["VA1"]},
+
+  {code:"VA2",name:"Fairfax Co.",area:415.00,region:"VA",lines:["orange","silver","blue","yellow"],stops:"West Falls Church, Dunn Loring, Vienna/Fairfax, McLean, Tysons, Reston, Herndon, Franconia-Springfield, Huntington",
+   poly:ZONE_POLYS["VA2"]},
+
+  {code:"VA3",name:"Arlington Co.",area:26.20,region:"VA",lines:["blue","orange","silver","yellow"],stops:"Rosslyn, Court House, Clarendon, Ballston, Pentagon, Crystal City, Reagan Airport",
+   poly:ZONE_POLYS["VA3"]},
+
+  {code:"VA4",name:"Falls Church",area:2.05,region:"VA",lines:[],stops:"No metro stops",
+   poly:ZONE_POLYS["VA4"]},
+
+  {code:"VA5",name:"Alexandria",area:15.40,region:"VA",lines:["blue","yellow"],stops:"Potomac Yard, Braddock Road, King St./Old Town, Eisenhower Ave.",
+   poly:ZONE_POLYS["VA5"]},
+
+  // MARYLAND
+  {code:"MD1",name:"Montgomery Co.",area:508.00,region:"MD",lines:["red"],stops:"Friendship Heights, Bethesda, Medical Center, Grosvenor, North Bethesda, Twinbrook, Rockville, Shady Grove, Silver Spring, Forest Glen, Wheaton, Glenmont",
+   poly:ZONE_POLYS["MD1"]},
+
+  {code:"MD2",name:"Prince George's Co.",area:500.00,region:"MD",lines:["orange","silver","blue","yellow","green"],stops:"Cheverly, Landover, New Carrollton, Capitol Heights, Addison Road, Morgan Blvd., Downtown Largo, College Park, Greenbelt",
+   poly:ZONE_POLYS["MD2"]},
+];
+
+const MLINES={
+  red:{color:"#e63946",w:3,paths:[MLINE_PATHS["red"]]]},
+  blue:{color:"#2563eb",w:3,paths:[MLINE_PATHS["blue"]]]},
+  orange:{color:"#f4a636",w:3,paths:[MLINE_PATHS["orange"]]]},
+  green:{color:"#059669",w:3,paths:[MLINE_PATHS["green"]]]},
+  yellow:{color:"#d97706",w:2.5,opacity:.9,paths:[MLINE_PATHS["yellow"]]]},
+  silver:{color:"#8890b0",w:2.5,opacity:.9,paths:[MLINE_PATHS["silver"]]]},
+};
+
+const LINE_BONUSES=[
+  {name:"Blue / Orange",color:"var(--bl)",terminals:["VA1","MD2"],label:"Franconia–Largo"},
+  {name:"Green",color:"var(--gl)",terminals:["DC8","MD2"],label:"Branch Ave–Greenbelt"},
+  {name:"Yellow",color:"var(--yl)",terminals:["VA2","MD2"],label:"Huntington–Greenbelt"},
+  {name:"Silver",color:"var(--sl)",terminals:["VA1","MD2"],label:"Ashburn–Largo"},
+];
+
+const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--gl)",silver:"var(--sl)",yellow:"var(--yl)"};
+const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
+
+// ═══════════════════════════
+// STATE
+// ═══════════════════════════
+let G={config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],started:false,gameCode:''};
+let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:'',gameCode:'',mode:''};
+let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
+let setupTeams=[{name:'Team 1',color:PAL[0]},{name:'Team 2',color:PAL[1]},{name:'Team 3',color:PAL[2]}];
+const _seenCurseIds=new Set(); // tracks curse IDs we've already alerted locally
+
+function saveL(){try{localStorage.setItem('bfw5L',JSON.stringify(LS));}catch(e){}}
+function loadL(){try{const d=localStorage.getItem('bfw5L');if(d)LS={...LS,...JSON.parse(d)};}catch(e){}}
+
+// ═══════════════════════════
+// SCREENS
+// ═══════════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ═══════════════════════════
+// HOST SETUP
+// ═══════════════════════════
+function renderTeamSetup(){
+  const list=document.getElementById('teamSetupList');list.innerHTML='';
+  setupTeams.forEach((team,i)=>{
+    const row=document.createElement('div');row.className='team-setup-row';
+    row.innerHTML=`<div class="tcd" style="background:${team.color}" onclick="openCP(${i},this)"></div><input type="text" value="${esc(team.name)}" oninput="setupTeams[${i}].name=this.value" style="margin:0" placeholder="Team name">${setupTeams.length>2?`<button class="btn btn-g btn-xs" onclick="rmTeam(${i})">✕</button>`:'<div></div>'}`;
+    list.appendChild(row);
+  });
+}
+function addTeam(){if(setupTeams.length>=8)return;setupTeams.push({name:`Team ${setupTeams.length+1}`,color:PAL[setupTeams.length%PAL.length]});renderTeamSetup();}
+function rmTeam(i){if(setupTeams.length<=2)return;setupTeams.splice(i,1);renderTeamSetup();}
+
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+
+async function createGame(){
+  const hn=document.getElementById('hostName').value.trim();
+  const fu=document.getElementById('hostFbUrl').value.trim().replace(/\/$/,'');
+  if(!hn){alert('Enter your name.');return;}
+  if(!fu){alert('Enter your Firebase URL.');return;}
+  LS.fbUrl=fu;LS.isHost=true;LS.playerName=hn;LS.playerId='host_'+Date.now();LS.mode='host';
+  const code=genCode();LS.gameCode=code;
+  G.gameCode=code;G.teams=setupTeams.map(t=>({...t}));
+  G.config={start:document.getElementById('cfgStart').value,end:document.getElementById('cfgEnd').value,lunchStart:document.getElementById('cfgLunchStart').value,lunchEnd:document.getElementById('cfgLunchEnd').value,score:document.getElementById('cfgScore').value};
+  G.players={};G.players[LS.playerId]={name:hn,teamIdx:-1,isHost:true};
+  G.started=false;G.zones={};G.curses=[];G.locs={};G.gpsLocs={};G.log=[];
+  const ok=await pushState();
+  if(!ok){alert('Could not connect to Firebase. Check your URL.');return;}
+  saveL();document.getElementById('lobbyCode').textContent=code;renderLobby();showScreen('screenLobby');startPoll();
+}
+
+// ═══════════════════════════
+// JOIN
+// ═══════════════════════════
+async function joinGame(){
+  const name=document.getElementById('joinName').value.trim();
+  const code=document.getElementById('joinCode').value.trim().toUpperCase();
+  if(!name){alert('Enter your name.');return;}
+  if(code.length!==5){alert('Enter the 5-character game code.');return;}
+  let fu=LS.fbUrl||'';
+  if(!fu){fu=prompt('First time joining?\nPaste the Firebase URL from your host:\n(e.g. https://your-project-default-rtdb.firebaseio.com)');if(!fu)return;fu=fu.trim().replace(/\/$/,'');}
+  LS.fbUrl=fu;LS.gameCode=code;LS.playerName=name;LS.playerId='p_'+Date.now();LS.isHost=false;LS.mode='player';
+  const state=await fetchState(fu,code);
+  if(!state){alert('Game not found. Check the code and try again.');return;}
+  G={...state};if(!G.gpsLocs)G.gpsLocs={};
+  G.players[LS.playerId]={name,teamIdx:-1,isHost:false};
+  await pushState();saveL();showScreen('screenWaiting');startPoll();
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+
+// ═══════════════════════════
+// FIREBASE
+// ═══════════════════════════
+async function pushState(){
+  if(!LS.fbUrl||!LS.gameCode)return false;
+  try{const r=await fetch(`${LS.fbUrl}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...G,_ts:Date.now()})});return r.ok;}catch(e){return false;}
+}
+async function fetchState(fu,code){
+  try{const r=await fetch(`${fu}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return rest;}catch(e){return null;}
+}
+function startPoll(){if(pollIv)clearInterval(pollIv);pollIv=setInterval(poll,4000);}
+async function poll(){
+  if(!LS.fbUrl||!LS.gameCode)return;
+  try{
+    const r=await fetch(`${LS.fbUrl}/games/${LS.gameCode}.json`);if(!r.ok)return;
+    const d=await r.json();if(!d||d._ts===lastTs)return;lastTs=d._ts;
+    const prevStarted=G.started,prevLogLen=G.log?G.log.length:0;
+    const{_ts,...rest}=d;G={...rest};if(!G.gpsLocs)G.gpsLocs={};
+    // Check team assignment
+    if(LS.mode==='player'&&G.players[LS.playerId]){
+      const ti=G.players[LS.playerId].teamIdx;
+      if(ti>=0&&ti!==LS.myTeamIdx){
+        LS.myTeamIdx=ti;saveL();
+        const tn=G.teams[ti]?.name||'';
+        document.getElementById('waitingTeam').style.display='block';
+        document.getElementById('waitingTeamName').textContent=tn;
+        document.getElementById('waitingTeamName').style.color=G.teams[ti]?.color||'var(--accent)';
+        showNotif(`You're on ${tn}!`);
+      }
+    }
+    if(!prevStarted&&G.started){enterApp();showNotif('⚡ Game started! Get moving!');sendPN('Battle for Washington','The game has started!');}
+    if(G.ended&&document.getElementById('finalScoresMo')&&!document.getElementById('finalScoresMo').classList.contains('open')){showFinalScores();}
+    // Show curse alert ONLY to the targeted team
+    if(G.curses&&prevStarted){
+      G.curses.forEach(c=>{
+        if(!c.active)return;
+        if(_seenCurseIds.has(c.id))return;
+        _seenCurseIds.add(c.id);
+        // Only alert if I am on the targeted team
+        if(c.target!==null&&c.target===LS.myTeamIdx){
+          const cn=G.teams[c.caster]?.name||'?';
+          const tn=G.teams[c.target]?.name||'your team';
+          showCurseAlert(c.item,cn,tn,c.type,c.notes);
+          sendPN('⚠️ Curse Activated',`${cn} used ${c.item} on your team!`);
+          // If it's a locate curse, immediately start sending GPS
+          if(c.type==='locate'&&navigator.geolocation){
+            navigator.geolocation.getCurrentPosition(pos=>{pushGps(pos.coords.latitude,pos.coords.longitude);},{enableHighAccuracy:true,timeout:10000});
+          }
+        }
+      });
+    }
+    if(G.log&&G.log.length>prevLogLen&&prevStarted){const newest=G.log[0];if(newest)sendPN('BFW Update',newest.text.replace(/<[^>]+>/g,''));}
+    updateUI();
+  }catch(e){}
+}
+async function pushGps(lat,lng){if(!LS.fbUrl||!LS.gameCode)return;fetch(`${LS.fbUrl}/games/${LS.gameCode}/gpsLocs/${LS.playerId}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat,lng,t:Date.now(),teamIdx:LS.myTeamIdx})}).catch(()=>{});}
+
+// ═══════════════════════════
+// LOBBY
+// ═══════════════════════════
+function renderLobby(){
+  const plist=document.getElementById('lobbyPlayerList'),players=Object.entries(G.players||{});
+  if(!players.length){plist.innerHTML='<div class="empty">Waiting for players to join…</div>';}
+  else plist.innerHTML=players.map(([pid,p])=>{
+    const t=p.teamIdx>=0?G.teams[p.teamIdx]:null;
+    return `<div class="player-card"><div><div class="player-name">${esc(p.name)}${p.isHost?' <span style="font-size:10px;color:var(--muted)">(host)</span>':''}</div>${t?`<div style="font-size:11px;font-weight:700;color:${t.color}">${esc(t.name)}</div>`:'<div style="font-size:11px;color:var(--muted)">Unassigned</div>'}</div>${LS.isHost?`<select class="team-assign-sel" onchange="assignPlayer('${pid}',this.value)"><option value="">Assign…</option>${G.teams.map((tt,i)=>`<option value="${i}"${p.teamIdx===i?' selected':''}>${esc(tt.name)}</option>`).join('')}</select>`:''}</div>`;
+  }).join('');
+  const tlist=document.getElementById('lobbyTeamList');
+  tlist.innerHTML=G.teams.map((team,i)=>{
+    const members=Object.values(G.players||{}).filter(p=>p.teamIdx===i);
+    return `<div class="player-card"><div style="display:flex;align-items:center;gap:9px"><div style="width:12px;height:12px;border-radius:50%;background:${team.color}"></div><div><div style="font-weight:700;font-size:13px">${esc(team.name)}</div><div style="font-size:11px;color:var(--muted)">${members.length?members.map(p=>esc(p.name)).join(', '):'No members yet'}</div></div></div></div>`;
+  }).join('');
+}
+async function assignPlayer(pid,ti){
+  const idx=parseInt(ti);
+  G.players[pid].teamIdx=idx;
+  // If host is assigning themselves, update local team index too
+  if(pid===LS.playerId){LS.myTeamIdx=idx;saveL();}
+  await pushState();renderLobby();
+}
+async function startGame(){G.started=true;logEv('🚀 Game started! Good luck to all teams.');await pushState();enterApp();sendPN('Battle for Washington','The game has started! Get moving.');}
+function copyCode(){navigator.clipboard.writeText(LS.gameCode).then(()=>showNotif('Code copied!')).catch(()=>{});}
+
+// ═══════════════════════════
+// ENTER APP
+// ═══════════════════════════
+function enterApp(){
+  showScreen('screenApp');updateMyTeamBadge();
+  document.getElementById('locHint').textContent=LS.isHost?'Tap a team card to update their location.':'Tap your team card to report your location.';
+  document.getElementById('shopForm').style.display='block'; // all players see shop
+  document.getElementById('endGameSection').style.display=LS.isHost?'block':'none';
+  renderAll();
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  startGpsWatch();
+}
+function updateMyTeamBadge(){
+  const b=document.getElementById('myTeamBadge');
+  if(!b)return;
+  if(LS.myTeamIdx>=0&&G.teams[LS.myTeamIdx]){const t=G.teams[LS.myTeamIdx];b.textContent=t.name;b.style.background=t.color;b.style.display='inline-block';}
+  else b.style.display='none';
+}
+
+// ═══════════════════════════
+// CLOCK
+// ═══════════════════════════
+function updateClock(){
+  const now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),p=n=>String(n).padStart(2,'0');
+  const el=document.getElementById('gclock');if(!el)return;
+  el.textContent=`${p(h)}:${p(m)}:${p(s)}`;
+  const cfg=G.config||{},pill=document.getElementById('gspill');if(!pill)return;
+  const toM=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b;};
+  const n=h*60+m,gs=toM(cfg.start),ge=toM(cfg.end),ls=toM(cfg.lunchStart),le=toM(cfg.lunchEnd),sc=toM(cfg.score);
+  if(!G.started){pill.className='gpill';pill.textContent='Lobby';}
+  else if(n<gs){pill.className='gpill';pill.textContent='Waiting';}
+  else if(n>=gs&&n<ls){pill.className='gpill live';pill.textContent='Live';}
+  else if(n>=ls&&n<le){pill.className='gpill lunch';pill.textContent='Lunch';}
+  else if(n>=le&&n<sc){pill.className='gpill live';pill.textContent='Live';}
+  else if(n>=sc&&n<ge){pill.className='gpill ended';pill.textContent='Scoring';}
+  else{pill.className='gpill ended';pill.textContent='Ended';}
+  el.className='clock'+(pill.textContent==='Lunch'?' lunch':pill.textContent.match(/Scoring|Ended/)?' ended':'');
+}
+setInterval(updateClock,1000);updateClock();
+
+// ═══════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════
+function showNotif(msg,dur=3500){const b=document.getElementById('notifBanner');b.textContent=msg;b.classList.add('show');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),dur);}
+function sendPN(title,body){if('Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body,icon:'./icon-192.png'});}catch(e){}}}
+
+// ═══════════════════════════
+// GPS
+// ═══════════════════════════
+let gpsIv=null;
+function startGpsWatch(){
+  if(gpsIv)return;
+  gpsIv=setInterval(()=>{
+    const locCurse=G.curses&&G.curses.find(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now());
+    if(locCurse&&navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{pushGps(pos.coords.latitude,pos.coords.longitude);},{enableHighAccuracy:true,timeout:8000});}
+  },30000);
+}
+
+// ═══════════════════════════
+// STATUS
+// ═══════════════════════════
+function renderStatus(){
+  const g=document.getElementById('sg');if(!g)return;g.innerHTML='';
+  const sc=computeScores();
+  G.teams.forEach((team,i)=>{
+    const loc=G.locs&&G.locs[i],zone=loc?ZONES.find(z=>z.code===loc.zone):null;
+    const mins=loc?Math.floor((Date.now()-loc.time)/60000):null,stale=mins!==null&&mins>15;
+    const hasGps=G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===i);
+    const isMine=LS.myTeamIdx===i,sc2=sc[i];
+    const card=document.createElement('div');card.className='tsc';
+    card.onclick=()=>{if(LS.isHost||isMine)openLocMo(i);};
+    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:10px 10px 0 0"></div>
+      <div class="tsn" style="color:${team.color}">${esc(team.name)}</div>
+      <div class="tsl2"><div class="${stale?'sdd':'pd'}"></div>${zone?`<span class="lname">${zone.code} — ${zone.name}</span>`:'<span style="color:var(--muted)">Unknown</span>'}</div>
+      ${loc&&loc.notes?`<div style="font-size:11px;color:var(--muted);margin-bottom:3px">${esc(loc.notes)}</div>`:''}
+      <div class="tst">${mins===null?'No check-in':mins===0?'Just now':`${mins}m ago`}</div>
+      ${hasGps?`<div style="font-size:10px;color:var(--green);margin-top:3px">📡 GPS active</div>`:''}
+      <div class="tss" style="margin-top:6px">${sc2.zones+sc2.bonuses} pts (${sc2.zones}z+${sc2.bonuses}b)</div>
+      ${isMine?`<div style="font-size:10px;color:var(--blue);margin-top:4px;font-weight:700">Your team · tap to update</div>`:''}`;
+    g.appendChild(card);
+  });
+}
+let locTI=null;
+function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.getElementById('locMoTitle').textContent=`Update — ${G.teams[i]?.name}`;const sel=document.getElementById('locZSel');sel.innerHTML=ZONES.map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');const cur=G.locs&&G.locs[i];if(cur){sel.value=cur.zone;document.getElementById('locNotes').value=cur.notes||'';}else document.getElementById('locNotes').value='';document.getElementById('locMo').classList.add('open');}
+function closeLocMo(){document.getElementById('locMo').classList.remove('open');locTI=null;}
+async function submitLoc(){if(locTI===null)return;const zone=document.getElementById('locZSel').value,notes=document.getElementById('locNotes').value.trim();if(!G.locs)G.locs={};G.locs[locTI]={zone,notes,time:Date.now()};const zn=ZONES.find(z=>z.code===zone)?.name||zone;logEv(`📍 <b>${esc(G.teams[locTI]?.name)}</b> → <b>${zone} ${zn}</b>${notes?` (${esc(notes)})`:''}`,false);await pushState();renderStatus();renderMapColors();closeLocMo();}
+
+// ═══════════════════════════
+// SCORES
+// ═══════════════════════════
+function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
+function computeScores(){
+  const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
+  ZONES.forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=z.area;}});
+  let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=2;
+  LINE_BONUSES.forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
+  return sc;
+}
+function renderScores(){
+  const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses),rk=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t),ro={};rk.forEach((r,p)=>ro[r.i]=p+1);
+  const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
+  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:10px 10px 0 0"></div><div class="tsrk">#${ro[i]}</div><div class="tsn2">${esc(team.name)}</div><div class="bsc" style="color:${team.color}">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div>`;g.appendChild(card);});
+  const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
+  const as=G.teams.map((_,i)=>{let a=0;ZONES.forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
+  const aw2=as.indexOf(Math.max(...as,0));
+  tbody.innerHTML=`<tr><td><b>Area Bonus</b></td><td>2 pts</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area</td></tr>`+
+  LINE_BONUSES.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join('');
+}
+
+// ═══════════════════════════
+// MAP
+// ═══════════════════════════
+function initMap(){
+  if(mapReady)return;mapReady=true;
+  const el=document.getElementById('mapEl');if(!el)return;
+  bfwMap=L.map('mapEl',{center:[38.920,-77.040],zoom:10,zoomControl:true,attributionControl:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.6}).addTo(bfwMap);
+  Object.entries(MLINES).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{L.polyline(path,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
+  ZONES.forEach(z=>{
+    const poly=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,interactive:true});
+    const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]),clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
+    L.marker([clat,clng],{icon:L.divIcon({className:'',html:`<div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:rgba(30,40,80,.55);text-shadow:0 1px 2px rgba(255,255,255,.9);pointer-events:none;white-space:nowrap">${z.code}</div>`,iconAnchor:[14,8]}),interactive:false}).addTo(bfwMap);
+    poly.on('click',()=>{if(canDeposit())openDep(z.code);});
+    poly.on('mouseover',()=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);poly.bindTooltip(`<b>${z.code} — ${z.name}</b>${l>=0&&G.teams[l]?` · ${G.teams[l].name} leads (${deps[l]||0})`:''}`,{className:'zt',sticky:true}).openTooltip();});
+    poly.on('mouseout',()=>poly.unbindTooltip());
+    poly.addTo(bfwMap);zPolys[z.code]=poly;
+  });
+  renderMapColors();renderMZL();
+}
+function renderMapColors(){
+  if(!mapReady)return;
+  ZONES.forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
+  renderMZL();updateLocateMarkers();
+}
+function updateLocateMarkers(){
+  if(!mapReady||!bfwMap)return;
+  G.teams.forEach((_,i)=>{
+    const curse=G.curses&&G.curses.find(c=>c.active&&c.type==='locate'&&c.target===i&&c.expiresAt&&c.expiresAt>Date.now());
+    const gps=G.gpsLocs&&Object.values(G.gpsLocs).find(g=>g.teamIdx===i);
+    if(curse&&gps&&gps.lat&&gps.lng){
+      const color=G.teams[i]?.color||'#2563eb';
+      if(locMarkers[i])locMarkers[i].setLatLng([gps.lat,gps.lng]);
+      else{const icon=L.divIcon({className:'',html:`<div class="loc-pulse" style="background:${color}"></div>`,iconSize:[16,16],iconAnchor:[8,8]});locMarkers[i]=L.marker([gps.lat,gps.lng],{icon,zIndexOffset:1000}).addTo(bfwMap);locMarkers[i].bindTooltip(`📡 ${G.teams[i]?.name||'?'}`,{className:'zt'});}
+    } else if(locMarkers[i]){locMarkers[i].remove();delete locMarkers[i];}
+  });
+}
+function renderMZL(){
+  const el=document.getElementById('mzlInner');if(!el)return;
+  el.innerHTML=ZONES.map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span></div>`;}).join('');
+}
+
+// ═══════════════════════════
+// ZONES LIST
+// ═══════════════════════════
+function renderZones(){
+  const con=document.getElementById('zoneContainer');if(!con)return;con.innerHTML='';
+  ['DC','VA','MD'].forEach(region=>{
+    const hdr=document.createElement('div');hdr.className='zone-region-header';hdr.textContent=region==='DC'?'District of Columbia':region==='VA'?'Virginia':'Maryland';con.appendChild(hdr);
+    const grid=document.createElement('div');grid.className='zone-list-grid';
+    ZONES.filter(z=>z.region===region).forEach(z=>{
+      const deps=G.zones&&G.zones[z.code]||{},leader=getL(deps);
+      const card=document.createElement('div');card.className='zone-card'+(leader>=0?' controlled':'');
+      if(leader>=0&&G.teams[leader])card.style.borderLeftColor=G.teams[leader].color;
+      card.onclick=()=>{if(canDeposit())openDep(z.code);};
+      const chips=G.teams.map((t,i)=>{const v=deps[i]||0;if(!v)return '';return `<div class="chip"><div class="chip-dot" style="background:${t.color}"></div>${v}</div>`;}).join('');
+      const lineDots=z.lines.map(l=>`<div class="line-dot" style="background:${LCOLORS[l]}" title="${l}"></div>`).join('');
+      card.innerHTML=`<div class="zone-top"><span class="zone-code">${z.code}</span><span class="zone-name-t">${z.name}</span><span class="zone-area">${z.area} mi²</span></div><div class="zone-chips">${chips||'<span class="unclaimed">unclaimed</span>'}</div>${lineDots?`<div class="line-dots">${lineDots}</div>`:''}`;
+      grid.appendChild(card);
+    });
+    con.appendChild(grid);
+  });
+}
+
+// ═══════════════════════════
+// DEPOSIT
+// ═══════════════════════════
+function canDeposit(){return G.started&&(LS.isHost||LS.myTeamIdx>=0);}
+let curZone=null;
+function openDep(code){
+  if(!canDeposit())return;curZone=code;
+  const z=ZONES.find(z=>z.code===code);
+  document.getElementById('dmTitle').textContent=`${z.code} — ${z.name}`;
+  document.getElementById('dmMeta').textContent=`${z.area} mi² · ${z.stops}`;
+  const deps=G.zones&&G.zones[code]||{};
+  const show=LS.isHost?G.teams.map((t,i)=>({t,i})):[{t:G.teams[LS.myTeamIdx],i:LS.myTeamIdx}];
+  document.getElementById('dmRows').innerHTML=show.filter(({t})=>t).map(({t,i})=>`<div class="dr"><div class="drl"><div class="dd" style="background:${t.color}"></div>${esc(t.name)}<span class="ev">(${deps[i]||0})</span></div><input type="number" id="dep_${i}" min="0" max="200" value="0"></div>`).join('');
+  document.getElementById('depMo').classList.add('open');
+}
+function closeDep(){document.getElementById('depMo').classList.remove('open');curZone=null;}
+async function submitDep(){
+  if(!curZone)return;const z=ZONES.find(z=>z.code===curZone);
+  if(!G.zones)G.zones={};if(!G.zones[curZone])G.zones[curZone]={};
+  let any=false;const tis=LS.isHost?G.teams.map((_,i)=>i):[LS.myTeamIdx];
+  tis.forEach(i=>{const inp=document.getElementById(`dep_${i}`);if(!inp)return;const v=parseInt(inp.value)||0;if(v>0){G.zones[curZone][i]=(parseInt(G.zones[curZone][i])||0)+v;const tot=G.zones[curZone][i],l=getL(G.zones[curZone]);if(!G.locs)G.locs={};G.locs[i]={zone:curZone,notes:'',time:Date.now()};logEv(`<b>${esc(G.teams[i]?.name)}</b> deposited <b>${v}</b> in <b>${z.code} ${z.name}</b> — total ${tot}${l===i?' 🏳️':''}`);any=true;}});
+  if(any){await pushState();renderAll();}closeDep();
+}
+
+// ═══════════════════════════
+// SHOP
+// ═══════════════════════════
+function populateShopSelects(){
+  ['cCaster','cTarget'].forEach(id=>{const sel=document.getElementById(id);if(!sel)return;const isT=id==='cTarget';sel.innerHTML=isT?'<option value="">— none —</option>':'';G.teams.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t.name;sel.appendChild(o);});});
+  onItemChange();
+}
+function onItemChange(){const val=document.getElementById('cItem')?.value||'',p=val.split('|'),dur=parseInt(p[1])||0,type=p[2]||'';const el=document.getElementById('cDurNote');if(!el)return;el.textContent=type==='locate'?'📡 Automatically tracks target GPS on the map':dur>0?`⏱ Active for ${dur} min`:'⚡ Instant effect';}
+async function addCurse(){
+  const val=document.getElementById('cItem').value,[item,durStr,type]=val.split('|'),dur=parseInt(durStr)||0;
+  const caster=parseInt(document.getElementById('cCaster').value),tEl=document.getElementById('cTarget'),target=tEl.value!==''?parseInt(tEl.value):null;
+  const notes=document.getElementById('cNotes').value.trim(),now=Date.now();
+  if(!G.curses)G.curses=[];
+  G.curses.push({id:now,item,notes,caster,target,type,expiresAt:dur>0?now+dur*60000:null,active:true});
+  const cn=G.teams[caster]?.name||'?',tn=target!==null?G.teams[target]?.name:null;
+  logEv(`🛒 <b>${esc(cn)}</b> used <b>${item}</b>${tn?` on <b>${esc(tn)}</b>`:''}${notes?` — ${esc(notes)}`:''}`);
+  document.getElementById('cNotes').value='';
+  await pushState();renderCurses();
+}
+
+function showCurseAlert(item,casterName,targetName,type,notes){
+  const isLocate=type==='locate';
+  document.getElementById('curseAlertIcon').textContent=isLocate?'📡':'⚠️';
+  document.getElementById('curseAlertTitle').textContent=isLocate?'YOU ARE BEING TRACKED':'CURSE ACTIVATED';
+  document.getElementById('curseAlertItem').textContent=item+(notes?` — ${notes}`:'');
+  document.getElementById('curseAlertBody').textContent=isLocate
+    ?`${casterName} has activated a Locate on your team. Your GPS location is being shared for 30 minutes.`
+    :`${casterName} has used ${item} on ${targetName||'your team'}.`;
+  const el=document.getElementById('curseAlertScreen');
+  el.style.display='flex';
+  // Vibrate if supported
+  if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);
+}
+
+function dismissCurseAlert(){
+  document.getElementById('curseAlertScreen').style.display='none';
+}
+async function dismissCurse(id){const c=G.curses&&G.curses.find(c=>c.id===id);if(c)c.active=false;await pushState();renderCurses();}
+function renderCurses(){
+  if(G.curses)G.curses.forEach(c=>{if(c.active&&c.expiresAt&&c.expiresAt<=Date.now())c.active=false;});
+  const active=(G.curses||[]).filter(c=>c.active);
+  const cl=document.getElementById('cl');if(!cl)return;
+  const lb=document.getElementById('locBanners');
+  if(lb){const mine=active.filter(c=>c.type==='locate'&&c.target===LS.myTeamIdx);lb.innerHTML=mine.length?`<div class="loc-banner">📡 <b>Your team is being tracked!</b> Your GPS is being shared automatically for the duration of the Locate curse.</div>`:'';}
+  if(!active.length){cl.innerHTML='<div class="empty">No active effects</div>';updateLocateMarkers();return;}
+  cl.innerHTML=active.map(c=>{
+    const cc=G.teams[c.caster]?.color||'var(--accent)',tc=c.target!==null?G.teams[c.target]?.color:null;
+    let timer='';if(c.expiresAt){const rem=Math.max(0,c.expiresAt-Date.now()),mm=Math.floor(rem/60000),ss=Math.floor((rem%60000)/1000);timer=rem>0?`${mm}:${String(ss).padStart(2,'0')}`:'EXPIRED';}
+    const hasGps=c.type==='locate'&&c.target!==null&&G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===c.target);
+    return `<div class="cc"><div><h4>${esc(c.item)}${c.notes?` <span style="font-weight:400;color:var(--muted)">— ${esc(c.notes)}</span>`:''}</h4><p>By <b style="color:${cc}">${esc(G.teams[c.caster]?.name||'?')}</b>${c.target!==null?` → <b style="color:${tc}">${esc(G.teams[c.target]?.name||'?')}</b>`:''}</p>${hasGps?`<p style="color:var(--green);font-size:11px;margin-top:2px">📡 GPS active — visible on map</p>`:''} ${LS.isHost?`<span class="cdism" onclick="dismissCurse(${c.id})">dismiss</span>`:''}</div>${timer?`<div class="ctmr${timer==='EXPIRED'?' exp':''}">${timer}</div>`:''}</div>`;
+  }).join('');
+  updateLocateMarkers();
+}
+setInterval(()=>renderCurses(),10000);
+
+function returnToHome(){
+  // Stop polling
+  if(pollIv){clearInterval(pollIv);pollIv=null;}
+  if(gpsIv){clearInterval(gpsIv);gpsIv=null;}
+  // Clear local session
+  LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:'',gameCode:'',mode:''};
+  try{localStorage.removeItem('bfw5L');}catch(e){}
+  // Reset game state
+  G={config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],started:false,gameCode:''};
+  // Reset map so it reinitialises next time
+  if(bfwMap){bfwMap.remove();bfwMap=null;}
+  mapReady=false;zPolys={};locMarkers={};
+  // Close modal and go home
+  document.getElementById('finalScoresMo').classList.remove('open');
+  // Reset join form
+  document.getElementById('joinName').value='';
+  document.getElementById('joinCode').value='';
+  showScreen('screenJoin');
+}
+
+function confirmEndGame(){document.getElementById('endGameMo').classList.add('open');}
+
+async function endGame(){
+  document.getElementById('endGameMo').classList.remove('open');
+  G.ended=true;G.started=false;
+  logEv('🏁 Game ended! Final scores locked.');
+  await pushState();
+  showFinalScores();
+  sendPN('Battle for Washington','The game has ended! Check the final scores.');
+}
+
+function showFinalScores(){
+  const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses);
+  const ranked=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t);
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('finalScoresList').innerHTML=ranked.map((r,pos)=>{
+    const team=G.teams[r.i],s=sc[r.i];
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:${pos===0?'#fef9c3':pos===1?'#f1f5f9':pos===2?'#fdf4ff':'var(--surface2)'};border-radius:10px;margin-bottom:8px;border:1px solid var(--border);">
+      <div style="font-size:24px;width:32px;text-align:center">${medals[pos]||pos+1}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:15px;color:${team.color}">${esc(team.name)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${s.zones} zones · ${s.bonuses} bonus pts</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:${team.color}">${r.t}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('finalScoresMo').classList.add('open');
+}
+
+// ═══════════════════════════
+// ═══════════════════════════
+function logEv(text,show=true){const now=new Date(),p=n=>String(n).padStart(2,'0');if(!G.log)G.log=[];G.log.unshift({time:`${p(now.getHours())}:${p(now.getMinutes())}`,text});if(G.log.length>300)G.log.pop();if(show)renderLog();}
+function renderLog(){const ll=document.getElementById('ll');if(!ll)return;if(!G.log||!G.log.length){ll.innerHTML='<div class="empty">No events yet</div>';return;}ll.innerHTML=G.log.map(e=>`<div class="le"><div class="lt">${e.time}</div><div>${e.text}</div></div>`).join('');}
+
+// ═══════════════════════════
+// TABS
+// ═══════════════════════════
+const TABS=['status','scores','map','zones','shop','log'];
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',TABS[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===`panel-${name}`));
+  if(name==='map'){
+    // Calculate header+tabs height for map offset
+    const hdr=document.querySelector('header');
+    const tabs=document.getElementById('mainTabs');  
+    const offset=(hdr?hdr.offsetHeight:44)+(tabs?tabs.offsetHeight:44);
+    const wrap=document.getElementById('mapWrap');
+    if(wrap)wrap.style.top=offset+'px';
+    setTimeout(()=>{
+      if(!mapReady){initMap();}
+      else if(bfwMap){bfwMap.invalidateSize();renderMapColors();}
+      updateLocateMarkers();
+    },100);
+  }
+  if(name==='status')renderStatus();if(name==='scores')renderScores();
+  if(name==='zones')renderZones();if(name==='shop'){populateShopSelects();renderCurses();}
+  if(name==='log')renderLog();
+}
+
+// ═══════════════════════════
+// UPDATE UI
+// ═══════════════════════════
+function updateUI(){
+  updateClock();updateMyTeamBadge();
+  const at=document.querySelector('.tab.active');
+  if(at){const tn=TABS[Array.from(document.querySelectorAll('.tab')).indexOf(at)];if(tn==='status')renderStatus();else if(tn==='scores')renderScores();else if(tn==='map')renderMapColors();else if(tn==='zones')renderZones();else if(tn==='shop')renderCurses();else if(tn==='log')renderLog();}
+  if(document.getElementById('screenLobby').classList.contains('active'))renderLobby();
+  if(document.getElementById('screenWaiting').classList.contains('active')&&G.started)enterApp();
+}
+function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();populateShopSelects();renderCurses();renderLog();}
+
+// ═══════════════════════════
+// COLOUR PICKER
+// ═══════════════════════════
+let cpTgt=null;
+function openCP(i,el){cpTgt=i;const pop=document.getElementById('cpp'),sw=document.getElementById('cpr');sw.innerHTML=PAL.map(c=>`<div class="csw${setupTeams[i]?.color===c?' sel':''}" style="background:${c}" onclick="pickC('${c}')"></div>`).join('');const r=el.getBoundingClientRect();pop.style.top=(r.bottom+6)+'px';pop.style.left=r.left+'px';pop.style.display='block';setTimeout(()=>document.addEventListener('click',closeCP,{once:true}),50);}
+function pickC(c){if(cpTgt!==null){setupTeams[cpTgt].color=c;renderTeamSetup();}document.getElementById('cpp').style.display='none';cpTgt=null;}
+function closeCP(){document.getElementById('cpp').style.display='none';cpTgt=null;}
+
+// ═══════════════════════════
+// UTILS
+// ═══════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+['depMo','locMo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',e=>{if(e.target===el){if(id==='depMo')closeDep();else closeLocMo();}});});
+
+// ═══════════════════════════
+
+// INIT
+// ═══════════════════════════
+loadL();
+renderTeamSetup();
+// Restore previous session only if we have valid credentials
+if(LS.fbUrl&&LS.gameCode&&LS.playerId){
+  fetchState(LS.fbUrl,LS.gameCode).then(state=>{
+    if(state&&(state.started||Object.keys(state.players||{}).length>0)){
+      G={...state};if(!G.gpsLocs)G.gpsLocs={};
+      if(G.started)enterApp();
+      else if(LS.isHost){document.getElementById('lobbyCode').textContent=LS.gameCode;renderLobby();showScreen('screenLobby');}
+      else showScreen('screenWaiting');
+      startPoll();
+    } else {
+      // Stale session — clear it and stay on join screen
+      LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:'',gameCode:'',mode:''};
+      try{localStorage.removeItem('bfw5L');}catch(e){}
+    }
+  }).catch(()=>{
+    // Can't reach Firebase — clear session and stay on join screen
+    LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:'',gameCode:'',mode:''};
+    try{localStorage.removeItem('bfw5L');}catch(e){}
+  });
+}
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
