@@ -27,7 +27,7 @@
   --rl:#e63946;--bl:#2563eb;--ol:#d97706;--gl:#059669;--sl:#8890b0;--yl:#f4a636;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
 .screen{display:none;min-height:100vh;}
 .screen.active{display:flex;flex-direction:column;}
 
@@ -762,7 +762,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.49';
+const APP_VERSION='1.50';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 
@@ -3364,6 +3364,10 @@ function renderRules(){
 // ── TABS ──────────────────────────────────────────────────────────────────────
 const TABS=['rules','scores','map','zones','flop','shop','log','status'];
 function switchTab(name){
+  // Scroll to 0 BEFORE switching panels so Chrome scroll anchoring
+  // has nothing to anchor to when the old panel content disappears
+  window.scrollTo(0,0);
+  document.documentElement.scrollTop=0;
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));
   if(name==='map'){
@@ -3379,9 +3383,8 @@ function switchTab(name){
   if(name==='flop'){initFlop().then(()=>renderFlop());}
   if(name==='shop'){renderShopItems();renderCurses();}
   if(name==='log'){renderLog();renderChat();}
-  // Scroll to document top. Sticky header/tabs sit above content, so there's
-  // nothing above scrollY=0 — user can't scroll into white space above the panel.
-  requestAnimationFrame(()=>window.scrollTo(0,0));
+  // Second scroll reset after render completes — belt and suspenders
+  window.scrollTo(0,0);
 }
 
 function updateUI(){
