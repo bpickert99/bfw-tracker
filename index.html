@@ -340,30 +340,21 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <div id="cfgMapCustomSection" style="display:none;">
-      <label style="font-size:12px;color:var(--muted);">City or Neighborhood</label>
+      <label style="font-size:12px;color:var(--muted);">City or Play Area</label>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="cfgCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
         <button class="btn btn-g btn-sm" onclick="searchCity()" id="citySearchBtn">Search</button>
       </div>
       <div id="cfgCityResults" style="margin-bottom:8px;"></div>
 
-      <div id="cfgCorridorSection" style="display:none;">
-        <label style="font-size:12px;color:var(--muted);">Game Corridor / Spine</label>
-        <p style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;">Select a street, transit route, or draw the main axis of your game. Zones will extend outward from this corridor.</p>
-        <select id="cfgCorridorSel" style="margin-bottom:8px;">
-          <option value="">— Select a transit route or street —</option>
-        </select>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">or enter a street name manually:</div>
-        <input type="text" id="cfgCorridorManual" placeholder="e.g. Main Street, Massachusetts Ave" style="margin-bottom:8px;">
-
-        <label style="font-size:12px;color:var(--muted);">Zone Radius (each side of corridor)</label>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <input type="range" id="cfgZoneRadius" min="1" max="10" value="3" style="flex:1;margin:0;" oninput="document.getElementById('cfgZoneRadiusVal').textContent=this.value+' blocks (~'+(this.value*80)+'m)'">
-          <span id="cfgZoneRadiusVal" style="font-size:12px;color:var(--muted);white-space:nowrap;min-width:120px;">3 blocks (~240m)</span>
+      <div id="cfgZoneSection" style="display:none;">
+        <div id="cfgZoneStatus" style="font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface2);margin-bottom:10px;line-height:1.5;"></div>
+        <label style="font-size:12px;color:var(--muted);">Zones — tap to include or exclude</label>
+        <div id="cfgZoneCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span id="cfgZoneCount" style="font-size:12px;color:var(--muted);"></span>
+          <button class="btn btn-g btn-xs" onclick="resetZoneSelection()">Reset</button>
         </div>
-
-        <button class="btn btn-p btn-sm" style="width:100%;margin-bottom:8px;" onclick="generateZones()" id="generateZonesBtn">Generate Zones</button>
-        <div id="cfgZonePreview" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;"></div>
       </div>
     </div>
 
@@ -503,8 +494,8 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="panel" id="panel-map">
     <div id="mapWrap">
       <div id="mapEl"></div>
-      <div class="mleg">
-        <h4>Metro Lines</h4>
+      <div class="mleg" id="mapLegend">
+        <h4 id="mapLegendTitle">Transit Lines</h4>
         <div class="lr"><div class="ll" style="background:var(--rl)"></div>Red</div>
         <div class="lr"><div class="ll" style="background:var(--bl)"></div>Blue</div>
         <div class="lr"><div class="ll" style="background:var(--ol)"></div>Orange</div>
@@ -512,7 +503,7 @@ input:focus,select:focus{border-color:var(--accent);}
         <div class="lr"><div class="ll" style="background:var(--yl)"></div>Yellow</div>
         <div class="lr"><div class="ll" style="background:var(--sl)"></div>Silver</div>
       </div>
-      <div class="mzl"><h4>Zones</h4><div id="mzlInner"></div></div>
+      <div class="mzl"><h4>Zones</h4><div id="mzlInner"></div><div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><button class="btn btn-g btn-xs" style="width:100%;" id="transitToggleBtn" onclick="toggleTransitLayer()">Show Transit Lines</button></div></div>
     </div>
   </div>
 
@@ -875,13 +866,18 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.64';
+const APP_VERSION='1.66';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
 // Current fresh GPS (updated by watchPosition)
 let _freshLat=null,_freshLng=null;
 // Hoisted declarations (prevent TDZ errors)
+let _cityData=null;
+let _osmRoutes=[];
+let _candidateZones=[];
+let _selectedZones=new Set();
+let _osmBbox=null;
 const POLL_SLOW = 15000;
 const POLL_FAST = 4000;
 let _currentPollInterval=POLL_SLOW;
@@ -1616,8 +1612,8 @@ const MLINE_PATHS = {
 // ── DYNAMIC MAP HELPERS ───────────────────────────────────────────
 // Falls back to hardcoded DC data when no custom map is configured.
 function getZones(){return(G.config&&G.config.map&&G.config.map.zones&&G.config.map.zones.length)?G.config.map.zones:ZONES;}
-function getTransitStops(){return(G.config&&G.config.map&&G.config.map.transitStops)?G.config.map.transitStops:METRO_STATIONS;}
-function getTransitLines(){return(G.config&&G.config.map&&G.config.map.transitLines)?G.config.map.transitLines:MLINES;}
+function getTransitStops(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitStops)||[];return METRO_STATIONS;}
+function getTransitLines(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitLines)||{};return MLINES;}
 function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:LINE_BONUSES;}
 function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
 function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
@@ -1840,181 +1836,341 @@ function toggleFlopFields(){
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
 // ═══════════════════════════════════════════════════════════════════
-// MAP & TRANSIT SETUP
+// MAP & TRANSIT SETUP — Neighborhood/Landmark Zone Builder
 // ═══════════════════════════════════════════════════════════════════
 
-let _cityData = null; // {name, lat, lng, boundingbox}
-let _osmRoutes = [];  // transit routes from OSM
+// _cityData etc hoisted — see top of script
 
+// ── Sutherland-Hodgman polygon clipping ──────────────────────────
+// Clips polygon `poly` to the half-plane defined by edge (a→b)
+function _clipEdge(poly, a, b){
+  if(!poly.length)return[];
+  const out=[];
+  const inside=p=>(b[0]-a[0])*(p[1]-a[1])>(b[1]-a[1])*(p[0]-a[0]);
+  const intersect=(p1,p2)=>{
+    const dc=[a[0]-b[0],a[1]-b[1]],dp=[p1[0]-p2[0],p1[1]-p2[1]];
+    const n1=a[0]*b[1]-a[1]*b[0],n2=p1[0]*p2[1]-p1[1]*p2[0];
+    const n3=1/(dc[0]*dp[1]-dc[1]*dp[0]);
+    return[(n1*dp[0]-n2*dc[0])*n3,(n1*dp[1]-n2*dc[1])*n3];
+  };
+  for(let i=0;i<poly.length;i++){
+    const curr=poly[i],prev=poly[(i+poly.length-1)%poly.length];
+    if(inside(curr)){
+      if(!inside(prev))out.push(intersect(prev,curr));
+      out.push(curr);
+    }else if(inside(prev)){
+      out.push(intersect(prev,curr));
+    }
+  }
+  return out;
+}
+
+function clipPolyToConvexBounds(poly, bounds){
+  // bounds = [[minLat,minLng],[maxLat,maxLng]]
+  const [s,w]=bounds[0],[n,e]=bounds[1];
+  const clipRect=[[s,w],[n,w],[n,e],[s,e]];
+  let result=poly.slice();
+  for(let i=0;i<clipRect.length;i++){
+    result=_clipEdge(result,clipRect[i],clipRect[(i+1)%clipRect.length]);
+    if(!result.length)return[];
+  }
+  return result;
+}
+
+// ── Simple point-in-polygon for containment check ────────────────
+function pointInPolyLL(lat,lng,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][1],yi=poly[i][0],xj=poly[j][1],yj=poly[j][0];
+    if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi))inside=!inside;
+  }
+  return inside;
+}
+
+// ── OSM helpers ───────────────────────────────────────────────────
+function _bboxStr(bb){
+  // OSM bounding box: [south,west,north,east]
+  if(Array.isArray(bb)&&bb.length===4)return bb[0]+','+bb[2]+','+bb[1]+','+bb[3];
+  return null;
+}
+
+async function _overpass(query){
+  const r=await fetch('https://overpass-api.de/api/interpreter',
+    {method:'POST',body:'data='+encodeURIComponent(query),
+     headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+  if(!r.ok)throw new Error('Overpass error '+r.status);
+  return r.json();
+}
+
+function _wayToCoords(el){
+  if(el.geometry&&el.geometry.length)return el.geometry.map(g=>[g.lat,g.lon]);
+  if(el.nodes&&window._osmNodeMap){
+    return el.nodes.map(id=>{const n=window._osmNodeMap[id];return n?[n.lat,n.lon]:null;}).filter(Boolean);
+  }
+  return [];
+}
+
+function _relationOuterCoords(rel){
+  // Get outer ring coords from a relation's members
+  const outers=(rel.members||[]).filter(m=>m.type==='way'&&m.role==='outer'&&m.geometry);
+  if(!outers.length){
+    // Try members without role
+    const ways=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry);
+    if(ways.length)return ways[0].geometry.map(g=>[g.lat,g.lon]);
+    return[];
+  }
+  // Chain outer rings
+  let chain=outers[0].geometry.map(g=>[g.lat,g.lon]);
+  return chain;
+}
+
+// ── Main zone building ────────────────────────────────────────────
 function onMapPresetChange(){
   const preset=document.getElementById('cfgMapPreset').value;
-  const customSec=document.getElementById('cfgMapCustomSection');
-  if(customSec)customSec.style.display=preset==='custom'?'block':'none';
+  const sec=document.getElementById('cfgMapCustomSection');
+  if(sec)sec.style.display=preset==='custom'?'block':'none';
 }
 
 function onTransitModeChange(){
   const mode=document.getElementById('cfgTransitMode').value;
   const typeSec=document.getElementById('cfgTransitTypesSection');
-  const note=document.getElementById('cfgTransitNote');
   if(typeSec)typeSec.style.display=(mode==='transit'||mode==='mixed')?'block':'none';
-  const notes={
-    walking:'Walking only — all transit curses disabled. Map radius ~1 mile.',
-    bike:'Bikes & scooters — deposit restriction near transit stops disabled.',
-    car:'Cars allowed — full city map. Transit curses may not apply.',
-    transit:'Public transit — metro/bus/streetcar curses active based on transit types selected.',
-    mixed:'Mixed — players choose their own movement. All curses available.'
-  };
-  if(note)note.innerHTML='\u2139\ufe0f <b>'+document.getElementById('cfgTransitMode').options[document.getElementById('cfgTransitMode').selectedIndex].text+'</b> — '+(notes[mode]||'');
 }
 
 async function searchCity(){
-  const query=document.getElementById('cfgCitySearch').value.trim();
-  if(!query)return;
+  const q=document.getElementById('cfgCitySearch').value.trim();
+  if(!q)return;
   const btn=document.getElementById('citySearchBtn');
-  const results=document.getElementById('cfgCityResults');
-  btn.textContent='Searching…';btn.disabled=true;
-  results.innerHTML='';
+  const res=document.getElementById('cfgCityResults');
+  btn.textContent='Searching…';btn.disabled=true;res.innerHTML='';
   try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(query),{headers:{'Accept-Language':'en'}});
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(q),
+      {headers:{'Accept-Language':'en','User-Agent':'BattleForWashington/1.0'}});
     const data=await r.json();
-    if(!data.length){results.innerHTML='<div style="font-size:12px;color:var(--muted);">No results found.</div>';return;}
-    results.innerHTML=data.map((item,i)=>`<div onclick="selectCity(${i})" data-idx="${i}" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--surface2)'">${esc(item.display_name)}</div>`).join('');
+    if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results.</div>';return;}
     window._nominatimResults=data;
-  }catch(e){results.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed. Check your connection.</div>';}
+    res.innerHTML=data.map((item,i)=>
+      '<div onclick="selectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+esc(item.display_name)+'</div>'
+    ).join('');
+  }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed.</div>';}
   btn.textContent='Search';btn.disabled=false;
 }
 
 async function selectCity(idx){
-  const item=window._nominatimResults[idx];
+  const item=window._nominatimResults&&window._nominatimResults[idx];
   if(!item)return;
-  _cityData={name:item.display_name,lat:parseFloat(item.lat),lng:parseFloat(item.lon),bb:item.boundingbox};
-  document.getElementById('cfgCityResults').innerHTML=`<div style="padding:8px 10px;border-radius:8px;font-size:12px;border:2px solid var(--accent);background:var(--surface2);">\u2713 ${esc(item.display_name)}</div>`;
-  document.getElementById('cfgCorridorSection').style.display='block';
-  // Fetch transit routes from OSM for this area
-  await fetchOSMRoutes(item.lat,item.lon,item.boundingbox);
+  _cityData={name:item.display_name,shortName:item.display_name.split(',')[0].trim(),
+    lat:parseFloat(item.lat),lng:parseFloat(item.lon),bb:item.boundingbox,osmId:item.osm_id,osmType:item.osm_type};
+  _osmBbox=item.boundingbox;
+
+  document.getElementById('cfgCityResults').innerHTML=
+    '<div style="padding:8px 10px;border-radius:8px;font-size:12px;border:2px solid var(--accent);background:var(--surface2);">&#x2713; '+esc(item.display_name)+'</div>';
+
+  // Start building zones
+  await buildZones();
 }
 
-async function fetchOSMRoutes(lat,lng,bb){
-  const sel=document.getElementById('cfgCorridorSel');
-  sel.innerHTML='<option value="">Loading transit routes…</option>';
-  try{
-    const bbox=bb?bb[0]+','+bb[2]+','+bb[1]+','+bb[3]:((lat-0.1)+','+(lng-0.1)+','+(lat+0.1)+','+(lng+0.1));
-    const query=`[out:json][timeout:25];(relation["route"~"bus|subway|tram|monorail|light_rail|train|ferry"](${bbox}););out tags;`;
-    const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
-    const data=await r.json();
-    _osmRoutes=data.elements||[];
-    if(!_osmRoutes.length){
-      sel.innerHTML='<option value="">No transit routes found — enter corridor manually</option>';
-      return;
-    }
-    sel.innerHTML='<option value="">— Select a transit route —</option>'+
-      _osmRoutes.map((r,i)=>{
-        const name=r.tags.name||r.tags.ref||('Route '+r.id);
-        const type=r.tags.route||'transit';
-        return `<option value="${i}">${esc(name)} (${type})</option>`;
-      }).join('');
-  }catch(e){
-    sel.innerHTML='<option value="">Could not load routes — enter manually</option>';
-  }
-}
+async function buildZones(){
+  const status=document.getElementById('cfgZoneStatus');
+  const sec=document.getElementById('cfgZoneSection');
+  if(!_cityData||!status||!sec)return;
+  sec.style.display='block';
+  status.innerHTML='&#x23F3; Loading neighborhood boundaries from OpenStreetMap…';
+  _candidateZones=[];
+  _selectedZones=new Set();
 
-async function generateZones(){
-  const btn=document.getElementById('generateZonesBtn');
-  const preview=document.getElementById('cfgZonePreview');
-  btn.textContent='Generating…';btn.disabled=true;
-  preview.textContent='';
-
-  const radiusBlocks=parseInt(document.getElementById('cfgZoneRadius').value)||3;
-  const radiusMeters=radiusBlocks*80;
-  const corridorIdx=document.getElementById('cfgCorridorSel').value;
-  const manualCorridor=document.getElementById('cfgCorridorManual').value.trim();
-
-  if(!_cityData){preview.innerHTML='<span style="color:var(--accent)">Search for a city first.</span>';btn.textContent='Generate Zones';btn.disabled=false;return;}
+  const bb=_osmBbox;
+  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
 
   try{
-    let stops=[];
+    // ── Step 1: Fetch neighborhoods ───────────────────────────────
+    const nbrQ=`[out:json][timeout:30];
+(
+  way["place"~"neighbourhood|quarter|suburb"](${bbox});
+  relation["place"~"neighbourhood|quarter|suburb"](${bbox});
+  way["boundary"="administrative"]["admin_level"~"9|10|11"](${bbox});
+  relation["boundary"="administrative"]["admin_level"~"9|10|11"](${bbox});
+);
+out geom;`;
+    status.innerHTML='&#x23F3; Fetching neighborhoods…';
+    const nbrData=await _overpass(nbrQ);
+    const neighborhoods=(nbrData.elements||[]).filter(el=>el.tags&&(el.tags.name||el.tags['name:en']));
 
-    if(corridorIdx!==''){
-      // Use OSM route — fetch its stops
-      const route=_osmRoutes[parseInt(corridorIdx)];
-      if(route){
-        const q=`[out:json][timeout:20];relation(${route.id});node(r:"stop");out;`;
-        const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
-        const d=await r.json();
-        stops=(d.elements||[]).filter(e=>e.lat&&e.lon).map(e=>({lat:e.lat,lng:e.lon,name:e.tags&&(e.tags.name||e.tags.ref)||'Stop'}));
+    // ── Step 2: Fetch excluded areas ──────────────────────────────
+    status.innerHTML='&#x23F3; Identifying excluded areas…';
+    const exclQ=`[out:json][timeout:20];
+(
+  way["landuse"~"industrial|port|military|landfill|quarry|railway"](${bbox});
+  relation["landuse"~"industrial|port|military"](${bbox});
+  way["aeroway"="aerodrome"](${bbox});
+  way["aeroway"="runway"](${bbox});
+);
+out geom;`;
+    const exclData=await _overpass(exclQ);
+    const excluded=(exclData.elements||[]).map(el=>{
+      if(el.geometry)return el.geometry.map(g=>[g.lat,g.lon]);
+      return[];
+    }).filter(p=>p.length>2);
+
+    if(neighborhoods.length>=6){
+      // ── Neighborhood mode ─────────────────────────────────────
+      status.innerHTML='&#x2713; Found '+neighborhoods.length+' neighborhoods. Select which to include as zones.';
+      _buildFromNeighborhoods(neighborhoods, excluded, bbox);
+    } else {
+      // ── Landmark fallback ─────────────────────────────────────
+      status.innerHTML='&#x23F3; Few neighborhoods found — loading landmarks for zone generation…';
+      const lmQ=`[out:json][timeout:20];
+(
+  node["tourism"~"museum|attraction|viewpoint|gallery"](${bbox});
+  node["amenity"~"theatre|arts_centre|library|community_centre"](${bbox});
+  node["historic"~"monument|memorial|building|castle"](${bbox});
+  node["leisure"="park"]["name"](${bbox});
+);
+out 20;`;
+      const lmData=await _overpass(lmQ);
+      const landmarks=(lmData.elements||[]).filter(el=>el.lat&&el.lon&&el.tags&&el.tags.name);
+      if(landmarks.length<3){
+        status.innerHTML='&#x26A0; Not enough data found for this area. Try a larger city or adjust the search.';
+        return;
       }
+      status.innerHTML='&#x2713; Using landmark-based zones ('+landmarks.length+' landmarks found). Select which to include.';
+      _buildFromLandmarks(landmarks, excluded, bbox);
     }
-
-    // Fall back to nearby POIs if no stops
-    if(!stops.length&&_cityData){
-      const bb=_cityData.bb;
-      const bbox=bb?(bb[0]+','+bb[2]+','+bb[1]+','+bb[3]):((_cityData.lat-0.05)+','+(_cityData.lng-0.05)+','+(_cityData.lat+0.05)+','+(_cityData.lng+0.05));
-      const q=`[out:json][timeout:20];node["tourism"~"museum|attraction|artwork|viewpoint"](${bbox});out 12;`;
-      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
-      const d=await r.json();
-      stops=(d.elements||[]).filter(e=>e.lat&&e.lon).map(e=>({lat:e.lat,lng:e.lon,name:(e.tags&&e.tags.name)||'Zone'}));
-    }
-
-    if(stops.length<2){
-      preview.innerHTML='<span style="color:var(--accent)">Not enough stops/POIs found. Try a different route or check the city name.</span>';
-      btn.textContent='Generate Zones';btn.disabled=false;return;
-    }
-
-    // Build Voronoi-style zones: each stop becomes a zone center,
-    // buffered by radiusMeters as a simple square bounding box
-    const zones=stops.slice(0,12).map((stop,i)=>{
-      const dLat=radiusMeters/111320;
-      const dLng=radiusMeters/(111320*Math.cos(stop.lat*Math.PI/180));
-      const poly=[[stop.lat+dLat,stop.lng-dLng],[stop.lat+dLat,stop.lng+dLng],[stop.lat-dLat,stop.lng+dLng],[stop.lat-dLat,stop.lng-dLng]];
-      const code='Z'+(i+1);
-      const name=stop.name.length>30?stop.name.substring(0,27)+'…':stop.name;
-      return {code,name,area:parseFloat(((dLat*2*111)*(dLng*2*111)).toFixed(2)),region:'GAME',lines:[],stops:'',poly};
-    });
-
-    // Store in a temp variable so createGame can pick it up
-    window._generatedZones=zones;
-    window._generatedCity=_cityData;
-
-    preview.innerHTML=`<span style="color:var(--green)">&#x2713; Generated ${zones.length} zones. Ready to create game.</span>`;
-    // Update summary strip
-    const summary=document.getElementById('mapSelectionSummary');
-    if(summary){
-      const corridorName=corridorIdx!==''&&_osmRoutes[parseInt(corridorIdx)]?(_osmRoutes[parseInt(corridorIdx)].tags.name||'Selected Route'):document.getElementById('cfgCorridorManual').value||'Custom corridor';
-      summary.style.display='block';
-      summary.innerHTML='<b>&#x1F5FA; Map:</b> '+esc(_cityData.name.split(',')[0])+' &nbsp;·&nbsp; <b>Corridor:</b> '+esc(corridorName)+' &nbsp;·&nbsp; <b>'+zones.length+' zones</b>';
-    }
-
   }catch(e){
-    preview.innerHTML='<span style="color:var(--accent)">Zone generation failed. Try again.</span>';
+    status.innerHTML='&#x26A0; Could not load map data. Check your connection and try again.';
     console.error(e);
   }
-  btn.textContent='Generate Zones';btn.disabled=false;
+}
+
+function _isExcluded(lat,lng,excludedPolys){
+  return excludedPolys.some(poly=>pointInPolyLL(lat,lng,poly));
+}
+
+function _centroid(poly){
+  const n=poly.length;
+  let lat=0,lng=0;
+  poly.forEach(p=>{lat+=p[0];lng+=p[1];});
+  return[lat/n,lng/n];
+}
+
+function _buildFromNeighborhoods(neighborhoods, excluded, bbox){
+  const zones=[];
+  neighborhoods.forEach((el,i)=>{
+    let poly=[];
+    if(el.type==='way')poly=_wayToCoords(el);
+    else if(el.type==='relation')poly=_relationOuterCoords(el);
+    if(poly.length<3)return;
+    const ctr=_centroid(poly);
+    if(_isExcluded(ctr[0],ctr[1],excluded))return;
+    const name=(el.tags.name||el.tags['name:en']||'Zone '+(i+1));
+    const code='Z'+(zones.length+1);
+    const area=_polyAreaSqMi(poly);
+    zones.push({code,name,poly,area:parseFloat(area.toFixed(2)),region:'GAME',lines:[],stops:''});
+  });
+  // Sort by centroid lat (north to south) for logical ordering
+  zones.sort((a,b)=>{const ca=_centroid(a.poly),cb=_centroid(b.poly);return cb[0]-ca[0];});
+  // Re-code after sort
+  zones.forEach((z,i)=>z.code='Z'+(i+1));
+  _candidateZones=zones;
+  _renderZonePicker();
+}
+
+function _buildFromLandmarks(landmarks, excluded, bbox){
+  // Filter excluded landmarks
+  const pts=landmarks.filter(lm=>!_isExcluded(lm.lat,lm.lng,excluded));
+  // Build simple square buffer zones around each landmark
+  const bbParts=bbox.split(',').map(Number); // [s,w,n,e]
+  const bbH=bbParts[2]-bbParts[0],bbW=bbParts[3]-bbParts[1];
+  const cellH=bbH/Math.ceil(Math.sqrt(pts.length));
+  const cellW=bbW/Math.ceil(Math.sqrt(pts.length));
+  const zones=pts.map((lm,i)=>{
+    const dLat=cellH/2,dLng=cellW/2;
+    const poly=[[lm.lat+dLat,lm.lng-dLng],[lm.lat+dLat,lm.lng+dLng],
+                [lm.lat-dLat,lm.lng+dLng],[lm.lat-dLat,lm.lng-dLng]];
+    const code='Z'+(i+1);
+    const name=lm.tags.name||'Zone '+(i+1);
+    return{code,name,poly,area:parseFloat(_polyAreaSqMi(poly).toFixed(2)),region:'GAME',lines:[],stops:''};
+  });
+  _candidateZones=zones;
+  _renderZonePicker();
+}
+
+function _polyAreaSqMi(poly){
+  // Shoelace formula, approximate in degrees → sq mi
+  let area=0;
+  const n=poly.length;
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    area+=poly[i][1]*poly[j][0];
+    area-=poly[j][1]*poly[i][0];
+  }
+  area=Math.abs(area)/2;
+  // 1 degree lat ≈ 69 mi, 1 degree lng ≈ 53 mi at mid-latitudes
+  return area*69*53;
+}
+
+function _renderZonePicker(){
+  const container=document.getElementById('cfgZoneCheckboxes');
+  const countEl=document.getElementById('cfgZoneCount');
+  if(!container)return;
+  // Default: select up to 15, prefer zones over ~0.1 sq mi
+  _selectedZones=new Set();
+  const sorted=[..._candidateZones].sort((a,b)=>b.area-a.area);
+  sorted.slice(0,15).forEach(z=>_selectedZones.add(z.code));
+
+  container.innerHTML=_candidateZones.map(z=>{
+    const sel=_selectedZones.has(z.code);
+    return `<button class="btn btn-sm" data-code="${z.code}" onclick="_toggleZone(this)" style="background:${sel?'var(--accent)':'var(--surface2)'};color:${sel?'white':'var(--text)'};border:1px solid ${sel?'var(--accent)':'var(--border)'};font-size:11px;padding:4px 8px;">${esc(z.name)}</button>`;
+  }).join('');
+  _updateZoneCount();
+}
+
+function _toggleZone(btn){
+  const code=btn.dataset.code;
+  if(_selectedZones.has(code)){
+    _selectedZones.delete(code);
+    btn.style.background='var(--surface2)';btn.style.color='var(--text)';btn.style.borderColor='var(--border)';
+  } else {
+    _selectedZones.add(code);
+    btn.style.background='var(--accent)';btn.style.color='white';btn.style.borderColor='var(--accent)';
+  }
+  _updateZoneCount();
+}
+
+function _updateZoneCount(){
+  const el=document.getElementById('cfgZoneCount');
+  if(el)el.textContent=_selectedZones.size+' zones selected'+((_selectedZones.size<4)?' — add more for a better game':_selectedZones.size>18?' — consider removing some':'');
+}
+
+function resetZoneSelection(){
+  _selectedZones=new Set();
+  _candidateZones.slice(0,15).forEach(z=>_selectedZones.add(z.code));
+  _renderZonePicker();
 }
 
 function getMapConfig(){
-  const preset=document.getElementById('cfgMapPreset').value;
-  if(preset==='dc')return null; // null = use hardcoded DC data
+  const preset=document.getElementById('cfgMapPreset')?.value||'dc';
+  if(preset==='dc')return null;
 
-  // Custom map — use generated zones or return null if none
+  const zones=_candidateZones.filter(z=>_selectedZones.has(z.code));
   const transitMode=document.getElementById('cfgTransitMode')?.value||'transit';
   const transitTypes=[];
   ['metro','bus','streetcar','commuter','ferry','bikeshare'].forEach(t=>{
     if(document.getElementById('cfgTransit_'+t)?.checked)transitTypes.push(t);
   });
-  const customName=document.getElementById('cfgTransitCustomName')?.value.trim()||null;
 
-  return {
-    preset,
-    transitMode,
-    transitTypes,
-    customTransitName:customName,
-    cityName:window._generatedCity?.name||null,
-    zones:window._generatedZones||[],
-    transitStops:[],   // populated from OSM in future
-    transitLines:{},   // populated from OSM in future
-    lineBonuses:[],    // no line bonuses for custom maps initially
+  return{
+    preset:'custom',
+    cityName:_cityData?_cityData.shortName:null,
+    transitMode,transitTypes,
+    customTransitName:document.getElementById('cfgTransitCustomName')?.value.trim()||null,
+    zones,
+    transitStops:[],
+    transitLines:{},
+    lineBonuses:[],
   };
 }
+
 
 async function createGame(){
   const hn=document.getElementById('hostName').value.trim();
@@ -2628,6 +2784,70 @@ function renderScores(){
 // ═══════════════════════════
 // MAP
 // ═══════════════════════════
+
+// ── TRANSIT LAYER TOGGLE ─────────────────────────────────────────
+let _transitLayerShowing = false;
+let _transitLayers = [];
+let _transitFetched = false;
+
+async function toggleTransitLayer(){
+  const btn = document.getElementById('transitToggleBtn');
+  if(_transitLayerShowing){
+    _transitLayers.forEach(l=>l.remove());
+    _transitLayers=[];
+    _transitLayerShowing=false;
+    if(btn)btn.textContent='Show Transit Lines';
+    return;
+  }
+  if(!bfwMap)return;
+
+  // DC game — DC metro lines are already drawn; just toggle the legend
+  const isCustom = G.config&&G.config.map!=null;
+  if(!isCustom){
+    // DC: lines already on map, just toggle the legend visibility
+    const leg=document.getElementById('mapLegend');
+    if(leg)leg.style.display=leg.style.display==='none'?'block':'none';
+    if(btn)btn.textContent=_transitLayerShowing?'Show Transit Lines':'Hide Transit Lines';
+    _transitLayerShowing=!_transitLayerShowing;
+    return;
+  }
+
+  // Custom city — fetch route geometry from OSM
+  if(btn){btn.textContent='Loading…';btn.disabled=true;}
+  try{
+    if(!_transitFetched&&_cityData){
+      const bb=_osmBbox||_cityData.bb;
+      const bbox=bb?(bb[0]+','+bb[2]+','+bb[1]+','+bb[3]):((_cityData.lat-0.05)+','+(_cityData.lng-0.05)+','+(_cityData.lat+0.05)+','+(_cityData.lng+0.05));
+      // Fetch route ways with geometry
+      const q='[out:json][timeout:30];(relation["route"~"bus|tram|subway|light_rail|monorail"]('+bbox+'););out geom;';
+      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
+      const data=await r.json();
+      const ROUTE_COLORS={bus:'#f59e0b',tram:'#8b5cf6',subway:'#3b82f6',light_rail:'#8b5cf6',monorail:'#06b6d4'};
+      (data.elements||[]).forEach(rel=>{
+        const color=ROUTE_COLORS[rel.tags&&rel.tags.route]||'#6b7280';
+        const name=(rel.tags&&(rel.tags.name||rel.tags.ref))||'';
+        // Collect all member ways geometry
+        if(rel.members){
+          rel.members.filter(m=>m.type==='way'&&m.geometry).forEach(m=>{
+            const pts=m.geometry.map(g=>[g.lat,g.lon]);
+            if(pts.length<2)return;
+            const line=L.polyline(pts,{color,weight:2.5,opacity:0.75,interactive:true});
+            if(name)line.bindTooltip(esc(name),{className:'zt',sticky:true});
+            line.addTo(bfwMap);
+            _transitLayers.push(line);
+          });
+        }
+      });
+      _transitFetched=true;
+    }
+    _transitLayerShowing=true;
+    if(btn){btn.textContent='Hide Transit Lines';btn.disabled=false;}
+  }catch(e){
+    if(btn){btn.textContent='Show Transit Lines';btn.disabled=false;}
+    console.error('Transit fetch failed',e);
+  }
+}
+
 function initMap(){
   if(mapReady)return;mapReady=true;
   const el=document.getElementById('mapEl');if(!el)return;
@@ -2641,7 +2861,10 @@ function initMap(){
   }
   bfwMap=L.map('mapEl',{center:_center,zoom:_zoom,zoomControl:true,attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd'}).addTo(bfwMap);
-  Object.entries(getTransitLines()).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
+  // Only draw hardcoded transit lines for DC preset
+  if(!G.config||!G.config.map){
+    Object.entries(getTransitLines()).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
+  }
   getZones().forEach(z=>{
     const poly=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,interactive:true});
     const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]),clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
@@ -2674,8 +2897,18 @@ function initMap(){
     poly.on('mouseout',()=>poly.unbindTooltip());
     poly.addTo(bfwMap);zPolys[z.code]=poly;
   });
+  // Show/hide transit legend based on game type
+  const _leg=document.getElementById('mapLegend');
+  const _isCustomMap=G.config&&G.config.map!=null;
+  if(_leg)_leg.style.display=_isCustomMap?'none':'block';
+  if(!_isCustomMap){
+    // DC — draw metro lines as before
+  } else {
+    // Custom city — metro lines skipped; transit shown via toggle button
+    // Don't draw hardcoded WMATA lines at all
+  }
   renderMapColors();renderMZL();
-  // Metro station markers
+  // Metro station markers (DC only)
   const stationLineColor={red:'#e63946',blue:'#2563eb',orange:'#f4a636',green:'#059669',yellow:'#d97706',silver:'#8890b0'};
   METRO_STATIONS.forEach(s=>{
     const primaryLine=s.line.split(',')[0].trim();
@@ -2690,6 +2923,8 @@ function renderMapColors(){
   if(!mapReady)return;
   getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
   renderMZL();updateLocateMarkers();
+  const ml=document.getElementById('mapLegend');
+  if(ml)ml.style.display=(G.config&&G.config.map&&G.config.map.preset==='custom')?'none':'block';
 }
 function updateLocateMarkers(){
   if(!mapReady||!bfwMap)return;
@@ -2705,7 +2940,7 @@ function updateLocateMarkers(){
 }
 function renderMZL(){
   const el=document.getElementById('mzlInner');if(!el)return;
-  el.innerHTML=ZONES.map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span></div>`;}).join('');
+  el.innerHTML=getZones().map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span></div>`;}).join('');
 }
 
 // ═══════════════════════════
