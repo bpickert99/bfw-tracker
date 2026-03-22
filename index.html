@@ -326,6 +326,74 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="fr" style="margin-bottom:0;">
       <div><label style="font-size:12px;">Minutes</label><input type="number" id="cfgVoteTimeout" value="5" min="1" max="30" style="max-width:100px;"></div>
     </div>
+
+    <div class="divider"></div>
+    <label>Map &amp; Transit</label>
+
+    <div style="margin-bottom:10px;">
+      <label style="font-size:12px;color:var(--muted);">Game Preset</label>
+      <select id="cfgMapPreset" onchange="onMapPresetChange()" style="margin-bottom:8px;">
+        <option value="dc">Washington DC (WMATA)</option>
+        <option value="custom">Custom City / Corridor</option>
+      </select>
+    </div>
+
+    <div id="cfgMapCustomSection" style="display:none;">
+      <label style="font-size:12px;color:var(--muted);">City or Neighborhood</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="cfgCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
+        <button class="btn btn-g btn-sm" onclick="searchCity()" id="citySearchBtn">Search</button>
+      </div>
+      <div id="cfgCityResults" style="margin-bottom:8px;"></div>
+
+      <div id="cfgCorridorSection" style="display:none;">
+        <label style="font-size:12px;color:var(--muted);">Game Corridor / Spine</label>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;">Select a street, transit route, or draw the main axis of your game. Zones will extend outward from this corridor.</p>
+        <select id="cfgCorridorSel" style="margin-bottom:8px;">
+          <option value="">— Select a transit route or street —</option>
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">or enter a street name manually:</div>
+        <input type="text" id="cfgCorridorManual" placeholder="e.g. Main Street, Massachusetts Ave" style="margin-bottom:8px;">
+
+        <label style="font-size:12px;color:var(--muted);">Zone Radius (each side of corridor)</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <input type="range" id="cfgZoneRadius" min="1" max="10" value="3" style="flex:1;margin:0;" oninput="document.getElementById('cfgZoneRadiusVal').textContent=this.value+' blocks (~'+(this.value*80)+'m)'">
+          <span id="cfgZoneRadiusVal" style="font-size:12px;color:var(--muted);white-space:nowrap;min-width:120px;">3 blocks (~240m)</span>
+        </div>
+
+        <button class="btn btn-p btn-sm" style="width:100%;margin-bottom:8px;" onclick="generateZones()" id="generateZonesBtn">Generate Zones</button>
+        <div id="cfgZonePreview" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;"></div>
+      </div>
+    </div>
+
+    <label style="font-size:12px;color:var(--muted);">Movement Mode</label>
+    <select id="cfgTransitMode" style="margin-bottom:8px;" onchange="onTransitModeChange()">
+      <option value="transit">Public Transit (metro, bus, streetcar)</option>
+      <option value="walking">Walking Only</option>
+      <option value="bike">Bikes &amp; Scooters</option>
+      <option value="car">Cars Allowed</option>
+      <option value="mixed">Mixed — player choice</option>
+    </select>
+
+    <div id="cfgTransitTypesSection" style="margin-bottom:8px;">
+      <label style="font-size:12px;color:var(--muted);">Active Transit Types</label>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;">These affect which Shop curses are available. Uncheck any that don't exist in your city.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="cfgTransitTypesList">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_metro" checked> Metro/Subway</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_bus" checked> Bus</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_streetcar"> Streetcar/Tram</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_commuter"> Commuter Rail</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_ferry"> Ferry</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_bikeshare"> Bike Share</label>
+      </div>
+      <label style="font-size:12px;color:var(--muted);margin-top:8px;">Custom transit name (optional)</label>
+      <input type="text" id="cfgTransitCustomName" placeholder="e.g. KC Streetcar, BART, The T" style="margin-bottom:0;">
+    </div>
+
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.5;" id="cfgTransitNote">
+      ℹ️ <b>Transit mode</b> affects the game map scale and which Shop curses are available.
+    </div>
+
     <div class="divider"></div>
     <label>Teams</label>
     <div id="teamSetupList" style="margin-bottom:10px;"></div>
@@ -805,7 +873,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.60';
+const APP_VERSION='1.61';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 
@@ -1015,12 +1083,12 @@ function haversineM(lat1,lng1,lat2,lng2){
 }
 function distToNearestStation(lat,lng){
   let min=Infinity;
-  METRO_STATIONS.forEach(s=>{const d=haversineM(lat,lng,s.lat,s.lng);if(d<min)min=d;});
+  getTransitStops().forEach(s=>{const d=haversineM(lat,lng,s.lat,s.lng);if(d<min)min=d;});
   return min;
 }
 function nearestStation(lat,lng){
   let min=Infinity,name='';
-  METRO_STATIONS.forEach(s=>{const d=haversineM(lat,lng,s.lat,s.lng);if(d<min){min=d;name=s.name;}});
+  getTransitStops().forEach(s=>{const d=haversineM(lat,lng,s.lat,s.lng);if(d<min){min=d;name=s.name;}});
   return name;
 }
 const MIN_DIST_FROM_STATION_M=30;
@@ -1520,7 +1588,18 @@ const MLINE_PATHS = {
   green:[[[39.011806,-76.910651],[38.999948,-76.919382],[38.984837,-76.925677],[38.983539,-76.92628],[38.979592,-76.927911],[38.976019,-76.929299],[38.973594,-76.930177],[38.971809,-76.932254],[38.971533,-76.935064],[38.971747,-76.939427],[38.966914,-76.947385],[38.965411,-76.951559],[38.965307,-76.95441],[38.96534,-76.964222],[38.964161,-76.967559],[38.961425,-76.969016],[38.95871,-76.968466],[38.956394,-76.968951],[38.95229,-76.971461],[38.951342,-76.974303],[38.951654,-76.977678],[38.952724,-76.989989],[38.952442,-76.995319],[38.952323,-76.996583],[38.951882,-77.001906],[38.951621,-77.005797],[38.951523,-77.008006],[38.950575,-77.011258],[38.948811,-77.014081],[38.94605,-77.017159],[38.932838,-77.026991],[38.932035,-77.028046],[38.93097,-77.031055],[38.930253,-77.032185],[38.92906,-77.032713],[38.921333,-77.031966],[38.919225,-77.031975],[38.918089,-77.031611],[38.917244,-77.030522],[38.916964,-77.028951],[38.916892,-77.023994],[38.916161,-77.022561],[38.914884,-77.021991],[38.898379,-77.021941],[38.887901,-77.021927],[38.883051,-77.021943],[38.881034,-77.02206],[38.878752,-77.022419],[38.877171,-77.021663],[38.876424,-77.019758],[38.876388,-77.003318],[38.875525,-77.001219],[38.873666,-76.99978],[38.866691,-76.996655],[38.860344,-76.994657],[38.858075,-76.993991],[38.855289,-76.994021],[38.852018,-76.993238],[38.843701,-76.986958],[38.840654,-76.985193],[38.839414,-76.983684],[38.838299,-76.980825],[38.838817,-76.97798],[38.841734,-76.974124],[38.842659,-76.97303],[38.843828,-76.971536],[38.845729,-76.967861],[38.848616,-76.963813],[38.850608,-76.959663],[38.851515,-76.953467],[38.851866,-76.951394],[38.852181,-76.948825],[38.851498,-76.946518],[38.847609,-76.939207],[38.846256,-76.934947],[38.843423,-76.931572],[38.841354,-76.930031],[38.838983,-76.927022],[38.835529,-76.919939],[38.833123,-76.917949],[38.830226,-76.916419],[38.828218,-76.914315],[38.825431,-76.909847]]],
   yellow:[[[38.79302,-77.075505],[38.796983,-77.074797],[38.797728,-77.074323],[38.80333,-77.067583],[38.804007,-77.06668],[38.804602,-77.065359],[38.805176,-77.063414],[38.805429,-77.062828],[38.80574,-77.062304],[38.807428,-77.059829],[38.808613,-77.058277],[38.810568,-77.056324],[38.811738,-77.055426],[38.817878,-77.051069],[38.818689,-77.050432],[38.822027,-77.047717],[38.823417,-77.046906],[38.825079,-77.046404],[38.826001,-77.046297],[38.828332,-77.04612],[38.829437,-77.046209],[38.832499,-77.046673],[38.834346,-77.046573],[38.835832,-77.046357],[38.836846,-77.046374],[38.83802,-77.04667],[38.839057,-77.047207],[38.84004,-77.0479],[38.841915,-77.049006],[38.84441,-77.049814],[38.845376,-77.049931],[38.846217,-77.049622],[38.846909,-77.048937],[38.847402,-77.047979],[38.849007,-77.044373],[38.849261,-77.043978],[38.849607,-77.043614],[38.850003,-77.04335],[38.850363,-77.043214],[38.850808,-77.043159],[38.851198,-77.04321],[38.851836,-77.043434],[38.856734,-77.045453],[38.857052,-77.045651],[38.85742,-77.045997],[38.857681,-77.046354],[38.857923,-77.046849],[38.858039,-77.047212],[38.858137,-77.047782],[38.858144,-77.048343],[38.858069,-77.04902],[38.857326,-77.05445],[38.857391,-77.056813],[38.857455,-77.057151],[38.857927,-77.058342],[38.858712,-77.059222],[38.859696,-77.059665],[38.860495,-77.059676],[38.863972,-77.059228],[38.865237,-77.058788],[38.866468,-77.057745],[38.870493,-77.052405],[38.870835,-77.051686],[38.870993,-77.050795],[38.871097,-77.044082],[38.871216,-77.043107],[38.87161,-77.042224],[38.872198,-77.041591],[38.877846,-77.036765],[38.878354,-77.03611],[38.878676,-77.035205],[38.878921,-77.032518],[38.87903,-77.031355],[38.879756,-77.025907],[38.879897,-77.025046],[38.880542,-77.023402],[38.881062,-77.022703],[38.881742,-77.022227],[38.882404,-77.022072],[38.886963,-77.021973],[38.887569,-77.021987],[38.888059,-77.022002],[38.896125,-77.022007],[38.896973,-77.022012],[38.903115,-77.022018],[38.90644,-77.022016]]],
   silver:[[[38.907463,-76.841805],[38.886735,-76.893515],[38.888559,-76.907541],[38.889758,-76.915108],[38.891882,-76.940012],[38.894495,-76.946368],[38.897154,-76.966504],[38.892559,-76.972874],[38.88902,-76.97689],[38.884204,-76.977182],[38.883023,-76.978541],[38.881241,-76.987083],[38.88543,-76.998165],[38.885099,-77.002275],[38.884877,-77.019474],[38.884933,-77.025463],[38.88624,-77.02777],[38.88988,-77.029115],[38.892195,-77.028266],[38.896759,-77.02811],[38.901163,-77.029683],[38.900907,-77.045801],[38.900616,-77.058008],[38.899251,-77.070039],[38.893499,-77.071053],[38.891656,-77.082018],[38.888447,-77.091352],[38.885085,-77.098841],[38.882291,-77.110154],[38.882154,-77.115292],[38.88215,-77.115446],[38.882145,-77.115601],[38.88214,-77.115755],[38.882114,-77.116366],[38.882104,-77.11652],[38.882095,-77.116674],[38.882087,-77.116828],[38.88186,-77.120507],[38.88185,-77.120661],[38.881839,-77.120815],[38.881826,-77.120969],[38.881811,-77.121122],[38.881794,-77.121276],[38.881513,-77.122509],[38.881284,-77.12308],[38.881221,-77.123213],[38.881155,-77.123343],[38.881088,-77.123471],[38.88102,-77.123599],[38.880951,-77.123726],[38.880726,-77.124136],[38.880657,-77.124263],[38.880588,-77.12439],[38.88052,-77.124517],[38.880452,-77.124646],[38.880386,-77.124775],[38.880322,-77.124906],[38.879404,-77.128496],[38.879396,-77.12865],[38.879389,-77.128804],[38.879384,-77.128959],[38.879379,-77.129113],[38.879375,-77.129268],[38.879297,-77.136309],[38.888977,-77.163124],[38.898732,-77.180203],[38.900621,-77.185806],[38.91042,-77.187039],[38.926669,-77.198987],[38.922222,-77.216099],[38.928553,-77.241243],[38.932246,-77.256273],[38.940717,-77.272765],[38.945628,-77.292935],[38.947609,-77.312926],[38.947742,-77.340062],[38.952742,-77.383814],[38.96241,-77.439511],[38.955678,-77.446213],[38.967316,-77.449384],[38.993449,-77.464242],[39.002497,-77.488159],[39.010561,-77.496238]]],
-};// ═══════════════════════════
+};
+
+// ── DYNAMIC MAP HELPERS ───────────────────────────────────────────
+// Falls back to hardcoded DC data when no custom map is configured.
+function getZones(){return(G.config&&G.config.map&&G.config.map.zones&&G.config.map.zones.length)?G.config.map.zones:ZONES;}
+function getTransitStops(){return(G.config&&G.config.map&&G.config.map.transitStops)?G.config.map.transitStops:METRO_STATIONS;}
+function getTransitLines(){return(G.config&&G.config.map&&G.config.map.transitLines)?G.config.map.transitLines:MLINES;}
+function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:LINE_BONUSES;}
+function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
+function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
+
+// ═══════════════════════════
 // ZONE & MAP DATA
 // ═══════════════════════════
 // Polygons follow actual political boundaries, streets, and county lines
@@ -1737,6 +1816,177 @@ function toggleFlopFields(){
 }
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
+async 
+// ═══════════════════════════════════════════════════════════════════
+// MAP & TRANSIT SETUP
+// ═══════════════════════════════════════════════════════════════════
+
+let _cityData = null; // {name, lat, lng, boundingbox}
+let _osmRoutes = [];  // transit routes from OSM
+
+function onMapPresetChange(){
+  const preset=document.getElementById('cfgMapPreset').value;
+  const customSec=document.getElementById('cfgMapCustomSection');
+  if(customSec)customSec.style.display=preset==='custom'?'block':'none';
+}
+
+function onTransitModeChange(){
+  const mode=document.getElementById('cfgTransitMode').value;
+  const typeSec=document.getElementById('cfgTransitTypesSection');
+  const note=document.getElementById('cfgTransitNote');
+  if(typeSec)typeSec.style.display=(mode==='transit'||mode==='mixed')?'block':'none';
+  const notes={
+    walking:'Walking only — all transit curses disabled. Map radius ~1 mile.',
+    bike:'Bikes & scooters — deposit restriction near transit stops disabled.',
+    car:'Cars allowed — full city map. Transit curses may not apply.',
+    transit:'Public transit — metro/bus/streetcar curses active based on transit types selected.',
+    mixed:'Mixed — players choose their own movement. All curses available.'
+  };
+  if(note)note.innerHTML='\u2139\ufe0f <b>'+document.getElementById('cfgTransitMode').options[document.getElementById('cfgTransitMode').selectedIndex].text+'</b> — '+(notes[mode]||'');
+}
+
+async function searchCity(){
+  const query=document.getElementById('cfgCitySearch').value.trim();
+  if(!query)return;
+  const btn=document.getElementById('citySearchBtn');
+  const results=document.getElementById('cfgCityResults');
+  btn.textContent='Searching…';btn.disabled=true;
+  results.innerHTML='';
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(query),{headers:{'Accept-Language':'en'}});
+    const data=await r.json();
+    if(!data.length){results.innerHTML='<div style="font-size:12px;color:var(--muted);">No results found.</div>';return;}
+    results.innerHTML=data.map((item,i)=>`<div onclick="selectCity(${i})" data-idx="${i}" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--surface2)'">${esc(item.display_name)}</div>`).join('');
+    window._nominatimResults=data;
+  }catch(e){results.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed. Check your connection.</div>';}
+  btn.textContent='Search';btn.disabled=false;
+}
+
+async function selectCity(idx){
+  const item=window._nominatimResults[idx];
+  if(!item)return;
+  _cityData={name:item.display_name,lat:parseFloat(item.lat),lng:parseFloat(item.lon),bb:item.boundingbox};
+  document.getElementById('cfgCityResults').innerHTML=`<div style="padding:8px 10px;border-radius:8px;font-size:12px;border:2px solid var(--accent);background:var(--surface2);">\u2713 ${esc(item.display_name)}</div>`;
+  document.getElementById('cfgCorridorSection').style.display='block';
+  // Fetch transit routes from OSM for this area
+  await fetchOSMRoutes(item.lat,item.lon,item.boundingbox);
+}
+
+async function fetchOSMRoutes(lat,lng,bb){
+  const sel=document.getElementById('cfgCorridorSel');
+  sel.innerHTML='<option value="">Loading transit routes…</option>';
+  try{
+    const bbox=bb?bb[0]+','+bb[2]+','+bb[1]+','+bb[3]:((lat-0.1)+','+(lng-0.1)+','+(lat+0.1)+','+(lng+0.1));
+    const query=`[out:json][timeout:25];(relation["route"~"bus|subway|tram|monorail|light_rail|train|ferry"](${bbox}););out tags;`;
+    const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
+    const data=await r.json();
+    _osmRoutes=data.elements||[];
+    if(!_osmRoutes.length){
+      sel.innerHTML='<option value="">No transit routes found — enter corridor manually</option>';
+      return;
+    }
+    sel.innerHTML='<option value="">— Select a transit route —</option>'+
+      _osmRoutes.map((r,i)=>{
+        const name=r.tags.name||r.tags.ref||('Route '+r.id);
+        const type=r.tags.route||'transit';
+        return `<option value="${i}">${esc(name)} (${type})</option>`;
+      }).join('');
+  }catch(e){
+    sel.innerHTML='<option value="">Could not load routes — enter manually</option>';
+  }
+}
+
+async function generateZones(){
+  const btn=document.getElementById('generateZonesBtn');
+  const preview=document.getElementById('cfgZonePreview');
+  btn.textContent='Generating…';btn.disabled=true;
+  preview.textContent='';
+
+  const radiusBlocks=parseInt(document.getElementById('cfgZoneRadius').value)||3;
+  const radiusMeters=radiusBlocks*80;
+  const corridorIdx=document.getElementById('cfgCorridorSel').value;
+  const manualCorridor=document.getElementById('cfgCorridorManual').value.trim();
+
+  if(!_cityData){preview.innerHTML='<span style="color:var(--accent)">Search for a city first.</span>';btn.textContent='Generate Zones';btn.disabled=false;return;}
+
+  try{
+    let stops=[];
+
+    if(corridorIdx!==''){
+      // Use OSM route — fetch its stops
+      const route=_osmRoutes[parseInt(corridorIdx)];
+      if(route){
+        const q=`[out:json][timeout:20];relation(${route.id});node(r:"stop");out;`;
+        const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
+        const d=await r.json();
+        stops=(d.elements||[]).filter(e=>e.lat&&e.lon).map(e=>({lat:e.lat,lng:e.lon,name:e.tags&&(e.tags.name||e.tags.ref)||'Stop'}));
+      }
+    }
+
+    // Fall back to nearby POIs if no stops
+    if(!stops.length&&_cityData){
+      const bb=_cityData.bb;
+      const bbox=bb?(bb[0]+','+bb[2]+','+bb[1]+','+bb[3]):((_cityData.lat-0.05)+','+(_cityData.lng-0.05)+','+(_cityData.lat+0.05)+','+(_cityData.lng+0.05));
+      const q=`[out:json][timeout:20];node["tourism"~"museum|attraction|artwork|viewpoint"](${bbox});out 12;`;
+      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
+      const d=await r.json();
+      stops=(d.elements||[]).filter(e=>e.lat&&e.lon).map(e=>({lat:e.lat,lng:e.lon,name:(e.tags&&e.tags.name)||'Zone'}));
+    }
+
+    if(stops.length<2){
+      preview.innerHTML='<span style="color:var(--accent)">Not enough stops/POIs found. Try a different route or check the city name.</span>';
+      btn.textContent='Generate Zones';btn.disabled=false;return;
+    }
+
+    // Build Voronoi-style zones: each stop becomes a zone center,
+    // buffered by radiusMeters as a simple square bounding box
+    const zones=stops.slice(0,12).map((stop,i)=>{
+      const dLat=radiusMeters/111320;
+      const dLng=radiusMeters/(111320*Math.cos(stop.lat*Math.PI/180));
+      const poly=[[stop.lat+dLat,stop.lng-dLng],[stop.lat+dLat,stop.lng+dLng],[stop.lat-dLat,stop.lng+dLng],[stop.lat-dLat,stop.lng-dLng]];
+      const code='Z'+(i+1);
+      const name=stop.name.length>30?stop.name.substring(0,27)+'…':stop.name;
+      return {code,name,area:parseFloat(((dLat*2*111)*(dLng*2*111)).toFixed(2)),region:'GAME',lines:[],stops:'',poly};
+    });
+
+    // Store in a temp variable so createGame can pick it up
+    window._generatedZones=zones;
+    window._generatedCity=_cityData;
+
+    preview.innerHTML=`<span style="color:var(--green)">\u2713 Generated ${zones.length} zones. Ready to create game.</span>`;
+
+  }catch(e){
+    preview.innerHTML='<span style="color:var(--accent)">Zone generation failed. Try again.</span>';
+    console.error(e);
+  }
+  btn.textContent='Generate Zones';btn.disabled=false;
+}
+
+function getMapConfig(){
+  const preset=document.getElementById('cfgMapPreset').value;
+  if(preset==='dc')return null; // null = use hardcoded DC data
+
+  // Custom map — use generated zones or return null if none
+  const transitMode=document.getElementById('cfgTransitMode')?.value||'transit';
+  const transitTypes=[];
+  ['metro','bus','streetcar','commuter','ferry','bikeshare'].forEach(t=>{
+    if(document.getElementById('cfgTransit_'+t)?.checked)transitTypes.push(t);
+  });
+  const customName=document.getElementById('cfgTransitCustomName')?.value.trim()||null;
+
+  return {
+    preset,
+    transitMode,
+    transitTypes,
+    customTransitName:customName,
+    cityName:window._generatedCity?.name||null,
+    zones:window._generatedZones||[],
+    transitStops:[],   // populated from OSM in future
+    transitLines:{},   // populated from OSM in future
+    lineBonuses:[],    // no line bonuses for custom maps initially
+  };
+}
+
 async function createGame(){
   const hn=document.getElementById('hostName').value.trim();
   if(!hn){showToast('Enter your name.','warn');return;}
@@ -1745,6 +1995,7 @@ async function createGame(){
   G.gameCode=code;G.teams=setupTeams.map(t=>({...t}));
   const lunchOn=document.getElementById('cfgLunchEnabled')?.checked!==false;
   const flopRefreshOn=document.getElementById('cfgFlopRefresh')?.checked;
+  const mapCfg=getMapConfig();
   G.config={
     start:document.getElementById('cfgStart').value,
     end:document.getElementById('cfgEnd').value,
@@ -1756,6 +2007,7 @@ async function createGame(){
     flopRefreshMins:flopRefreshOn?parseInt(document.getElementById('cfgFlopMins')?.value)||45:0,
     voteTimeoutMins:parseInt(document.getElementById('cfgVoteTimeout')?.value)||5,
     flopItemExpiry:document.getElementById('cfgFlopItemExpiry')?.checked||false,
+    map:mapCfg,
   };
   G.players={};G.players[LS.playerId]={name:hn,teamIdx:-1,isHost:true};
   G.started=false;G.zones={};G.curses=[];G.locs={};G.gpsLocs={};G.log=[];
@@ -2284,7 +2536,7 @@ function renderStatus(){
   }
   const sc=computeScores();
   G.teams.forEach((team,i)=>{
-    const loc=G.locs&&G.locs[i],zone=loc?ZONES.find(z=>z.code===loc.zone):null;
+    const loc=G.locs&&G.locs[i],zone=loc?getZones().find(z=>z.code===loc.zone):null;
     const mins=loc?Math.floor((Date.now()-loc.time)/60000):null,stale=mins!==null&&mins>15;
     const hasGps=G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===i);
     const isMine=LS.myTeamIdx===i,sc2=sc[i];
@@ -2316,9 +2568,9 @@ async function submitLoc(){if(locTI===null)return;const zone=document.getElement
 function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
 function computeScores(){
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
-  ZONES.forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=z.area;}});
+  getZones().forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=(z.area||0);}});
   let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=2;
-  LINE_BONUSES.forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
+  getLineBonuses().forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
   return sc;
 }
 function renderScores(){
@@ -2338,10 +2590,18 @@ function renderScores(){
 function initMap(){
   if(mapReady)return;mapReady=true;
   const el=document.getElementById('mapEl');if(!el)return;
-  bfwMap=L.map('mapEl',{center:[38.920,-77.040],zoom:10,zoomControl:true,attributionControl:false});
+  const _zones=getZones();
+  let _center=[38.920,-77.040],_zoom=10;
+  if(G.config&&G.config.map&&_zones.length){
+    const allLats=_zones.flatMap(z=>z.poly.map(p=>p[0]));
+    const allLngs=_zones.flatMap(z=>z.poly.map(p=>p[1]));
+    _center=[(Math.max(...allLats)+Math.min(...allLats))/2,(Math.max(...allLngs)+Math.min(...allLngs))/2];
+    _zoom=12;
+  }
+  bfwMap=L.map('mapEl',{center:_center,zoom:_zoom,zoomControl:true,attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd'}).addTo(bfwMap);
-  Object.entries(MLINES).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
-  ZONES.forEach(z=>{
+  Object.entries(getTransitLines()).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
+  getZones().forEach(z=>{
     const poly=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,interactive:true});
     const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]),clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
     L.marker([clat,clng],{icon:L.divIcon({className:'',html:`<div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:rgba(30,40,80,.55);text-shadow:0 1px 2px rgba(255,255,255,.9);pointer-events:none;white-space:nowrap">${z.code}</div>`,iconAnchor:[14,8]}),interactive:false}).addTo(bfwMap);
@@ -2387,7 +2647,7 @@ function initMap(){
 }
 function renderMapColors(){
   if(!mapReady)return;
-  ZONES.forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
+  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
   renderMZL();updateLocateMarkers();
 }
 function updateLocateMarkers(){
@@ -2412,10 +2672,16 @@ function renderMZL(){
 // ═══════════════════════════
 function renderZones(){
   const con=document.getElementById('zoneContainer');if(!con)return;con.innerHTML='';
-  ['DC','VA','MD'].forEach(region=>{
-    const hdr=document.createElement('div');hdr.className='zone-region-header';hdr.textContent=region==='DC'?'District of Columbia':region==='VA'?'Virginia':'Maryland';con.appendChild(hdr);
+  const zones=getZones();
+  // Group by region if zones have regions, else put all in one group
+  const regions=[...new Set(zones.map(z=>z.region||'GAME'))];
+  regions.forEach(region=>{
+    const hdr=document.createElement('div');hdr.className='zone-region-header';
+    const regionNames={'DC':'District of Columbia','VA':'Virginia','MD':'Maryland','GAME':'Game Zones'};
+    hdr.textContent=regionNames[region]||region;
+    if(regions.length>1)con.appendChild(hdr);
     const grid=document.createElement('div');grid.className='zone-list-grid';
-    ZONES.filter(z=>z.region===region).forEach(z=>{
+    zones.filter(z=>(z.region||'GAME')===region).forEach(z=>{
       const deps=G.zones&&G.zones[z.code]||{},leader=getL(deps);
       const card=document.createElement('div');card.className='zone-card'+(leader>=0?' controlled':'');
       if(leader>=0&&G.teams[leader])card.style.borderLeftColor=G.teams[leader].color;
@@ -2441,11 +2707,11 @@ function getGpsZone(){
   // Prefer fresh GPS from device, fall back to Firebase stored
   const lat=_freshLat, lng=_freshLng;
   if(lat&&lng){
-    for(const z of ZONES){if(pointInPoly(lat,lng,z.poly))return z.code;}
+    for(const z of getZones()){if(pointInPoly(lat,lng,z.poly))return z.code;}
   }
   const gps=G.gpsLocs&&G.gpsLocs[LS.playerId];
   if(!gps||!gps.lat)return null;
-  for(const z of ZONES){if(pointInPoly(gps.lat,gps.lng,z.poly))return z.code;}
+  for(const z of getZones()){if(pointInPoly(gps.lat,gps.lng,z.poly))return z.code;}
   return null;
 }
 
@@ -2549,7 +2815,8 @@ function openDepositFlow(){
 
       // Distance from station check
       const dist=distToNearestStation(lat,lng);
-      if(dist<MIN_DIST_FROM_STATION_M){
+      const _minDist=getMinDistFromTransit();
+      if(_minDist>0&&dist<_minDist){
         showToast('Too close to a metro station ('+Math.round(dist)+'m). Move at least 100 feet away.','warn',5000);
         return;
       }
@@ -2557,7 +2824,7 @@ function openDepositFlow(){
       // Zone check using fresh coords
       let zone=null;
       let nearestZone=null, nearestDist=Infinity;
-      for(const z of ZONES){
+      for(const z of getZones()){
         if(pointInPoly(lat,lng,z.poly)){zone=z.code;break;}
         // Track nearest zone centroid for helpful error
         const clat=z.poly.reduce((s,p)=>s+p[0],0)/z.poly.length;
