@@ -329,6 +329,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
     <div class="divider"></div>
     <label>Map &amp; Transit</label>
+    <div id="mapSelectionSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;line-height:1.5;"></div>
 
     <div style="margin-bottom:10px;">
       <label style="font-size:12px;color:var(--muted);">Game Preset</label>
@@ -414,8 +415,9 @@ input:focus,select:focus{border-color:var(--accent);}
       <div class="lobby-code" id="lobbyCode" style="font-size:42px;letter-spacing:12px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 16px;display:inline-block;min-width:200px;">—</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:6px;">
-      <button class="btn btn-g btn-sm" style="flex:1;max-width:140px;" onclick="copyCode()">Copy Code</button>
-      <button class="btn btn-p btn-sm" style="flex:1;max-width:140px;" id="startGameBtn" onclick="confirmStartGame()">Start Game ▶</button>
+      <button class="btn btn-g btn-sm" style="flex:1;max-width:120px;display:none;" id="backToSetupBtn" onclick="backToSetup()">&#x2190; Setup</button>
+      <button class="btn btn-g btn-sm" style="flex:1;max-width:120px;" onclick="copyCode()">Copy Code</button>
+      <button class="btn btn-p btn-sm" style="flex:1;max-width:130px;" id="startGameBtn" onclick="confirmStartGame()">Start Game &#x25B6;</button>
     </div>
   </div>
   <div class="lobby-body">
@@ -873,12 +875,28 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.62';
+const APP_VERSION='1.64';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
 // Current fresh GPS (updated by watchPosition)
 let _freshLat=null,_freshLng=null;
+// Hoisted declarations (prevent TDZ errors)
+const POLL_SLOW = 15000;
+const POLL_FAST = 4000;
+let _currentPollInterval=POLL_SLOW;
+let _lunchShowing=false;
+const TABS=['rules','scores','map','zones','flop','shop','log','status'];
+const SHOP_ITEMS_DATA=[
+  {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'🔍'},
+  {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'📡',dur:30},
+  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour',icon:'🚗',dur:60,needsRegion:true},
+  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must visit a random metro stop and photo-verify before depositing',icon:'🚇'},
+  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line',icon:'🎫',dur:120,needsLine:true},
+  {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
+  {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
+];
+
 
 
 
@@ -1821,7 +1839,6 @@ function toggleFlopFields(){
 }
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
-async 
 // ═══════════════════════════════════════════════════════════════════
 // MAP & TRANSIT SETUP
 // ═══════════════════════════════════════════════════════════════════
@@ -1958,7 +1975,14 @@ async function generateZones(){
     window._generatedZones=zones;
     window._generatedCity=_cityData;
 
-    preview.innerHTML=`<span style="color:var(--green)">\u2713 Generated ${zones.length} zones. Ready to create game.</span>`;
+    preview.innerHTML=`<span style="color:var(--green)">&#x2713; Generated ${zones.length} zones. Ready to create game.</span>`;
+    // Update summary strip
+    const summary=document.getElementById('mapSelectionSummary');
+    if(summary){
+      const corridorName=corridorIdx!==''&&_osmRoutes[parseInt(corridorIdx)]?(_osmRoutes[parseInt(corridorIdx)].tags.name||'Selected Route'):document.getElementById('cfgCorridorManual').value||'Custom corridor';
+      summary.style.display='block';
+      summary.innerHTML='<b>&#x1F5FA; Map:</b> '+esc(_cityData.name.split(',')[0])+' &nbsp;·&nbsp; <b>Corridor:</b> '+esc(corridorName)+' &nbsp;·&nbsp; <b>'+zones.length+' zones</b>';
+    }
 
   }catch(e){
     preview.innerHTML='<span style="color:var(--accent)">Zone generation failed. Try again.</span>';
@@ -2106,8 +2130,7 @@ async function pushState(){
 async function fetchState(fu,code){
   try{const r=await fetch(`${FB_URL}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return rest;}catch(e){return null;}
 }
-const POLL_SLOW = 15000; // 15s — normal background polling
-const POLL_FAST = 4000;  // 4s  — when something active is happening
+// POLL_SLOW/POLL_FAST hoisted
 
 function needsFastPoll(){
   if(!G.started) return false;
@@ -2152,7 +2175,7 @@ function startPoll(){
   },interval);
   _currentPollInterval=interval;
 }
-let _currentPollInterval=POLL_SLOW;
+// pollInterval hoisted
 async function poll(){
   if(!LS.gameCode)return;
   try{
@@ -2233,6 +2256,16 @@ async function pushGps(lat,lng){if(!LS.gameCode)return;fetch(`${FB_URL}/gpsLocs/
 // ═══════════════════════════
 // LOBBY
 // ═══════════════════════════
+function backToSetup(){
+  if(!confirm('Go back to setup? The game code will be cancelled and players will need to rejoin.'))return;
+  if(pollIv){clearInterval(pollIv);pollIv=null;}
+  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
+  LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
+  saveL();
+  renderTeamSetup();
+  showScreen('screenHostSetup');
+}
+
 function renderLobby(){
   const plist=document.getElementById('lobbyPlayerList'),players=Object.entries(G.players||{});
   if(!players.length){plist.innerHTML='<div class="empty">Waiting for players to join…</div>';}
@@ -2262,6 +2295,9 @@ function _updateStartBtn(){
     btn.style.opacity=unassigned.length>0?'0.45':'1';
     btn.title=unassigned.length>0?'Assign all players to a team first':'Start the game';
   }
+  // Show ← Setup only for host
+  const backBtn=document.getElementById('backToSetupBtn');
+  if(backBtn)backBtn.style.display=LS.isHost?'block':'none';
 }
 async function confirmStartGame(){
   if(!confirm('Start the game? All players will be notified and gameplay will begin immediately.'))return;
@@ -2315,7 +2351,7 @@ function updateMyTeamBadge(){
 // CLOCK
 // ═══════════════════════════
 // ── LUNCH OVERLAY ────────────────────────────────────────────────────────────
-let _lunchShowing=false;
+// lunchShowing hoisted
 
 
 function lunchOpenChat(){
@@ -3223,15 +3259,7 @@ function checkForActiveChallenge(){
 }
 
 // ── SHOP LOGIC ─────────────────────────────────────────────────────────────
-const SHOP_ITEMS_DATA=[
-  {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'🔍'},
-  {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'📡',dur:30},
-  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour',icon:'🚗',dur:60,needsRegion:true},
-  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must visit a random metro stop and photo-verify before depositing',icon:'🚇'},
-  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line',icon:'🎫',dur:120,needsLine:true},
-  {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
-  {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
-];
+// SHOP_ITEMS_DATA hoisted
 
 let pendingPurchase=null;
 
@@ -3784,7 +3812,7 @@ function renderRules(){
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-const TABS=['rules','scores','map','zones','flop','shop','log','status'];
+// TABS hoisted
 function switchTab(name){
   _updateHeaderVar();
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',TABS[i]===name));
@@ -3838,24 +3866,46 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 loadL();
 renderTeamSetup();
 if(LS.gameCode&&LS.playerId){
-  // Verify the session is still valid before auto-restoring
   fetchState(FB_URL,LS.gameCode).then(state=>{
-    if(state&&state.started&&!state.ended){
-      // Double-check our player still exists in this game
-      const playerStillExists=state.players&&state.players[LS.playerId];
-      if(playerStillExists){
-        G={...state};if(!G.gpsLocs)G.gpsLocs={};if(!G.chat)G.chat=[];if(!G.flop)G.flop=[];if(!G.coins)G.coins={};if(!G.detours)G.detours={};if(!G.flopClaims)G.flopClaims={};
-        enterApp();startPoll();
-        return;
-      }
+    if(!state){
+      // Firebase unreachable — keep session, show join screen with note
+      showToast('Could not reach server — please rejoin manually.','warn',5000);
+      return;
     }
-    // Game is over, ended, or we're not in it — clear everything
-    LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-    try{localStorage.removeItem('bfw5L');}catch(e){}
+    if(state.ended){
+      LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
+      try{localStorage.removeItem('bfw5L');}catch(e){}
+      return;
+    }
+    const playerExists=state.players&&state.players[LS.playerId];
+    if(!playerExists&&!LS.isHost){
+      LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
+      try{localStorage.removeItem('bfw5L');}catch(e){}
+      return;
+    }
+    G={...state};if(!G.gpsLocs)G.gpsLocs={};if(!G.chat)G.chat=[];if(!G.flop)G.flop=[];
+    if(!G.coins)G.coins={};if(!G.detours)G.detours={};if(!G.flopClaims)G.flopClaims={};
+    if(state.started&&!state.ended){
+      // Game in progress — restore directly to app
+      enterApp();startPoll();
+    } else if(LS.isHost){
+      // Host refreshed during lobby — restore lobby
+      document.getElementById('lobbyCode').textContent=LS.gameCode;
+      renderLobby();showScreen('screenLobby');startPoll();
+    } else {
+      // Player refreshed before game started — restore waiting screen
+      showScreen('screenWaiting');
+      document.getElementById('waitingMsg').textContent='Waiting for the host to start the game…';
+      if(LS.myTeamIdx>=0&&G.teams[LS.myTeamIdx]){
+        document.getElementById('waitingTeam').style.display='block';
+        document.getElementById('waitingTeamName').textContent=G.teams[LS.myTeamIdx].name;
+        document.getElementById('waitingTeamName').style.color=G.teams[LS.myTeamIdx].color;
+      }
+      startPoll();
+    }
   }).catch(()=>{
-    // Can't reach Firebase — clear session rather than auto-restoring
-    LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-    try{localStorage.removeItem('bfw5L');}catch(e){}
+    // Network error — keep session, let user try again
+    showToast('Could not reach server. Check your connection.','warn',5000);
   });
 }
 if('serviceWorker' in navigator){
