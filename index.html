@@ -873,8 +873,13 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.61';
+const APP_VERSION='1.62';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
+
+// ── Variables hoisted to prevent TDZ errors ─────────────────────
+// Current fresh GPS (updated by watchPosition)
+let _freshLat=null,_freshLng=null;
+
 
 
 // Distance functions moved to Flop section
@@ -2700,8 +2705,7 @@ function renderZones(){
 // ═══════════════════════════
 function canDeposit(){return G.started&&LS.myTeamIdx>=0;}
 
-// Current fresh GPS (updated by watchPosition)
-let _freshLat=null,_freshLng=null;
+// _freshLat/_freshLng declared at top of script
 
 function getGpsZone(){
   // Prefer fresh GPS from device, fall back to Firebase stored
