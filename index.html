@@ -1,6 +1,4 @@
-;
-  _updateStartBtn();
-}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -257,7 +255,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="join-divider">or</div>
     <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="showScreen('screenRejoin')">🔄 Rejoin a Game</button>
     <div style="text-align:center;margin-top:10px;">
-      <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:13px;" onclick="showScreen('screenMapBuilder')">🗺️ Create or Edit a Map</button>
+      <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:13px;" onclick="openMapBuilder()">🗺️ Create or Edit a Map</button>
     </div>
     <div style="text-align:center;margin-top:8px;">
       <span onclick="clearSession()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Clear saved session</span>
@@ -904,7 +902,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.72';
+const APP_VERSION='1.73';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -4853,6 +4851,36 @@ function _incrementMapPlayCount(mapId){
 // MAP BUILDER
 // ═══════════════════════════════════════════════════════════════════
 
+function openMapBuilder(){
+  // Reset all builder state
+  _mbZones=[];_mbLandmarks=[];_mbLines=[];
+  _mbDrawing=false;_mbPlacingLm=false;_mbDrawingLine=false;
+  _mbCurrentPoly=[];_mbCurrentMarkers=[];_mbCurrentLineStops=[];
+  _mbPendingZonePoly=null;_mbPendingLmLatLng=null;_mbPendingLineStops=[];
+  _mbCityData=null;
+  // Destroy old Leaflet map instances so they re-init cleanly
+  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){}  _mbMapZones=null;}
+  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){}  _mbMapLm=null;}
+  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){}  _mbMapTransit=null;}
+  // Clear input fields
+  ['mbName','mbCreator','mbDesc','mbCitySearch'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const conf=document.getElementById('mbCityConfirmed');
+  if(conf)conf.style.display='none';
+  document.getElementById('mbCityResults').innerHTML='';
+  document.getElementById('mbZoneList').innerHTML='';
+  document.getElementById('mbLineList').innerHTML='';
+  document.getElementById('mbZoneCount').textContent='0 zones';
+  document.getElementById('mbLmCount').textContent='0 landmarks';
+  document.getElementById('mbLineCount').textContent='0 lines';
+  document.getElementById('mbPublishStatus').textContent='';
+  document.getElementById('mbReviewContent').innerHTML='';
+  // Show the screen and go to step 1
+  showScreen('screenMapBuilder');
+  mbGotoStep('meta');
+}
+
 // Simple profanity filter
 const _PROFANITY = ['fuck','shit','ass','bitch','cunt','dick','cock','pussy','nigger','faggot','retard','whore'];
 function _hasProfanity(text){
@@ -5416,7 +5444,7 @@ function showVersionBanner(){
   <div style="flex:1;overflow-y:auto;min-height:0;" id="mbPanelWrap">
 
     <!-- Step 1: Meta -->
-    <div id="mbPanel-meta" style="padding:16px;">
+    <div id="mbPanel-meta" style="display:none;padding:16px;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
       <label>Map Name</label>
       <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
@@ -5492,7 +5520,7 @@ function showVersionBanner(){
     </div>
 
     <!-- Step 5: Review & Publish -->
-    <div id="mbPanel-review" style="padding:16px;">
+    <div id="mbPanel-review" style="display:none;padding:16px;">
       <div id="mbReviewContent"></div>
       <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
       <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
