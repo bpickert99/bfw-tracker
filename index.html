@@ -866,7 +866,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.66';
+const APP_VERSION='1.69';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -878,6 +878,7 @@ let _osmRoutes=[];
 let _candidateZones=[];
 let _selectedZones=new Set();
 let _osmBbox=null;
+let _cityBoundaryPoly=null;
 const POLL_SLOW = 15000;
 const POLL_FAST = 4000;
 let _currentPollInterval=POLL_SLOW;
@@ -912,8 +913,11 @@ const LANDMARK_REFRESH_MS = 30 * 60 * 1000; // 30 minutes
 // Distance from National Mall center used to determine landmark coin value
 const MALL_LAT=38.8895,MALL_LNG=-77.0353;
 function _landmarkMiles(lat,lng){
-  const R=3958.8,dLat=(lat-MALL_LAT)*Math.PI/180,dLng=(lng-MALL_LNG)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(MALL_LAT*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  // For custom games, use city center; for DC use the Mall
+  const refLat=isCustomMap()&&G.config&&G.config.map&&G.config.map.cityCenter?G.config.map.cityCenter.lat:MALL_LAT;
+  const refLng=isCustomMap()&&G.config&&G.config.map&&G.config.map.cityCenter?G.config.map.cityCenter.lng:MALL_LNG;
+  const R=3958.8,dLat=(lat-refLat)*Math.PI/180,dLng=(lng-refLng)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(refLat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function _landmarkCoins(lat,lng){
@@ -977,16 +981,33 @@ const LANDMARKS = [
   {name:'Greenbelt Metro Station',hint:'Greenbelt Rd, Greenbelt, MD — Green Line terminus',lat:39.0112,lng:-76.9111},
 ];
 
+function getLandmarkPool(){
+  // For custom games, use landmarks stored in G.config.map.landmarks
+  // Fall back to hardcoded DC landmarks only for DC preset
+  if(isCustomMap()&&G.config.map.landmarks&&G.config.map.landmarks.length){
+    return G.config.map.landmarks;
+  }
+  if(isCustomMap()){
+    // Custom map but no landmarks fetched yet — return empty
+    return [];
+  }
+  return LANDMARKS; // DC
+}
+
 function pickNewLandmark(announce){
-  let idx=Math.floor(Math.random()*LANDMARKS.length);
-  // Avoid picking the same one twice in a row
-  if(G.landmark&&G.landmark.idx===idx)idx=(idx+1)%LANDMARKS.length;
-  const lm=LANDMARKS[idx];
-  const coins=_landmarkCoins(lm.lat,lm.lng);
-  G.landmark={idx,assignedAt:Date.now(),claimedBy:null,coins};
-  // Clear any pending landmark vote
+  const pool=getLandmarkPool();
+  if(!pool.length){
+    // No landmarks available for this city yet
+    if(G.landmark===null)G.landmark={idx:-1,assignedAt:Date.now(),claimedBy:null,coins:0,name:'',hint:'No landmarks loaded'};
+    return;
+  }
+  let idx=Math.floor(Math.random()*pool.length);
+  if(G.landmark&&G.landmark.idx===idx)idx=(idx+1)%pool.length;
+  const lm=pool[idx];
+  const coins=lm.coins||_landmarkCoins(lm.lat,lm.lng);
+  G.landmark={idx,assignedAt:Date.now(),claimedBy:null,coins,name:lm.name,hint:lm.hint||''};
   if(G.flopClaims&&G.flopClaims['landmark'])delete G.flopClaims['landmark'];
-  if(announce)logEv('🗺️ New Landmark: <b>'+esc(lm.name)+'</b> — <b>'+coins+' coins</b> to get there!');
+  if(announce)logEv('\u{1F5FA}\uFE0F New Landmark: <b>'+esc(lm.name)+'</b> — <b>'+coins+' coins</b> to get there!');
 }
 
 async function initLandmark(){
@@ -1161,7 +1182,7 @@ let lmPhotoFile = null;
 function openLandmarkMo(){
   if(!G.started||LS.myTeamIdx<0){showToast('Game not started.','warn');return;}
   if(!G.landmark){showToast('No landmark loaded yet.','warn');return;}
-  const lm=LANDMARKS[G.landmark.idx];
+  const lm=isCustomMap()?{name:G.landmark.name,hint:G.landmark.hint||''}:LANDMARKS[G.landmark.idx];
   // Check if already claimed by own team
   const pending=G.flopClaims&&G.flopClaims['landmark'];
   if(pending&&pending.status==='pending'){showToast('A claim is already being voted on!','warn');return;}
@@ -1215,8 +1236,15 @@ async function submitLandmarkClaim(){
 
 function renderLandmark(container){
   if(!G.landmark){container.innerHTML='';return;}
-  const lm=LANDMARKS[G.landmark.idx];
-  if(!lm){container.innerHTML='';return;}
+  // Get landmark data: for custom games name/hint stored directly on G.landmark
+  let lm;
+  if(isCustomMap()){
+    if(!G.landmark.name){container.innerHTML='';return;}
+    lm={name:G.landmark.name,hint:G.landmark.hint||''};
+  } else {
+    lm=LANDMARKS[G.landmark.idx];
+    if(!lm){container.innerHTML='';return;}
+  }
   const pending=G.flopClaims&&G.flopClaims['landmark'];
   const isPending=pending&&pending.status==='pending';
   const isWon=pending&&pending.status==='won';
@@ -1617,6 +1645,16 @@ function getTransitLines(){if(G.config&&G.config.map!==null&&G.config.map!==unde
 function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:LINE_BONUSES;}
 function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
 function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
+function isCustomMap(){return !!(G.config&&G.config.map);}
+function getAvailableShopItems(){
+  return SHOP_ITEMS_DATA.filter(item=>{
+    if(!isCustomMap())return true;
+    if(item.needsRegion)return false;
+    if(item.type==='detour')return getTransitStops().length>0;
+    if(item.needsLine)return Object.keys(getTransitLines()).length>0;
+    return true;
+  });
+}
 
 // ═══════════════════════════
 // ZONE & MAP DATA
@@ -1836,95 +1874,521 @@ function toggleFlopFields(){
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
 // ═══════════════════════════════════════════════════════════════════
-// MAP & TRANSIT SETUP — Neighborhood/Landmark Zone Builder
+// MAP & TRANSIT SETUP — City Boundary + Neighborhood Zone Builder
 // ═══════════════════════════════════════════════════════════════════
 
-// _cityData etc hoisted — see top of script
 
-// ── Sutherland-Hodgman polygon clipping ──────────────────────────
-// Clips polygon `poly` to the half-plane defined by edge (a→b)
-function _clipEdge(poly, a, b){
-  if(!poly.length)return[];
-  const out=[];
-  const inside=p=>(b[0]-a[0])*(p[1]-a[1])>(b[1]-a[1])*(p[0]-a[0]);
-  const intersect=(p1,p2)=>{
-    const dc=[a[0]-b[0],a[1]-b[1]],dp=[p1[0]-p2[0],p1[1]-p2[1]];
-    const n1=a[0]*b[1]-a[1]*b[0],n2=p1[0]*p2[1]-p1[1]*p2[0];
-    const n3=1/(dc[0]*dp[1]-dc[1]*dp[0]);
-    return[(n1*dp[0]-n2*dc[0])*n3,(n1*dp[1]-n2*dc[1])*n3];
-  };
-  for(let i=0;i<poly.length;i++){
-    const curr=poly[i],prev=poly[(i+poly.length-1)%poly.length];
-    if(inside(curr)){
-      if(!inside(prev))out.push(intersect(prev,curr));
-      out.push(curr);
-    }else if(inside(prev)){
-      out.push(intersect(prev,curr));
+// ── OSM Area ID from Nominatim result ────────────────────────────
+function _osmAreaId(){
+  if(!_cityData||!_cityData.osmId)return null;
+  const type=_cityData.osmType||'relation';
+  const id=parseInt(_cityData.osmId);
+  if(type==='relation')return 3600000000+id;
+  if(type==='way')return 2400000000+id;
+  return null;
+}
+
+// ── Chain outer ways of an OSM relation into one polygon ─────────
+function _chainOuterWays(outers){
+  if(!outers.length)return[];
+  let segs=outers.map(w=>w.geometry.map(g=>[g.lat,g.lon]));
+  let chain=segs[0];
+  let remaining=segs.slice(1);
+  while(remaining.length){
+    const last=chain[chain.length-1];
+    let found=false;
+    for(let i=0;i<remaining.length;i++){
+      const seg=remaining[i];
+      const dF=Math.hypot(last[0]-seg[0][0],last[1]-seg[0][1]);
+      const dE=Math.hypot(last[0]-seg[seg.length-1][0],last[1]-seg[seg.length-1][1]);
+      if(dF<0.0002){chain=chain.concat(seg.slice(1));remaining.splice(i,1);found=true;break;}
+      if(dE<0.0002){chain=chain.concat([...seg].reverse().slice(1));remaining.splice(i,1);found=true;break;}
     }
+    if(!found)break;
   }
-  return out;
+  return chain;
 }
 
-function clipPolyToConvexBounds(poly, bounds){
-  // bounds = [[minLat,minLng],[maxLat,maxLng]]
-  const [s,w]=bounds[0],[n,e]=bounds[1];
-  const clipRect=[[s,w],[n,w],[n,e],[s,e]];
-  let result=poly.slice();
-  for(let i=0;i<clipRect.length;i++){
-    result=_clipEdge(result,clipRect[i],clipRect[(i+1)%clipRect.length]);
-    if(!result.length)return[];
+function _chainRelationOuters(rel){
+  const outers=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry&&(m.role==='outer'||m.role===''));
+  if(!outers.length){
+    const ways=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry);
+    if(!ways.length)return[];
+    return _chainOuterWays(ways);
   }
-  return result;
+  return _chainOuterWays(outers);
 }
 
-// ── Simple point-in-polygon for containment check ────────────────
-function pointInPolyLL(lat,lng,poly){
-  let inside=false;
-  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-    const xi=poly[i][1],yi=poly[i][0],xj=poly[j][1],yj=poly[j][0];
-    if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi))inside=!inside;
-  }
-  return inside;
+// ── Geometry helpers ─────────────────────────────────────────────
+function _wayToCoords(el){
+  if(el.geometry&&el.geometry.length)return el.geometry.map(g=>[g.lat,g.lon]);
+  return[];
 }
 
-// ── OSM helpers ───────────────────────────────────────────────────
+function _centroid(poly){
+  let lat=0,lng=0;
+  poly.forEach(p=>{lat+=p[0];lng+=p[1];});
+  return[lat/poly.length,lng/poly.length];
+}
+
+function _polyAreaSqMi(poly){
+  let area=0;
+  const n=poly.length;
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    area+=poly[i][1]*poly[j][0]-poly[j][1]*poly[i][0];
+  }
+  return Math.abs(area)/2*69*53;
+}
+
 function _bboxStr(bb){
-  // OSM bounding box: [south,west,north,east]
   if(Array.isArray(bb)&&bb.length===4)return bb[0]+','+bb[2]+','+bb[1]+','+bb[3];
   return null;
 }
 
+function _isExcluded(lat,lng,excludedPolys){
+  return excludedPolys.some(poly=>pointInPolyLL(lat,lng,poly));
+}
+
+// ── Overpass helper ───────────────────────────────────────────────
 async function _overpass(query){
   const r=await fetch('https://overpass-api.de/api/interpreter',
     {method:'POST',body:'data='+encodeURIComponent(query),
      headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-  if(!r.ok)throw new Error('Overpass error '+r.status);
+  if(!r.ok)throw new Error('Overpass '+r.status);
   return r.json();
 }
 
-function _wayToCoords(el){
-  if(el.geometry&&el.geometry.length)return el.geometry.map(g=>[g.lat,g.lon]);
-  if(el.nodes&&window._osmNodeMap){
-    return el.nodes.map(id=>{const n=window._osmNodeMap[id];return n?[n.lat,n.lon]:null;}).filter(Boolean);
+// ── Fetch actual city boundary polygon from OSM ───────────────────
+async function _fetchCityBoundary(){
+  if(!_cityData)return null;
+  if(_cityData.osmType==='relation'&&_cityData.osmId){
+    try{
+      const q='[out:json][timeout:30];relation('+_cityData.osmId+');out geom;';
+      const data=await _overpass(q);
+      const rel=(data.elements||[])[0];
+      if(rel&&rel.members){
+        const poly=_chainRelationOuters(rel);
+        if(poly.length>2)return poly;
+      }
+    }catch(e){console.warn('Boundary fetch failed',e);}
   }
-  return [];
+  // Fallback: use Nominatim bbox as rough polygon
+  const bb=_osmBbox;
+  if(!bb)return null;
+  const s=parseFloat(bb[0]),w=parseFloat(bb[2]),n=parseFloat(bb[1]),e=parseFloat(bb[3]);
+  return[[s,w],[n,w],[n,e],[s,e]];
 }
 
-function _relationOuterCoords(rel){
-  // Get outer ring coords from a relation's members
-  const outers=(rel.members||[]).filter(m=>m.type==='way'&&m.role==='outer'&&m.geometry);
-  if(!outers.length){
-    // Try members without role
-    const ways=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry);
-    if(ways.length)return ways[0].geometry.map(g=>[g.lat,g.lon]);
-    return[];
+// ── Adjacency check between two zones ────────────────────────────
+function _zonesAdjacent(a,b){
+  const THRESH=0.0008; // ~80m in degrees, forgiving for OSM gaps
+  // Bounding box pre-filter
+  const aLats=a.poly.map(p=>p[0]),aLngs=a.poly.map(p=>p[1]);
+  const bLats=b.poly.map(p=>p[0]),bLngs=b.poly.map(p=>p[1]);
+  if(Math.min(...aLats)>Math.max(...bLats)+THRESH)return false;
+  if(Math.max(...aLats)<Math.min(...bLats)-THRESH)return false;
+  if(Math.min(...aLngs)>Math.max(...bLngs)+THRESH)return false;
+  if(Math.max(...aLngs)<Math.min(...bLngs)-THRESH)return false;
+  // Point proximity check
+  for(const pa of a.poly){
+    for(const pb of b.poly){
+      if(Math.abs(pa[0]-pb[0])<THRESH&&Math.abs(pa[1]-pb[1])<THRESH)return true;
+    }
   }
-  // Chain outer rings
-  let chain=outers[0].geometry.map(g=>[g.lat,g.lon]);
-  return chain;
+  return false;
 }
 
-// ── Main zone building ────────────────────────────────────────────
+function _isAdjacentToSelected(zone){
+  for(const code of _selectedZones){
+    const other=_candidateZones.find(z=>z.code===code);
+    if(other&&_zonesAdjacent(zone,other))return true;
+  }
+  return false;
+}
+
+// Auto-select up to maxCount most-dense contiguous zones
+function _autoSelectContiguousZones(maxCount){
+  _selectedZones=new Set();
+  if(!_candidateZones.length)return;
+  // Start from most dense zone
+  _selectedZones.add(_candidateZones[0].code);
+  while(_selectedZones.size<maxCount){
+    let best=null,bestD=-1;
+    for(const z of _candidateZones){
+      if(_selectedZones.has(z.code))continue;
+      if(!_isAdjacentToSelected(z))continue;
+      if((z.density||0)>bestD){bestD=z.density||0;best=z;}
+    }
+    if(!best)break;
+    _selectedZones.add(best.code);
+  }
+}
+
+// ── Main zone builder ─────────────────────────────────────────────
+async function buildZones(){
+  const status=document.getElementById('cfgZoneStatus');
+  const sec=document.getElementById('cfgZoneSection');
+  if(!_cityData||!status||!sec)return;
+  sec.style.display='block';
+  _candidateZones=[];
+  _selectedZones=new Set();
+
+  try{
+    // Step 1: City boundary
+    status.innerHTML='&#x23F3; Loading city boundary from OpenStreetMap…';
+    _cityBoundaryPoly=await _fetchCityBoundary();
+    if(!_cityBoundaryPoly||_cityBoundaryPoly.length<3){
+      status.innerHTML='&#x26A0; Could not load city boundary. Try a more specific city name (e.g. include the state).';
+      return;
+    }
+
+    // Step 2: Neighborhoods within city
+    status.innerHTML='&#x23F3; Fetching neighborhoods within '+esc(_cityData.shortName)+'…';
+    let zones=await _fetchNeighborhoodsInCity();
+
+    // Step 3: If not enough, fall back to landmarks
+    if(zones.length<4){
+      status.innerHTML='&#x23F3; Few neighborhoods found — using landmark-based zones…';
+      zones=await _buildLandmarkZones();
+    }
+
+    if(!zones.length){
+      status.innerHTML='&#x26A0; Could not generate zones for this area. Try a larger city or include the state name in your search.';
+      return;
+    }
+
+    // Step 4: Urban density scoring
+    status.innerHTML='&#x23F3; Scoring zones by urban density (this may take a moment)…';
+    await _scoreZonesByDensity(zones);
+
+    // Sort: most urban first
+    zones.sort((a,b)=>(b.density||0)-(a.density||0));
+    zones.forEach((z,i)=>z.code='Z'+(i+1));
+    _candidateZones=zones;
+
+    // Step 5: Auto-select top contiguous zones
+    _autoSelectContiguousZones(Math.min(15,zones.length));
+
+    const modeWord=zones[0]&&zones[0].fromLandmarks?'landmark':'neighborhood';
+    status.innerHTML='&#x2713; '+zones.length+' '+modeWord+' zones found within '+esc(_cityData.shortName)+'. Tap to include or exclude — selected zones must remain connected.';
+    _renderZonePicker();
+
+    // Background: fetch Flop landmarks
+    _fetchCityLandmarks();
+
+  }catch(e){
+    status.innerHTML='&#x26A0; Could not load map data. Check your connection and try again.';
+    console.error('buildZones error',e);
+  }
+}
+
+// ── Fetch OSM neighborhoods clipped to city boundary ─────────────
+async function _fetchNeighborhoodsInCity(){
+  const areaId=_osmAreaId();
+  const bb=_osmBbox;
+  const bbox=_bboxStr(bb)||(_cityData.lat-0.15)+','+(_cityData.lng-0.15)+','+(_cityData.lat+0.15)+','+(_cityData.lng+0.15);
+
+  let q;
+  if(areaId){
+    // Constrain to the city's actual OSM boundary
+    q=`[out:json][timeout:45];
+area(${areaId})->.city;
+(
+  way["place"~"neighbourhood|quarter|suburb"](area.city);
+  relation["place"~"neighbourhood|quarter|suburb"](area.city);
+  way["boundary"="administrative"]["admin_level"~"8|9|10|11"](area.city);
+  relation["boundary"="administrative"]["admin_level"~"8|9|10|11"](area.city);
+);
+out geom;`;
+  } else {
+    q=`[out:json][timeout:30];
+(
+  way["place"~"neighbourhood|quarter|suburb"](${bbox});
+  relation["place"~"neighbourhood|quarter|suburb"](${bbox});
+);
+out geom;`;
+  }
+
+  const data=await _overpass(q);
+  const elements=(data.elements||[]).filter(el=>el.tags&&(el.tags.name||el.tags['name:en']));
+
+  const zones=[];
+  const seen=new Set();
+
+  elements.forEach(el=>{
+    const name=el.tags.name||el.tags['name:en'];
+    if(!name||seen.has(name.toLowerCase()))return;
+
+    let poly=[];
+    if(el.type==='way')poly=_wayToCoords(el);
+    else if(el.type==='relation')poly=_chainRelationOuters(el);
+    if(poly.length<3)return;
+
+    const ctr=_centroid(poly);
+    // Must be inside city boundary
+    if(_cityBoundaryPoly&&!pointInPolyLL(ctr[0],ctr[1],_cityBoundaryPoly))return;
+
+    const area=_polyAreaSqMi(poly);
+    if(area<0.02||area>25)return; // skip tiny or enormous zones
+
+    seen.add(name.toLowerCase());
+    zones.push({
+      code:'Z'+(zones.length+1),name,poly,
+      area:parseFloat(area.toFixed(2)),
+      region:'GAME',lines:[],stops:'',density:0
+    });
+  });
+
+  return zones;
+}
+
+// ── Landmark-based Voronoi fallback ───────────────────────────────
+async function _buildLandmarkZones(){
+  const bb=_osmBbox;
+  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
+  const areaId=_osmAreaId();
+
+  let q;
+  if(areaId){
+    q=`[out:json][timeout:30];
+area(${areaId})->.city;
+(
+  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](area.city);
+  node["historic"~"monument|memorial|building|castle"](area.city);
+  node["amenity"~"theatre|arts_centre|library"](area.city);
+  way["leisure"="park"]["name"](area.city);
+);
+out 30;`;
+  } else {
+    q=`[out:json][timeout:20];
+(
+  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](${bbox});
+  node["historic"~"monument|memorial|building|castle"](${bbox});
+  node["leisure"="park"]["name"](${bbox});
+);
+out 20;`;
+  }
+
+  const data=await _overpass(q);
+  const lms=(data.elements||[]).filter(el=>el.lat&&el.lon&&el.tags&&el.tags.name);
+
+  if(lms.length<3)return[];
+
+  // Filter to inside city boundary
+  const pts=lms.filter(lm=>!_cityBoundaryPoly||pointInPolyLL(lm.lat,lm.lng,_cityBoundaryPoly));
+  if(!pts.length)return[];
+
+  // Create Voronoi-style zones: for each point, its zone is all area
+  // closer to it than any other point, clipped to bbox
+  // Simple approximate Voronoi: create a grid and assign each cell to nearest point
+  const gridSize=0.004; // ~400m cells
+  const allLats=pts.map(p=>p.lat),allLngs=pts.map(p=>p.lng);
+  const minLat=Math.min(...allLats)-0.01,maxLat=Math.max(...allLats)+0.01;
+  const minLng=Math.min(...allLngs)-0.01,maxLng=Math.max(...allLngs)+0.01;
+
+  // Assign grid cells to nearest landmark
+  const assignment={}; // ptIdx -> [[lat,lng]]
+  pts.forEach((_,i)=>assignment[i]=[]);
+
+  for(let lat=minLat;lat<maxLat;lat+=gridSize){
+    for(let lng=minLng;lng<maxLng;lng+=gridSize){
+      // Must be inside city boundary
+      const cellLat=lat+gridSize/2,cellLng=lng+gridSize/2;
+      if(_cityBoundaryPoly&&!pointInPolyLL(cellLat,cellLng,_cityBoundaryPoly))continue;
+      let bestIdx=0,bestD=Infinity;
+      pts.forEach((p,i)=>{
+        const d=Math.hypot(cellLat-p.lat,cellLng-p.lng);
+        if(d<bestD){bestD=d;bestIdx=i;}
+      });
+      assignment[bestIdx].push([cellLat,cellLng]);
+    }
+  }
+
+  // Convert cell clusters to bounding polygons
+  const zones=[];
+  pts.forEach((lm,i)=>{
+    const cells=assignment[i];
+    if(cells.length<2)return;
+    // Build convex-hull-like polygon from cell centers
+    const lats=cells.map(c=>c[0]),lngs=cells.map(c=>c[1]);
+    const minLa=Math.min(...lats)-gridSize/2,maxLa=Math.max(...lats)+gridSize/2;
+    const minLn=Math.min(...lngs)-gridSize/2,maxLn=Math.max(...lngs)+gridSize/2;
+    const poly=[[minLa,minLn],[maxLa,minLn],[maxLa,maxLn],[minLa,maxLn]];
+    const area=_polyAreaSqMi(poly);
+    if(area<0.01)return;
+    zones.push({
+      code:'Z'+(zones.length+1),
+      name:lm.tags.name,
+      poly,area:parseFloat(area.toFixed(2)),
+      region:'GAME',lines:[],stops:'',density:0,fromLandmarks:true
+    });
+  });
+
+  return zones;
+}
+
+// ── Score zones by amenity density ───────────────────────────────
+async function _scoreZonesByDensity(zones){
+  if(!zones.length)return;
+  const allLats=zones.flatMap(z=>z.poly.map(p=>p[0]));
+  const allLngs=zones.flatMap(z=>z.poly.map(p=>p[1]));
+  const minLat=Math.min(...allLats),maxLat=Math.max(...allLats);
+  const minLng=Math.min(...allLngs),maxLng=Math.max(...allLngs);
+  const bbox=minLat+','+minLng+','+maxLat+','+maxLng;
+  try{
+    const q=`[out:json][timeout:30];
+(
+  node["amenity"~"restaurant|cafe|bar|fast_food|pub|bank|pharmacy"](${bbox});
+  node["shop"](${bbox});
+);
+out;`;
+    const data=await _overpass(q);
+    const amenities=data.elements||[];
+    zones.forEach(z=>{
+      z.density=amenities.filter(a=>a.lat&&a.lon&&pointInPolyLL(a.lat,a.lon,z.poly)).length;
+    });
+  }catch(e){console.warn('Density scoring failed',e);}
+}
+
+// ── Zone picker UI ────────────────────────────────────────────────
+function _renderZonePicker(){
+  const container=document.getElementById('cfgZoneCheckboxes');
+  const countEl=document.getElementById('cfgZoneCount');
+  if(!container)return;
+  container.innerHTML=_candidateZones.map(z=>{
+    const sel=_selectedZones.has(z.code);
+    const densityBar=z.density>0?` <span style="font-size:9px;opacity:.6;">${z.density>50?'●●●':z.density>20?'●●':'●'}</span>`:'';
+    return `<button class="btn btn-sm" data-code="${z.code}" onclick="_toggleZone(this)" style="background:${sel?'var(--accent)':'var(--surface2)'};color:${sel?'white':'var(--text)'};border:1px solid ${sel?'var(--accent)':'var(--border)'};font-size:11px;padding:4px 8px;">${esc(z.name)}${densityBar}</button>`;
+  }).join('');
+  _updateZoneCount();
+}
+
+function _toggleZone(btn){
+  const code=btn.dataset.code;
+  const willSelect=!_selectedZones.has(code);
+  if(willSelect){
+    // Check adjacency: must be adjacent to current selection (or selection is empty)
+    if(_selectedZones.size>0){
+      const zone=_candidateZones.find(z=>z.code===code);
+      if(!zone||!_isAdjacentToSelected(zone)){
+        showToast('Zones must be contiguous — this zone isn\'t adjacent to your current selection.','warn');
+        return;
+      }
+    }
+    _selectedZones.add(code);
+    btn.style.background='var(--accent)';btn.style.color='white';btn.style.borderColor='var(--accent)';
+  } else {
+    // Check that removing this zone doesn't split the selection
+    const testSet=new Set(_selectedZones);
+    testSet.delete(code);
+    if(testSet.size>1&&!_isSelectionContiguous(testSet)){
+      showToast('Removing this zone would split the map — remove a zone from the edge instead.','warn');
+      return;
+    }
+    _selectedZones.delete(code);
+    btn.style.background='var(--surface2)';btn.style.color='var(--text)';btn.style.borderColor='var(--border)';
+  }
+  _updateZoneCount();
+}
+
+function _isSelectionContiguous(sel){
+  if(sel.size<=1)return true;
+  const codes=[...sel];
+  const visited=new Set([codes[0]]);
+  const queue=[codes[0]];
+  while(queue.length){
+    const cur=queue.shift();
+    const curZone=_candidateZones.find(z=>z.code===cur);
+    if(!curZone)continue;
+    for(const code of codes){
+      if(visited.has(code))continue;
+      const other=_candidateZones.find(z=>z.code===code);
+      if(other&&_zonesAdjacent(curZone,other)){
+        visited.add(code);
+        queue.push(code);
+      }
+    }
+  }
+  return visited.size===codes.length;
+}
+
+function _updateZoneCount(){
+  const el=document.getElementById('cfgZoneCount');
+  const n=_selectedZones.size;
+  if(el)el.textContent=n+' zone'+(n!==1?'s':'')+' selected'+(n<4?' — add more for a better game':n>18?' — consider removing some':'');
+}
+
+function resetZoneSelection(){
+  _selectedZones=new Set();
+  _autoSelectContiguousZones(Math.min(15,_candidateZones.length));
+  _renderZonePicker();
+}
+
+// ── Fetch landmarks for Flop ──────────────────────────────────────
+async function _fetchCityLandmarks(){
+  if(!_cityData)return;
+  const areaId=_osmAreaId();
+  const bb=_osmBbox;
+  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
+  try{
+    let q;
+    if(areaId){
+      q=`[out:json][timeout:25];
+area(${areaId})->.city;
+(
+  node["tourism"~"museum|attraction|viewpoint|gallery|monument|artwork"](area.city);
+  node["historic"~"monument|memorial|building|castle|ruins"](area.city);
+  node["amenity"~"theatre|arts_centre|library"](area.city);
+  way["leisure"="park"]["name"](area.city);
+);
+out 40;`;
+    } else {
+      q=`[out:json][timeout:20];
+(
+  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](${bbox});
+  node["historic"~"monument|memorial|building|castle"](${bbox});
+  node["leisure"="park"]["name"](${bbox});
+);
+out 30;`;
+    }
+    const data=await _overpass(q);
+    const cityLat=_cityData.lat,cityLng=_cityData.lng;
+    const lms=(data.elements||[])
+      .filter(el=>el.tags&&el.tags.name&&el.lat&&el.lon)
+      // Filter to inside city boundary
+      .filter(el=>!_cityBoundaryPoly||pointInPolyLL(el.lat,el.lon,_cityBoundaryPoly))
+      .map(el=>({
+        name:el.tags.name,
+        hint:_cityData.shortName||'',
+        lat:el.lat,lng:el.lon,
+        // Coin value based on distance from city center, not DC
+        coins:_landmarkCoinsFromCenter(el.lat,el.lng,cityLat,cityLng)
+      }));
+    window._cityLandmarks=lms;
+    const status=document.getElementById('cfgZoneStatus');
+    if(status&&lms.length){
+      const cur=status.innerHTML;
+      if(!cur.includes('landmarks'))status.innerHTML=cur+'  ·  '+lms.length+' landmarks loaded for Flop.';
+    }
+  }catch(e){console.warn('Landmark fetch failed',e);}
+}
+
+// Coin value relative to city center (not DC)
+function _landmarkCoinsFromCenter(lat,lng,cityLat,cityLng){
+  const R=3958.8;
+  const dLat=(lat-cityLat)*Math.PI/180;
+  const dLng=(lng-cityLng)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(cityLat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  const d=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  if(d<0.5)return 6;
+  if(d<1.5)return 7;
+  if(d<3)return 8;
+  if(d<6)return 9;
+  return 10;
+}
+
+// ── Preset toggle ─────────────────────────────────────────────────
 function onMapPresetChange(){
   const preset=document.getElementById('cfgMapPreset').value;
   const sec=document.getElementById('cfgMapCustomSection');
@@ -1937,6 +2401,7 @@ function onTransitModeChange(){
   if(typeSec)typeSec.style.display=(mode==='transit'||mode==='mixed')?'block':'none';
 }
 
+// ── City search ───────────────────────────────────────────────────
 async function searchCity(){
   const q=document.getElementById('cfgCitySearch').value.trim();
   if(!q)return;
@@ -1944,210 +2409,38 @@ async function searchCity(){
   const res=document.getElementById('cfgCityResults');
   btn.textContent='Searching…';btn.disabled=true;res.innerHTML='';
   try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(q),
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q='+encodeURIComponent(q),
       {headers:{'Accept-Language':'en','User-Agent':'BattleForWashington/1.0'}});
     const data=await r.json();
-    if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results.</div>';return;}
+    if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results. Try including the state (e.g. "Kansas City, MO")</div>';return;}
     window._nominatimResults=data;
     res.innerHTML=data.map((item,i)=>
-      '<div onclick="selectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+esc(item.display_name)+'</div>'
+      '<div onclick="selectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+
+      esc(item.display_name)+'</div>'
     ).join('');
-  }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed.</div>';}
+  }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed. Check your connection.</div>';}
   btn.textContent='Search';btn.disabled=false;
 }
 
 async function selectCity(idx){
   const item=window._nominatimResults&&window._nominatimResults[idx];
   if(!item)return;
-  _cityData={name:item.display_name,shortName:item.display_name.split(',')[0].trim(),
-    lat:parseFloat(item.lat),lng:parseFloat(item.lon),bb:item.boundingbox,osmId:item.osm_id,osmType:item.osm_type};
+  _cityData={
+    name:item.display_name,
+    shortName:item.address?(item.address.city||item.address.town||item.address.village||item.display_name.split(',')[0]).trim():item.display_name.split(',')[0].trim(),
+    lat:parseFloat(item.lat),
+    lng:parseFloat(item.lon),
+    bb:item.boundingbox,
+    osmId:item.osm_id,
+    osmType:item.osm_type
+  };
   _osmBbox=item.boundingbox;
-
   document.getElementById('cfgCityResults').innerHTML=
     '<div style="padding:8px 10px;border-radius:8px;font-size:12px;border:2px solid var(--accent);background:var(--surface2);">&#x2713; '+esc(item.display_name)+'</div>';
-
-  // Start building zones
   await buildZones();
 }
 
-async function buildZones(){
-  const status=document.getElementById('cfgZoneStatus');
-  const sec=document.getElementById('cfgZoneSection');
-  if(!_cityData||!status||!sec)return;
-  sec.style.display='block';
-  status.innerHTML='&#x23F3; Loading neighborhood boundaries from OpenStreetMap…';
-  _candidateZones=[];
-  _selectedZones=new Set();
-
-  const bb=_osmBbox;
-  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
-
-  try{
-    // ── Step 1: Fetch neighborhoods ───────────────────────────────
-    const nbrQ=`[out:json][timeout:30];
-(
-  way["place"~"neighbourhood|quarter|suburb"](${bbox});
-  relation["place"~"neighbourhood|quarter|suburb"](${bbox});
-  way["boundary"="administrative"]["admin_level"~"9|10|11"](${bbox});
-  relation["boundary"="administrative"]["admin_level"~"9|10|11"](${bbox});
-);
-out geom;`;
-    status.innerHTML='&#x23F3; Fetching neighborhoods…';
-    const nbrData=await _overpass(nbrQ);
-    const neighborhoods=(nbrData.elements||[]).filter(el=>el.tags&&(el.tags.name||el.tags['name:en']));
-
-    // ── Step 2: Fetch excluded areas ──────────────────────────────
-    status.innerHTML='&#x23F3; Identifying excluded areas…';
-    const exclQ=`[out:json][timeout:20];
-(
-  way["landuse"~"industrial|port|military|landfill|quarry|railway"](${bbox});
-  relation["landuse"~"industrial|port|military"](${bbox});
-  way["aeroway"="aerodrome"](${bbox});
-  way["aeroway"="runway"](${bbox});
-);
-out geom;`;
-    const exclData=await _overpass(exclQ);
-    const excluded=(exclData.elements||[]).map(el=>{
-      if(el.geometry)return el.geometry.map(g=>[g.lat,g.lon]);
-      return[];
-    }).filter(p=>p.length>2);
-
-    if(neighborhoods.length>=6){
-      // ── Neighborhood mode ─────────────────────────────────────
-      status.innerHTML='&#x2713; Found '+neighborhoods.length+' neighborhoods. Select which to include as zones.';
-      _buildFromNeighborhoods(neighborhoods, excluded, bbox);
-    } else {
-      // ── Landmark fallback ─────────────────────────────────────
-      status.innerHTML='&#x23F3; Few neighborhoods found — loading landmarks for zone generation…';
-      const lmQ=`[out:json][timeout:20];
-(
-  node["tourism"~"museum|attraction|viewpoint|gallery"](${bbox});
-  node["amenity"~"theatre|arts_centre|library|community_centre"](${bbox});
-  node["historic"~"monument|memorial|building|castle"](${bbox});
-  node["leisure"="park"]["name"](${bbox});
-);
-out 20;`;
-      const lmData=await _overpass(lmQ);
-      const landmarks=(lmData.elements||[]).filter(el=>el.lat&&el.lon&&el.tags&&el.tags.name);
-      if(landmarks.length<3){
-        status.innerHTML='&#x26A0; Not enough data found for this area. Try a larger city or adjust the search.';
-        return;
-      }
-      status.innerHTML='&#x2713; Using landmark-based zones ('+landmarks.length+' landmarks found). Select which to include.';
-      _buildFromLandmarks(landmarks, excluded, bbox);
-    }
-  }catch(e){
-    status.innerHTML='&#x26A0; Could not load map data. Check your connection and try again.';
-    console.error(e);
-  }
-}
-
-function _isExcluded(lat,lng,excludedPolys){
-  return excludedPolys.some(poly=>pointInPolyLL(lat,lng,poly));
-}
-
-function _centroid(poly){
-  const n=poly.length;
-  let lat=0,lng=0;
-  poly.forEach(p=>{lat+=p[0];lng+=p[1];});
-  return[lat/n,lng/n];
-}
-
-function _buildFromNeighborhoods(neighborhoods, excluded, bbox){
-  const zones=[];
-  neighborhoods.forEach((el,i)=>{
-    let poly=[];
-    if(el.type==='way')poly=_wayToCoords(el);
-    else if(el.type==='relation')poly=_relationOuterCoords(el);
-    if(poly.length<3)return;
-    const ctr=_centroid(poly);
-    if(_isExcluded(ctr[0],ctr[1],excluded))return;
-    const name=(el.tags.name||el.tags['name:en']||'Zone '+(i+1));
-    const code='Z'+(zones.length+1);
-    const area=_polyAreaSqMi(poly);
-    zones.push({code,name,poly,area:parseFloat(area.toFixed(2)),region:'GAME',lines:[],stops:''});
-  });
-  // Sort by centroid lat (north to south) for logical ordering
-  zones.sort((a,b)=>{const ca=_centroid(a.poly),cb=_centroid(b.poly);return cb[0]-ca[0];});
-  // Re-code after sort
-  zones.forEach((z,i)=>z.code='Z'+(i+1));
-  _candidateZones=zones;
-  _renderZonePicker();
-}
-
-function _buildFromLandmarks(landmarks, excluded, bbox){
-  // Filter excluded landmarks
-  const pts=landmarks.filter(lm=>!_isExcluded(lm.lat,lm.lng,excluded));
-  // Build simple square buffer zones around each landmark
-  const bbParts=bbox.split(',').map(Number); // [s,w,n,e]
-  const bbH=bbParts[2]-bbParts[0],bbW=bbParts[3]-bbParts[1];
-  const cellH=bbH/Math.ceil(Math.sqrt(pts.length));
-  const cellW=bbW/Math.ceil(Math.sqrt(pts.length));
-  const zones=pts.map((lm,i)=>{
-    const dLat=cellH/2,dLng=cellW/2;
-    const poly=[[lm.lat+dLat,lm.lng-dLng],[lm.lat+dLat,lm.lng+dLng],
-                [lm.lat-dLat,lm.lng+dLng],[lm.lat-dLat,lm.lng-dLng]];
-    const code='Z'+(i+1);
-    const name=lm.tags.name||'Zone '+(i+1);
-    return{code,name,poly,area:parseFloat(_polyAreaSqMi(poly).toFixed(2)),region:'GAME',lines:[],stops:''};
-  });
-  _candidateZones=zones;
-  _renderZonePicker();
-}
-
-function _polyAreaSqMi(poly){
-  // Shoelace formula, approximate in degrees → sq mi
-  let area=0;
-  const n=poly.length;
-  for(let i=0;i<n;i++){
-    const j=(i+1)%n;
-    area+=poly[i][1]*poly[j][0];
-    area-=poly[j][1]*poly[i][0];
-  }
-  area=Math.abs(area)/2;
-  // 1 degree lat ≈ 69 mi, 1 degree lng ≈ 53 mi at mid-latitudes
-  return area*69*53;
-}
-
-function _renderZonePicker(){
-  const container=document.getElementById('cfgZoneCheckboxes');
-  const countEl=document.getElementById('cfgZoneCount');
-  if(!container)return;
-  // Default: select up to 15, prefer zones over ~0.1 sq mi
-  _selectedZones=new Set();
-  const sorted=[..._candidateZones].sort((a,b)=>b.area-a.area);
-  sorted.slice(0,15).forEach(z=>_selectedZones.add(z.code));
-
-  container.innerHTML=_candidateZones.map(z=>{
-    const sel=_selectedZones.has(z.code);
-    return `<button class="btn btn-sm" data-code="${z.code}" onclick="_toggleZone(this)" style="background:${sel?'var(--accent)':'var(--surface2)'};color:${sel?'white':'var(--text)'};border:1px solid ${sel?'var(--accent)':'var(--border)'};font-size:11px;padding:4px 8px;">${esc(z.name)}</button>`;
-  }).join('');
-  _updateZoneCount();
-}
-
-function _toggleZone(btn){
-  const code=btn.dataset.code;
-  if(_selectedZones.has(code)){
-    _selectedZones.delete(code);
-    btn.style.background='var(--surface2)';btn.style.color='var(--text)';btn.style.borderColor='var(--border)';
-  } else {
-    _selectedZones.add(code);
-    btn.style.background='var(--accent)';btn.style.color='white';btn.style.borderColor='var(--accent)';
-  }
-  _updateZoneCount();
-}
-
-function _updateZoneCount(){
-  const el=document.getElementById('cfgZoneCount');
-  if(el)el.textContent=_selectedZones.size+' zones selected'+((_selectedZones.size<4)?' — add more for a better game':_selectedZones.size>18?' — consider removing some':'');
-}
-
-function resetZoneSelection(){
-  _selectedZones=new Set();
-  _candidateZones.slice(0,15).forEach(z=>_selectedZones.add(z.code));
-  _renderZonePicker();
-}
-
+// ── Build final map config for game creation ──────────────────────
 function getMapConfig(){
   const preset=document.getElementById('cfgMapPreset')?.value||'dc';
   if(preset==='dc')return null;
@@ -2162,9 +2455,11 @@ function getMapConfig(){
   return{
     preset:'custom',
     cityName:_cityData?_cityData.shortName:null,
+    cityCenter:_cityData?{lat:_cityData.lat,lng:_cityData.lng}:null,
     transitMode,transitTypes,
     customTransitName:document.getElementById('cfgTransitCustomName')?.value.trim()||null,
     zones,
+    landmarks:window._cityLandmarks||[],
     transitStops:[],
     transitLines:{},
     lineBonuses:[],
@@ -2777,8 +3072,9 @@ function renderScores(){
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
   const as=G.teams.map((_,i)=>{let a=0;ZONES.forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
   const aw2=as.indexOf(Math.max(...as,0));
+  const _lb=getLineBonuses();
   tbody.innerHTML=`<tr><td><b>Area Bonus</b></td><td>2 pts</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area</td></tr>`+
-  LINE_BONUSES.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join('');
+  (_lb.length?_lb.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join(''):'');
 }
 
 // ═══════════════════════════
@@ -3518,7 +3814,9 @@ function renderShopItems(){
     }
   }
 
-  grid.innerHTML=SHOP_ITEMS_DATA.map((item,i)=>{
+  const _shopItems=getAvailableShopItems();
+  grid.innerHTML=_shopItems.map((item)=>{
+    const i=SHOP_ITEMS_DATA.indexOf(item);
     const cost=parseInt(item.cost)||0;
     const canAfford=coins>=cost;
     // Zone Challenge special rendering
@@ -4058,7 +4356,13 @@ function switchTab(name){
     const hdr=document.querySelector('header'),tabs=document.querySelector('.tabs');
     const offset=(hdr?hdr.offsetHeight:44)+(tabs?tabs.offsetHeight:44);
     const wrap=document.getElementById('mapWrap');if(wrap)wrap.style.top=offset+'px';
-    setTimeout(()=>{if(!mapReady){initMap();}else if(bfwMap){bfwMap.invalidateSize();renderMapColors();}updateLocateMarkers();},100);
+    setTimeout(()=>{
+      if(!mapReady){initMap();}
+      else if(bfwMap){bfwMap.invalidateSize();renderMapColors();}
+      updateLocateMarkers();
+      // Auto-load transit lines for custom games
+      if(isCustomMap()&&!_transitLayerShowing&&!_transitFetched){toggleTransitLayer();}
+    },100);
   }
   if(name==='status')renderStatus();
   if(name==='scores')renderScores();
@@ -4103,8 +4407,7 @@ renderTeamSetup();
 if(LS.gameCode&&LS.playerId){
   fetchState(FB_URL,LS.gameCode).then(state=>{
     if(!state){
-      // Firebase unreachable — keep session, show join screen with note
-      showToast('Could not reach server — please rejoin manually.','warn',5000);
+      // Firebase unreachable on load — keep session silently
       return;
     }
     if(state.ended){
