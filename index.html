@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Battle for Washington</title>
+<title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -242,8 +242,8 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- JOIN -->
 <div class="screen active" id="screenJoin">
   <div style="text-align:center;margin-bottom:4px;padding-top:40px;">
-    <div class="join-logo">Battle for <span>Washington</span></div>
-    <div class="join-sub">DMV Transit Strategy Game</div>
+    <div class="join-logo">Transit <span>Tournament</span></div>
+    <div class="join-sub">The city strategy game — played in real life</div>
   </div>
   <div class="join-card" style="margin:0 auto;">
     <h2>Join a Game</h2>
@@ -256,6 +256,9 @@ input:focus,select:focus{border-color:var(--accent);}
     <button class="hbtn s" onclick="showScreen('screenHostSetup')">Host a New Game</button>
     <div class="join-divider">or</div>
     <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="showScreen('screenRejoin')">🔄 Rejoin a Game</button>
+    <div style="text-align:center;margin-top:10px;">
+      <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:13px;" onclick="showScreen('screenMapBuilder')">🗺️ Create or Edit a Map</button>
+    </div>
     <div style="text-align:center;margin-top:8px;">
       <span onclick="clearSession()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Clear saved session</span>
     </div>
@@ -334,9 +337,19 @@ input:focus,select:focus{border-color:var(--accent);}
     <div style="margin-bottom:10px;">
       <label style="font-size:12px;color:var(--muted);">Game Preset</label>
       <select id="cfgMapPreset" onchange="onMapPresetChange()" style="margin-bottom:8px;">
-        <option value="dc">Washington DC (WMATA)</option>
-        <option value="custom">Custom City / Corridor</option>
+        <option value="community">Community Maps (browse by city)</option>
+        <option value="dc">Washington DC — built-in</option>
+        <option value="custom">Generate from OpenStreetMap</option>
       </select>
+    </div>
+
+    <!-- COMMUNITY MAP BROWSER -->
+    <div id="cfgMapCommunitySection" style="margin-bottom:10px;">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()">
+      </div>
+      <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"></div>
+      <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface2);border:2px solid var(--accent);border-radius:10px;font-size:12px;line-height:1.6;"></div>
     </div>
 
     <div id="cfgMapCustomSection" style="display:none;">
@@ -424,14 +437,66 @@ input:focus,select:focus{border-color:var(--accent);}
 </div>
 
 <!-- WAITING -->
-<div class="screen" id="screenWaiting" style="align-items:center;justify-content:center;padding:32px;background:var(--surface);">
-  <div style="text-align:center;">
-    <div style="font-size:48px;margin-bottom:20px;">⏳</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:8px;">Waiting for Host</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:24px;" id="waitingMsg">You'll be assigned to a team shortly…</div>
-    <div id="waitingTeam" style="display:none;margin-top:16px;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">You're on</div>
-      <div id="waitingTeamName" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;"></div>
+<div class="screen" id="screenWaiting" style="flex-direction:column;background:var(--bg);overflow:hidden;">
+  <!-- Header -->
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--text);">Transit <span style="color:var(--accent);">Tournament</span></div>
+    <div id="preGameTeamBadge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:white;"></div>
+  </div>
+  <!-- Tabs -->
+  <div style="display:flex;background:var(--surface);border-bottom:2px solid var(--border);">
+    <div class="tab active" id="preTabInfo" onclick="switchPreTab('info')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">Game Info</div>
+    <div class="tab" id="preTabRules" onclick="switchPreTab('rules')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Rules</div>
+    <div class="tab" id="preTabMap" onclick="switchPreTab('map')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Map</div>
+    <div class="tab" id="preTabChat" onclick="switchPreTab('chat')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Chat</div>
+  </div>
+  <!-- Content -->
+  <div style="flex:1;overflow-y:auto;min-height:0;">
+    <!-- Info panel -->
+    <div id="prePanel-info" style="padding:20px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;" id="preGameStatus">GAME STARTS IN</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="preGameStartTime"></div>
+      </div>
+      <div id="preTeamCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:none;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Your Team</div>
+        <div style="font-size:22px;font-weight:700;" id="preTeamName"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Use the Chat tab to coordinate with your team before the game starts.</div>
+      </div>
+      <div id="preNoTeamCard" style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;">⏳ Waiting for team assignment</div>
+        <div style="font-size:12px;color:#92400e;line-height:1.5;">The host will assign you to a team shortly. Hang tight!</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;color:var(--muted);line-height:1.7;">
+        <b>While you wait:</b> Read the rules, check out the map, and plan your opening move. GPS and deposits are disabled until the game starts.
+      </div>
+      <!-- Host controls -->
+      <div id="preHostControls" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Host Controls</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-p btn-sm" style="flex:1;" onclick="startGameEarly()">▶ Start Now</button>
+          <button class="btn btn-sm" style="flex:1;background:#fff0f0;border:1px solid #fecaca;color:var(--accent);" onclick="cancelGame()">✕ Cancel Game</button>
+        </div>
+      </div>
+    </div>
+    <!-- Rules panel -->
+    <div id="prePanel-rules" style="display:none;padding:14px 16px 20px;">
+      <div id="preRulesContent"></div>
+    </div>
+    <!-- Map panel -->
+    <div id="prePanel-map" style="display:none;height:calc(100dvh - 96px);">
+      <div id="preMapEl" style="width:100%;height:100%;"></div>
+    </div>
+    <!-- Chat panel -->
+    <div id="prePanel-chat" style="display:none;padding:14px 16px;display:flex;flex-direction:column;height:calc(100dvh - 96px);">
+      <div id="preChatMessages" style="flex:1;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;min-height:0;">
+        <div class="empty" style="padding:16px 0;">No messages yet — say hello!</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="preChatInput" placeholder="Message all teams…" maxlength="200" style="margin:0;flex:1;" onkeydown="if(event.key==='Enter')sendPreGameChat()">
+        <button class="btn btn-p btn-sm" onclick="sendPreGameChat()">Send</button>
+      </div>
     </div>
   </div>
 </div>
@@ -866,7 +931,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.69';
+const APP_VERSION='1.71';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -2389,11 +2454,8 @@ function _landmarkCoinsFromCenter(lat,lng,cityLat,cityLng){
 }
 
 // ── Preset toggle ─────────────────────────────────────────────────
-function onMapPresetChange(){
-  const preset=document.getElementById('cfgMapPreset').value;
-  const sec=document.getElementById('cfgMapCustomSection');
-  if(sec)sec.style.display=preset==='custom'?'block':'none';
-}
+// onMapPresetChange defined in MAP MARKETPLACE section
+
 
 function onTransitModeChange(){
   const mode=document.getElementById('cfgTransitMode').value;
@@ -2646,7 +2708,7 @@ async function poll(){
         showNotif(`You're on ${tn}!`);
       }
     }
-    if(!prevStarted&&G.started){enterApp();showNotif('⚡ Game started! Get moving!');sendPN('Battle for Washington','The game has started!');}
+    if(!prevStarted&&G.started){enterApp();showNotif('⚡ Game started! Get moving!');sendPN('Transit Tournament','The game has started! Get moving.');}
     if(G.ended&&document.getElementById('finalScoresMo')&&!document.getElementById('finalScoresMo').classList.contains('open')){showFinalScores();}
     // Show curse alert ONLY to the targeted team
     if(G.curses&&prevStarted){
@@ -2675,7 +2737,7 @@ async function poll(){
         }
       });
     }
-    if(G.log&&G.log.length>prevLogLen&&prevStarted){const newest=G.log[0];if(newest)sendPN('BFW Update',newest.text.replace(/<[^>]+>/g,''));}
+    if(G.log&&G.log.length>prevLogLen&&prevStarted){const newest=G.log[0];if(newest)sendPN('Transit Tournament Update',newest.text.replace(/<[^>]+>/g,''));}
     if(G.chat&&G.chat.length>prevChatLen){
       const newest=G.chat[G.chat.length-1];
       if(newest&&!(newest.playerName===LS.playerName&&newest.teamIdx===LS.myTeamIdx)){
@@ -2699,6 +2761,14 @@ async function poll(){
       const gr=await fetch(`${FB_URL}/gpsLocs/${LS.gameCode}.json`);
       if(gr.ok){const gd=await gr.json();G.gpsLocs=gd||{};}
     }catch(e){}
+    if(LS.isHost&&document.getElementById('screenWaiting').classList.contains('active')){
+      Object.keys(G.players||{}).forEach(pid=>{
+        const p=G.players[pid];
+        if(p&&!p.isHost&&(p.teamIdx===undefined||p.teamIdx<0)){
+          _checkLateJoiner(pid);
+        }
+      });
+    }
     updateUI();
   }catch(e){}
 }
@@ -2754,7 +2824,230 @@ async function confirmStartGame(){
   if(!confirm('Start the game? All players will be notified and gameplay will begin immediately.'))return;
   startGame();
 }
-async function startGame(){G.started=true;regenerateFlop(false);logEv('🚀 Game started! Good luck to all teams.');await pushState();enterApp();sendPN('Battle for Washington','The game has started! Get moving.');}
+async function startGame(){
+  G.started=true;
+  regenerateFlop(false);
+  logEv('🚀 Game started! Good luck to all teams.');
+  await pushState();
+  const cfg=G.config||{};
+  const[sh,sm]=(cfg.start||'00:00').split(':').map(Number);
+  const now=new Date();
+  const startTime=new Date(now);
+  startTime.setHours(sh,sm,0,0);
+  if(startTime>now){
+    showPreGame();
+  } else {
+    enterApp();
+  }
+  sendPN('Transit Tournament','The game has started! Get moving.');
+  // Increment play count for community maps
+  if(G.config&&G.config.map&&G.config.mapId) _incrementMapPlayCount(G.config.mapId);
+}
+// ═══════════════════════════════════════════════════════════════════
+// PRE-GAME COUNTDOWN SCREEN
+// ═══════════════════════════════════════════════════════════════════
+let _preGameCountdownIv = null;
+let _preMap = null;
+let _preGameTab = 'info';
+
+function showPreGame(){
+  showScreen('screenWaiting');
+  stopGpsWatch(); // GPS disabled until game starts
+
+  // Show host controls for host only
+  const hc = document.getElementById('preHostControls');
+  if(hc) hc.style.display = LS.isHost ? 'block' : 'none';
+
+  _updatePreGameTeamCard();
+  _renderPreGameRules();
+
+  if(_preGameCountdownIv) clearInterval(_preGameCountdownIv);
+  _tickPreCountdown();
+  _preGameCountdownIv = setInterval(_tickPreCountdown, 1000);
+
+  switchPreTab('info');
+}
+
+function _tickPreCountdown(){
+  const cfg = G.config || {};
+  const cdEl = document.getElementById('preGameCountdown');
+  const statusEl = document.getElementById('preGameStatus');
+  const startTimeEl = document.getElementById('preGameStartTime');
+  if(!cdEl) return;
+
+  const [sh,sm] = (cfg.start||'10:00').split(':').map(Number);
+  const now = new Date();
+  const startTime = new Date(now);
+  startTime.setHours(sh, sm, 0, 0);
+  const diffMs = startTime - now;
+
+  if(diffMs <= 0){
+    if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv = null; }
+    cdEl.textContent = '00:00';
+    if(statusEl) statusEl.textContent = 'STARTING NOW';
+    setTimeout(()=>{ if(G.started) enterApp(); }, 800);
+    return;
+  }
+  const totalSecs = Math.ceil(diffMs / 1000);
+  const hrs = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  const pad = n => String(n).padStart(2,'0');
+  cdEl.textContent = hrs > 0 ? hrs+':'+pad(mins)+':'+pad(secs) : pad(mins)+':'+pad(secs);
+  if(statusEl) statusEl.textContent = 'GAME STARTS IN';
+  if(startTimeEl){
+    const h12 = sh%12||12, ampm = sh>=12?'PM':'AM';
+    startTimeEl.textContent = 'Scheduled for '+h12+(sm>0?':'+pad(sm):'')+' '+ampm;
+  }
+}
+
+function _updatePreGameTeamCard(){
+  const teamCard = document.getElementById('preTeamCard');
+  const noTeamCard = document.getElementById('preNoTeamCard');
+  const teamNameEl = document.getElementById('preTeamName');
+  const badge = document.getElementById('preGameTeamBadge');
+  if(LS.myTeamIdx>=0 && G.teams[LS.myTeamIdx]){
+    const t = G.teams[LS.myTeamIdx];
+    if(teamCard){ teamCard.style.display='block'; teamCard.style.borderLeft='4px solid '+t.color; }
+    if(noTeamCard) noTeamCard.style.display='none';
+    if(teamNameEl){ teamNameEl.textContent=t.name; teamNameEl.style.color=t.color; }
+    if(badge){ badge.style.display='inline-block'; badge.textContent=t.name; badge.style.background=t.color; }
+  } else {
+    if(teamCard) teamCard.style.display='none';
+    if(noTeamCard) noTeamCard.style.display='block';
+    if(badge) badge.style.display='none';
+  }
+}
+
+function switchPreTab(name){
+  _preGameTab = name;
+  ['info','rules','map','chat'].forEach(t=>{
+    const btn = document.getElementById('preTab'+t.charAt(0).toUpperCase()+t.slice(1));
+    const panel = document.getElementById('prePanel-'+t);
+    const active = t===name;
+    if(btn){
+      btn.style.borderBottomColor = active?'var(--accent)':'transparent';
+      btn.style.color = active?'var(--text)':'var(--muted)';
+    }
+    if(panel) panel.style.display = active?(t==='chat'?'flex':'block'):'none';
+  });
+  if(name==='map') _initPreMap();
+  if(name==='chat') _renderPreGameChat();
+  if(name==='rules') _renderPreGameRules();
+}
+
+function _initPreMap(){
+  if(_preMap) return;
+  const el = document.getElementById('preMapEl');
+  if(!el) return;
+  const zones = getZones();
+  let center = [38.920,-77.040], zoom = 10;
+  if(zones.length){
+    const lats = zones.flatMap(z=>z.poly.map(p=>p[0]));
+    const lngs = zones.flatMap(z=>z.poly.map(p=>p[1]));
+    center = [(Math.max(...lats)+Math.min(...lats))/2,(Math.max(...lngs)+Math.min(...lngs))/2];
+    zoom = isCustomMap()?12:10;
+  }
+  _preMap = L.map('preMapEl',{center,zoom,zoomControl:true,attributionControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(_preMap);
+  zones.forEach(z=>{
+    L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.08,color:'#94a3b8',weight:1.5})
+     .bindTooltip('<b>'+z.code+'</b> \u2014 '+z.name,{className:'zt'}).addTo(_preMap);
+    const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]);
+    const clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
+    L.marker([clat,clng],{icon:L.divIcon({className:'',html:'<div style="font-size:10px;font-weight:700;color:rgba(30,40,80,.5);pointer-events:none;">'+z.code+'</div>',iconAnchor:[12,8]}),interactive:false}).addTo(_preMap);
+  });
+  if(!isCustomMap()){
+    Object.entries(getTransitLines()).forEach(([ln,cfg])=>{
+      cfg.paths.forEach(path=>{
+        const flat=Array.isArray(path[0][0])?path[0]:path;
+        L.polyline(flat,{color:cfg.color,weight:cfg.w||3,opacity:.7,interactive:false}).addTo(_preMap);
+      });
+    });
+  }
+  setTimeout(()=>_preMap&&_preMap.invalidateSize(),150);
+}
+
+function _renderPreGameRules(){
+  const el = document.getElementById('preRulesContent');
+  if(!el) return;
+  const cfg = G.config||{};
+  const toT = t=>{if(!t)return'?';const[hh,mm]=t.split(':').map(Number);const ap=hh>=12?'PM':'AM';return(hh%12||12)+(mm>0?':'+String(mm).padStart(2,'0'):'')+' '+ap;};
+  el.innerHTML = '<div class="card" style="font-size:13px;line-height:1.8;margin-bottom:10px;">'+
+    '<b>Game runs</b> '+toT(cfg.start||'10:00')+' \u2013 '+toT(cfg.end||'19:00')+'.<br>'+
+    (cfg.lunchEnabled?'<b>Lunch break:</b> '+toT(cfg.lunchStart||'12:00')+' \u2013 '+toT(cfg.lunchEnd||'13:00')+'.<br>':'')+
+    '<b>Scoring locked at</b> '+toT(cfg.score||cfg.end||'18:00')+'.</div>'+
+    '<div class="card" style="font-size:13px;line-height:1.8;margin-bottom:10px;">'+
+    '<b>Earn coins</b> via The Flop challenges and Featured Landmarks.<br>'+
+    '<b>Deposit coins</b> into zones (GPS-verified) to control them.<br>'+
+    '<b>Score:</b> 1 pt per zone controlled at scoring time + 2 pt area bonus.'+
+    (getLineBonuses().length?'<br><b>Line bonuses</b> for controlling both terminals of a transit line.':'')+
+    '</div>';
+}
+
+function _renderPreGameChat(){
+  const el = document.getElementById('preChatMessages');
+  if(!el) return;
+  if(!G.chat||!G.chat.length){
+    el.innerHTML = '<div class="empty" style="padding:16px 0;">No messages yet \u2014 say hello!</div>';
+    return;
+  }
+  el.innerHTML = G.chat.map(m=>{
+    if(m.type==='system'){
+      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);">'+m.text+'</div></div>';
+    }
+    const isMe = m.playerName===LS.playerName&&m.teamIdx===LS.myTeamIdx;
+    return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'+
+      '<div style="font-size:10px;color:var(--muted);margin-bottom:2px;"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> \u00b7 '+esc(m.playerName||'')+'</div>'+
+      '<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:7px 11px;border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'+esc(m.text||'')+'</div>'+
+      '</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendPreGameChat(){
+  const input = document.getElementById('preChatInput');
+  const text = input?input.value.trim():'';
+  if(!text) return;
+  if(!G.chat) G.chat = [];
+  const team = G.teams[LS.myTeamIdx];
+  const now = new Date(), pad = n=>String(n).padStart(2,'0');
+  G.chat.push({
+    time:pad(now.getHours())+':'+pad(now.getMinutes()),
+    playerName:LS.playerName,
+    teamName:team?team.name:'?',
+    teamColor:team?team.color:'var(--accent)',
+    teamIdx:LS.myTeamIdx,
+    type:'chat',text
+  });
+  if(G.chat.length>300) G.chat.shift();
+  if(input) input.value = '';
+  await pushState();
+  _renderPreGameChat();
+}
+
+function startGameEarly(){
+  if(!LS.isHost) return;
+  if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
+  if(_preMap){ _preMap.remove(); _preMap=null; }
+  enterApp();
+}
+
+async function cancelGame(){
+  if(!LS.isHost) return;
+  if(!confirm('Cancel the game? All players will be returned to the join screen.')) return;
+  G.cancelled = true;
+  logEv('Game cancelled by host.');
+  await pushState();
+  if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
+  if(_preMap){ _preMap.remove(); _preMap=null; }
+  LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
+  try{localStorage.removeItem('bfw5L');}catch(e){}
+  G={config:{start:'10:00',end:'19:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
+  showScreen('screenJoin');
+}
+
+
 function copyStatusCode(){
   if(LS.gameCode){navigator.clipboard.writeText(LS.gameCode).then(()=>showNotif('Game code copied!')).catch(()=>{const tmp=document.createElement('input');tmp.value=LS.gameCode;document.body.appendChild(tmp);tmp.select();document.execCommand('copy');document.body.removeChild(tmp);showNotif('Game code copied!');});}
 }
@@ -3050,9 +3343,9 @@ function renderStatus(){
   vf.textContent='v'+APP_VERSION;
 }
 let locTI=null;
-function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.getElementById('locMoTitle').textContent=`Update — ${G.teams[i]?.name}`;const sel=document.getElementById('locZSel');sel.innerHTML=ZONES.map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');const cur=G.locs&&G.locs[i];if(cur){sel.value=cur.zone;document.getElementById('locNotes').value=cur.notes||'';}else document.getElementById('locNotes').value='';document.getElementById('locMo').classList.add('open');}
+function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.getElementById('locMoTitle').textContent=`Update — ${G.teams[i]?.name}`;const sel=document.getElementById('locZSel');sel.innerHTML=getZones().map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');const cur=G.locs&&G.locs[i];if(cur){sel.value=cur.zone;document.getElementById('locNotes').value=cur.notes||'';}else document.getElementById('locNotes').value='';document.getElementById('locMo').classList.add('open');}
 function closeLocMo(){document.getElementById('locMo').classList.remove('open');locTI=null;}
-async function submitLoc(){if(locTI===null)return;const zone=document.getElementById('locZSel').value,notes=document.getElementById('locNotes').value.trim();if(!G.locs)G.locs={};G.locs[locTI]={zone,notes,time:Date.now()};const zn=ZONES.find(z=>z.code===zone)?.name||zone;logEv(`📍 <b>${esc(G.teams[locTI]?.name)}</b> → <b>${zone} ${zn}</b>${notes?` (${esc(notes)})`:''}`,false);await pushState();renderStatus();renderMapColors();closeLocMo();}
+async function submitLoc(){if(locTI===null)return;const zone=document.getElementById('locZSel').value,notes=document.getElementById('locNotes').value.trim();if(!G.locs)G.locs={};G.locs[locTI]={zone,notes,time:Date.now()};const zn=getZones().find(z=>z.code===zone)?.name||zone;logEv(`📍 <b>${esc(G.teams[locTI]?.name)}</b> → <b>${zone} ${zn}</b>${notes?` (${esc(notes)})`:''}`,false);await pushState();renderStatus();renderMapColors();closeLocMo();}
 
 // ═══════════════════════════
 // SCORES
@@ -3304,7 +3597,7 @@ function updateDepositHint(){
   const lat=_freshLat, lng=_freshLng;
   if(!lat){hint.textContent='Tap Deposit to get your current location.';hint.style.color='var(--muted)';return;}
   const zone=getGpsZone();
-  const zoneName=zone?ZONES.find(z=>z.code===zone)?.name||zone:'unknown zone';
+  const zoneName=zone?getZones().find(z=>z.code===zone)?.name||zone:'unknown zone';
   const dist=distToNearestStation(lat,lng);
   if(dist<MIN_DIST_FROM_STATION_M){
     hint.textContent='⚠️ Too close to a metro station ('+Math.round(dist)+'m). Move away to deposit.';
@@ -3341,7 +3634,7 @@ function openDepManual(){
   // Build zone picker modal content via dmTitle/dmMeta reuse isn't clean — use a simple prompt-style select
   const sel=document.createElement('select');
   sel.style.cssText='width:100%;font-size:15px;padding:8px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;background:var(--surface);color:var(--text);';
-  sel.innerHTML='<option value="">— Pick your zone —</option>'+ZONES.map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');
+  sel.innerHTML='<option value="">— Pick your zone —</option>'+getZones().map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');
   // Inject into depMo for reuse
   const meta=document.getElementById('dmMeta');
   meta.innerHTML='';
@@ -3354,7 +3647,7 @@ function openDepManual(){
   // Override submit to validate zone selection first
   const origZone=curZone;
   sel.onchange=()=>{
-    const z=ZONES.find(z=>z.code===sel.value);
+    const z=getZones().find(z=>z.code===sel.value);
     if(z){curZone=sel.value;updateDepModalCoins();}
   };
   document.getElementById('dmCoinAmount').value='';
@@ -3379,8 +3672,6 @@ function openDepositFlow(){
       const acc=Math.round(pos.coords.accuracy||0);
 
       // DEBUG — show coords on screen so we can diagnose
-      showNotif('📍 '+lat.toFixed(5)+', '+lng.toFixed(5)+' (±'+acc+'m)',8000);
-
       // Push fresh GPS to Firebase
       pushGps(lat,lng);
 
@@ -3419,7 +3710,7 @@ function openDepositFlow(){
 }
 
 function openZoneInfo(code){
-  const z=ZONES.find(z=>z.code===code);if(!z)return;
+  const z=getZones().find(z=>z.code===code);if(!z)return;
   document.getElementById('ziTitle').textContent=z.code+' — '+z.name;
   document.getElementById('ziMeta').textContent=z.area+' mi²  ·  '+z.stops;
   const deps=G.zones&&G.zones[code]||{};
@@ -3447,7 +3738,7 @@ function openZoneInfo(code){
 
 function openDep(code){
   curZone=code;
-  const z=ZONES.find(z=>z.code===code);
+  const z=getZones().find(z=>z.code===code);
   document.getElementById('dmTitle').textContent='Deposit — '+z.code+' '+z.name;
   document.getElementById('dmMeta').textContent=z.area+' mi² · '+z.stops;
 
@@ -3474,7 +3765,7 @@ function updateDepSummary(){
   const s=document.getElementById('depSummary');
   if(!s)return;
   if(amount<=0){s.textContent='';return;}
-  const z=ZONES.find(z=>z.code===curZone);
+  const z=getZones().find(z=>z.code===curZone);
   const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
   const after=myCoins-amount;
   if(after<0){s.textContent='⚠️ Not enough coins (you have '+myCoins+')';s.style.color='var(--accent)';return;}
@@ -3485,7 +3776,7 @@ function closeDep(){document.getElementById('depMo').classList.remove('open');cu
 
 async function submitDep(){
   if(!curZone)return;
-  const z=ZONES.find(z=>z.code===curZone);
+  const z=getZones().find(z=>z.code===curZone);
   const amount=parseInt(document.getElementById('dmCoinAmount').value)||0;
   if(amount<=0){showToast('Enter a number of coins to deposit.','warn');return;}
 
@@ -3934,15 +4225,32 @@ async function confirmPurchase(){
 
   let curseNotes=notes;
   if(item.type==='detour'&&target!==null){
-    // Find station within 2 miles of target team's last known GPS
+    // DC: use nearby metro station. Custom map: use nearby landmark or zone.
     const tGps=G.gpsLocs&&Object.values(G.gpsLocs).find(g=>g.teamIdx===target);
-    let pool=METRO_STATIONS;
-    if(tGps&&tGps.lat){
-      const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=3219);// 2 miles
-      if(nearby.length>0)pool=nearby;
+    let destName;
+    if(!isCustomMap()){
+      let pool=METRO_STATIONS;
+      if(tGps&&tGps.lat){
+        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=3219);
+        if(nearby.length>0)pool=nearby;
+      }
+      const s=pool[Math.floor(Math.random()*pool.length)];
+      destName=s.name;
+    } else {
+      const lmPool=getLandmarkPool();
+      if(lmPool.length){
+        let pool=lmPool;
+        if(tGps&&tGps.lat){
+          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=4828);// 3 miles
+          if(nearby.length>0)pool=nearby;
+        }
+        destName=pool[Math.floor(Math.random()*pool.length)].name;
+      } else {
+        const zones=getZones();
+        destName=(zones[Math.floor(Math.random()*zones.length)]?.name||'a nearby zone')+' area';
+      }
     }
-    const s=pool[Math.floor(Math.random()*pool.length)];
-    curseNotes='Go to: '+s.name;
+    curseNotes='Go to: '+destName;
     if(!G.detours)G.detours={};
     G.detours[target]={active:true,station:s.name,assignedAt:now};
   }
@@ -4102,7 +4410,7 @@ async function downloadGamePhotos(){
       const safe=p.label.replace(/[^a-zA-Z0-9 \-_]/g,'').trim().substring(0,60)||'photo';
       const a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download='BFW — '+safe+ext;
+      a.download='Transit Tournament — '+safe+ext;
       a.click();
       URL.revokeObjectURL(a.href);
       done++;
@@ -4137,7 +4445,7 @@ async function endGame(){
   logEv('🏁 Game ended! Final scores locked.');
   await pushState();
   showFinalScores();
-  sendPN('Battle for Washington','The game has ended! Check the final scores.');
+  sendPN('Transit Tournament','The game has ended! Check the final scores.');
 }
 
 function showFinalScores(){
@@ -4382,7 +4690,24 @@ function updateUI(){
     else if(tn==='log')renderChat();
   }
   if(document.getElementById('screenLobby').classList.contains('active'))renderLobby();
-  if(document.getElementById('screenWaiting').classList.contains('active')&&G.started)enterApp();
+  if(document.getElementById('screenWaiting').classList.contains('active')&&G.started){
+    _updatePreGameTeamCard();
+    if(_preGameTab==='chat') _renderPreGameChat();
+    // If cancelled and I'm not the host, go back to join
+    if(G.cancelled&&!LS.isHost){
+      if(_preGameCountdownIv){clearInterval(_preGameCountdownIv);_preGameCountdownIv=null;}
+      if(_preMap){_preMap.remove();_preMap=null;}
+      clearSession();
+    }
+    // Host: toast if new unassigned player joined
+    if(LS.isHost){
+      const unassigned=Object.values(G.players||{}).filter(p=>!p.isHost&&(p.teamIdx===undefined||p.teamIdx<0));
+      if(unassigned.length>0&&!document.getElementById('screenLobby').classList.contains('active')){
+        const names=unassigned.map(p=>esc(p.name)).join(', ');
+        showToast('Player needs team assignment: '+names,'warn',5000);
+      }
+    }
+  }
 }
 function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderLog();renderChat();renderFlop();renderRules();}
 
@@ -4400,6 +4725,627 @@ function closeCP(){document.getElementById('cpp').style.display='none';cpTgt=nul
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 ['depMo','locMo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',e=>{if(e.target===el){if(id==='depMo')closeDep();else closeLocMo();}});});
+
+// ═══════════════════════════════════════════════════════════════════
+// MAP MARKETPLACE — Firebase /maps/{mapId}
+// ═══════════════════════════════════════════════════════════════════
+
+// Map schema:
+// /maps/{id}: {id, name, cityName, cityTag, desc, creator, createdAt,
+//              playCount, config: {cityCenter, transitMode, transitTypes,
+//              zones, landmarks, transitStops, transitLines, lineBonuses}}
+
+const MAPS_FB_PATH = FB_URL + '/maps';
+let _allMaps = [];       // loaded from Firebase
+let _selectedMapId = null;
+let _selectedMapConfig = null;
+
+async function loadCommunityMaps(){
+  const res = document.getElementById('cfgMapResults');
+  if(!res) return;
+  res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading maps\u2026</div>';
+  try{
+    const r = await fetch(MAPS_FB_PATH + '.json?orderBy="playCount"&limitToLast=50');
+    const data = r.ok ? await r.json() : null;
+    if(!data){
+      res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps yet. <b>Create the first one!</b></div>';
+      _allMaps = [];
+      return;
+    }
+    _allMaps = Object.values(data).sort((a,b)=>(b.playCount||0)-(a.playCount||0));
+    _renderMapResults(_allMaps);
+  }catch(e){
+    res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Could not load maps. Check your connection.</div>';
+  }
+}
+
+function _renderMapResults(maps){
+  const res = document.getElementById('cfgMapResults');
+  if(!res) return;
+  if(!maps.length){
+    res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps found for that city.</div>';
+    return;
+  }
+  res.innerHTML = maps.map(m =>
+    '<div onclick="_selectCommunityMap(\''+m.id+'\')" style="padding:10px 12px;border-radius:10px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:6px;background:var(--surface);transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+
+      '<div style="font-weight:700;font-size:13px;margin-bottom:2px;">'+esc(m.name)+'</div>'+
+      '<div style="color:var(--muted);">'+esc(m.cityName)+' &nbsp;·&nbsp; by '+esc(m.creator||'Anonymous')+
+        '&nbsp;·&nbsp; '+(m.config&&m.config.zones?m.config.zones.length+' zones':'?')+
+        (m.playCount?' &nbsp;·&nbsp; '+m.playCount+' plays':'')+'</div>'+
+      (m.desc?'<div style="color:var(--muted);margin-top:3px;font-style:italic;">'+esc(m.desc)+'</div>':'')+
+    '</div>'
+  ).join('');
+}
+
+function _filterMapResults(){
+  const q = (document.getElementById('cfgMapSearch').value||'').toLowerCase().trim();
+  if(!q){ _renderMapResults(_allMaps); return; }
+  _renderMapResults(_allMaps.filter(m =>
+    (m.cityName||'').toLowerCase().includes(q) ||
+    (m.name||'').toLowerCase().includes(q) ||
+    (m.cityTag||'').toLowerCase().includes(q)
+  ));
+}
+
+async function _selectCommunityMap(id){
+  _selectedMapId = id;
+  const map = _allMaps.find(m=>m.id===id);
+  if(!map) return;
+  _selectedMapConfig = map.config || null;
+
+  const card = document.getElementById('cfgSelectedMapCard');
+  if(card){
+    card.style.display = 'block';
+    card.innerHTML = '<b>&#x2713; Selected:</b> '+esc(map.name)+'<br>'+
+      '<span style="color:var(--muted);">'+esc(map.cityName)+' &middot; '+
+      (map.config&&map.config.zones?map.config.zones.length+' zones':'')+'</span>';
+  }
+
+  // Store locally for getMapConfig to read
+  window._communityMapConfig = _selectedMapConfig;
+}
+
+// Updated onMapPresetChange to handle community option
+function onMapPresetChange(){
+  const preset = document.getElementById('cfgMapPreset').value;
+  const customSec = document.getElementById('cfgMapCustomSection');
+  const commSec = document.getElementById('cfgMapCommunitySection');
+  if(customSec) customSec.style.display = preset==='custom'?'block':'none';
+  if(commSec) commSec.style.display = preset==='community'?'block':'none';
+  if(preset==='community') loadCommunityMaps();
+  // Hide summary if switching away
+  const summary = document.getElementById('mapSelectionSummary');
+  if(summary&&preset!=='community') summary.style.display='none';
+}
+
+// Patch getMapConfig to handle community preset
+const _origGetMapConfig = getMapConfig;
+function getMapConfig(){
+  const preset = document.getElementById('cfgMapPreset')?.value||'dc';
+  if(preset==='dc') return null;
+  if(preset==='community'){
+    const cfg=window._communityMapConfig||null;
+    if(cfg&&_selectedMapId) return{...cfg,mapId:_selectedMapId};
+    return cfg;
+  }
+  return _origGetMapConfig();
+}
+
+// ── Seed DC map to Firebase if not there yet ──────────────────────
+async function _seedDCMapIfNeeded(){
+  const CACHE_KEY = 'tt_dc_map_seeded_v1';
+  try{
+    if(localStorage.getItem(CACHE_KEY)) return; // already done this session
+  }catch(e){}
+  try{
+    const check = await fetch(MAPS_FB_PATH + '/map_dc_wmata.json');
+    if(check.ok){ const d = await check.json(); if(d&&d.id){ try{localStorage.setItem(CACHE_KEY,'1');}catch(e){} return; } }
+    // Write DC map
+    const dcConfig = {
+      cityName:'Washington DC', cityCenter:{lat:38.8895,lng:-77.0353},
+      transitMode:'transit', transitTypes:['metro'],
+      zones:ZONES, landmarks:LANDMARKS,
+      transitStops:METRO_STATIONS, transitLines:MLINES, lineBonuses:LINE_BONUSES
+    };
+    const dcMap = {
+      id:'map_dc_wmata', name:'Washington DC (WMATA)',
+      cityName:'Washington, DC', cityTag:'washington-dc',
+      desc:'Full DC metro area — all 8 wards plus Northern Virginia and Maryland suburbs.',
+      creator:'Transit Tournament', createdAt:Date.now(), playCount:0,
+      config: dcConfig
+    };
+    await fetch(MAPS_FB_PATH+'/map_dc_wmata.json', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dcMap)});
+    try{localStorage.setItem(CACHE_KEY,'1');}catch(e){}
+  }catch(e){console.warn('DC seed failed',e);}
+}
+
+// ── Helper: increment play count when game starts ──────────────────
+function _incrementMapPlayCount(mapId){
+  if(!mapId) return;
+  fetch(MAPS_FB_PATH+'/'+mapId+'/playCount.json').then(r=>r.json()).then(count=>{
+    const n = (parseInt(count)||0)+1;
+    fetch(MAPS_FB_PATH+'/'+mapId+'/playCount.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(n)}).catch(()=>{});
+  }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAP BUILDER
+// ═══════════════════════════════════════════════════════════════════
+
+// Simple profanity filter
+const _PROFANITY = ['fuck','shit','ass','bitch','cunt','dick','cock','pussy','nigger','faggot','retard','whore'];
+function _hasProfanity(text){
+  const low = (text||'').toLowerCase();
+  return _PROFANITY.some(w=>low.includes(w));
+}
+function _checkProfanity(fields){
+  for(const [label,val] of fields){
+    if(_hasProfanity(val)) return 'Profanity detected in "'+label+'". Please edit before publishing.';
+  }
+  return null;
+}
+
+// Builder state
+let _mbMap = null;
+let _mbStep = 'meta';
+let _mbCityData = null;
+
+// Zone drawing state
+let _mbZones = [];         // [{code, name, poly: [[lat,lng],...], polyLayer}]
+let _mbDrawing = false;    // currently drawing a zone
+let _mbCurrentPoly = [];   // points of zone being drawn
+let _mbCurrentPolyLine = null; // Leaflet polyline preview
+let _mbCurrentMarkers = []; // markers for current poly points
+let _mbPendingZonePoly = null; // closed polygon awaiting name
+
+// Landmark state
+let _mbLandmarks = [];     // [{name, hint, lat, lng, marker}]
+let _mbPlacingLm = false;
+let _mbPendingLmLatLng = null;
+
+// Transit state
+let _mbLines = [];          // [{id, name, type, color, stops: [{name,lat,lng}], polyLayer}]
+let _mbDrawingLine = false;
+let _mbCurrentLineStops = [];
+let _mbCurrentLineLayer = null;
+let _mbPendingLineStops = [];
+
+// Map instances (one per step)
+let _mbMapZones = null, _mbMapLm = null, _mbMapTransit = null;
+
+// ── Step navigation ───────────────────────────────────────────────
+function mbGotoStep(step){
+  _mbStep = step;
+  ['meta','zones','landmarks','transit','review'].forEach(s=>{
+    const panel = document.getElementById('mbPanel-'+s);
+    const stepBtn = document.getElementById('mbStep-'+s);
+    if(panel) panel.style.display = s===step?(s==='zones'||s==='landmarks'||s==='transit'?'flex':'block'):'none';
+    if(stepBtn){
+      stepBtn.style.borderBottomColor = s===step?'var(--accent)':'transparent';
+      stepBtn.style.color = s===step?'var(--text)':'var(--muted)';
+    }
+  });
+  const pub = document.getElementById('mbPublishBtn');
+  if(pub) pub.style.display = step==='review'?'block':'none';
+  if(step==='zones') _initMbMapZones();
+  if(step==='landmarks') _initMbMapLm();
+  if(step==='transit') _initMbMapTransit();
+  if(step==='review') _renderMbReview();
+  const pw = document.getElementById('mbPanelWrap');
+  if(pw) pw.scrollTop = 0;
+}
+
+// ── City search (reuses Nominatim) ────────────────────────────────
+async function mbSearchCity(){
+  const q = document.getElementById('mbCitySearch').value.trim();
+  if(!q) return;
+  const res = document.getElementById('mbCityResults');
+  res.innerHTML = '<div style="font-size:12px;color:var(--muted);">Searching\u2026</div>';
+  try{
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=4&addressdetails=1&q='+encodeURIComponent(q),
+      {headers:{'Accept-Language':'en','User-Agent':'TransitTournament/1.0'}});
+    const data = await r.json();
+    if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results.</div>';return;}
+    window._mbNomResults = data;
+    res.innerHTML = data.map((item,i)=>'<div onclick="mbSelectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+esc(item.display_name)+'</div>').join('');
+  }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed.</div>';}
+}
+
+function mbSelectCity(idx){
+  const item = window._mbNomResults[idx];
+  if(!item) return;
+  _mbCityData = {
+    name:item.display_name,
+    shortName:(item.address&&(item.address.city||item.address.town||item.address.village))||item.display_name.split(',')[0].trim(),
+    lat:parseFloat(item.lat), lng:parseFloat(item.lon),
+    bb:item.boundingbox, osmId:item.osm_id, osmType:item.osm_type
+  };
+  document.getElementById('mbCityResults').innerHTML='';
+  const conf = document.getElementById('mbCityConfirmed');
+  if(conf){ conf.style.display='block'; conf.textContent='&#x2713; '+item.display_name; }
+}
+
+// ── Map initialization helpers ────────────────────────────────────
+function _mbMakeMap(elId, existingZones){
+  const el = document.getElementById(elId);
+  if(!el) return null;
+  const cd = _mbCityData;
+  const center = cd ? [cd.lat,cd.lng] : [39.0,-94.6];
+  const zoom = cd ? 12 : 11;
+  const m = L.map(elId, {center, zoom, zoomControl:true, attributionControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
+  // Draw existing zones for reference
+  if(existingZones){
+    existingZones.forEach(z=>{
+      if(z.poly&&z.poly.length>2){
+        const layer = L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.15,color:'#3b82f6',weight:2}).addTo(m);
+        const c = _centroid(z.poly);
+        L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:10px;font-weight:700;color:#1d4ed8;pointer-events:none;">'+esc(z.name)+'</div>',iconAnchor:[20,8]}),interactive:false}).addTo(m);
+        z.polyLayer = layer;
+      }
+    });
+  }
+  setTimeout(()=>m&&m.invalidateSize(),150);
+  return m;
+}
+
+function _initMbMapZones(){
+  if(_mbMapZones) return;
+  _mbMapZones = _mbMakeMap('mbMapEl', null);
+  if(!_mbMapZones) return;
+  _mbMapZones.on('click', e=>{ if(_mbDrawing) _mbAddPoint(e.latlng); });
+  // Redraw any existing zones
+  _mbZones.forEach(z=>{ if(!z.polyLayer&&z.poly.length>2){ z.polyLayer=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.15,color:'#3b82f6',weight:2}).addTo(_mbMapZones); }});
+}
+
+function _initMbMapLm(){
+  if(_mbMapLm) return;
+  _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
+  if(!_mbMapLm) return;
+  _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
+  // Redraw landmarks
+  _mbLandmarks.forEach(lm=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,_mbMapLm); });
+}
+
+function _initMbMapTransit(){
+  if(_mbMapTransit) return;
+  _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
+  if(!_mbMapTransit) return;
+  _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
+  // Redraw lines
+  _mbLines.forEach(line=>{ if(!line.polyLayer&&line.stops.length>1){ line.polyLayer=L.polyline(line.stops.map(s=>[s.lat,s.lng]),{color:line.color,weight:4,opacity:.8}).addTo(_mbMapTransit); }});
+}
+
+// ── Zone drawing ──────────────────────────────────────────────────
+function mbStartZone(){
+  _mbDrawing = true;
+  _mbCurrentPoly = [];
+  _mbCurrentMarkers = [];
+  if(_mbCurrentPolyLine){ _mbCurrentPolyLine.remove(); _mbCurrentPolyLine=null; }
+  document.getElementById('mbZoneHint').textContent = 'Tap points on the map. Tap the first point again (or a nearby point) to close the zone.';
+  document.getElementById('mbUndoBtn').style.display='inline-block';
+  document.getElementById('mbCancelZoneBtn').style.display='inline-block';
+  document.getElementById('mbNewZoneBtn').style.display='none';
+}
+
+function _mbAddPoint(latlng){
+  if(!_mbDrawing||!_mbMapZones) return;
+  const lat=latlng.lat, lng=latlng.lng;
+
+  // Check if closing the polygon (click near first point)
+  if(_mbCurrentPoly.length>=3){
+    const first=_mbCurrentPoly[0];
+    const dist=Math.hypot(lat-first[0],lng-first[1]);
+    if(dist<0.001){ _mbCloseZone(); return; }
+  }
+
+  _mbCurrentPoly.push([lat,lng]);
+  const m=L.circleMarker([lat,lng],{radius:6,fillColor:'#e63946',fillOpacity:1,color:'white',weight:2}).addTo(_mbMapZones);
+  if(_mbCurrentPoly.length===1){
+    m.bindTooltip('Tap here to close',{permanent:false,className:'zt'});
+  }
+  _mbCurrentMarkers.push(m);
+
+  if(_mbCurrentPolyLine) _mbCurrentPolyLine.remove();
+  if(_mbCurrentPoly.length>1){
+    _mbCurrentPolyLine = L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
+  }
+}
+
+function _mbCloseZone(){
+  if(_mbCurrentPoly.length<3) return;
+  // Clear preview
+  _mbCurrentMarkers.forEach(m=>m.remove());
+  _mbCurrentMarkers=[];
+  if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
+  _mbDrawing=false;
+  _mbPendingZonePoly=[..._mbCurrentPoly];
+  _mbCurrentPoly=[];
+  // Show the zone name modal
+  document.getElementById('mbZoneName').value='';
+  document.getElementById('mbZoneMo').classList.add('open');
+  document.getElementById('mbUndoBtn').style.display='none';
+  document.getElementById('mbCancelZoneBtn').style.display='none';
+  document.getElementById('mbNewZoneBtn').style.display='inline-block';
+}
+
+function mbCancelZoneName(){
+  document.getElementById('mbZoneMo').classList.remove('open');
+  _mbPendingZonePoly=null;
+}
+
+function mbConfirmZoneName(){
+  const name = document.getElementById('mbZoneName').value.trim();
+  if(!name){showToast('Enter a zone name.','warn');return;}
+  if(_hasProfanity(name)){showToast('Zone name contains inappropriate language.','warn');return;}
+  document.getElementById('mbZoneMo').classList.remove('open');
+  const code='Z'+(_mbZones.length+1);
+  const poly = _mbPendingZonePoly;
+  _mbPendingZonePoly=null;
+  const area=parseFloat(_polyAreaSqMi(poly).toFixed(2));
+  const layer=L.polygon(poly,{fillColor:'#3b82f6',fillOpacity:.2,color:'#2563eb',weight:2}).addTo(_mbMapZones);
+  const c=_centroid(poly);
+  L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:11px;font-weight:700;color:#1d4ed8;pointer-events:none;">'+esc(name)+'</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_mbMapZones);
+  _mbZones.push({code,name,poly,area,polyLayer:layer,lines:[],stops:''});
+  _mbUpdateZoneCount();
+  _mbRenderZoneList();
+}
+
+function mbUndoPoint(){
+  if(!_mbDrawing||!_mbCurrentPoly.length) return;
+  _mbCurrentPoly.pop();
+  const m=_mbCurrentMarkers.pop(); if(m)m.remove();
+  if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
+  if(_mbCurrentPoly.length>1){
+    _mbCurrentPolyLine=L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
+  }
+}
+
+function mbCancelZone(){
+  _mbDrawing=false;
+  _mbCurrentPoly=[];
+  _mbCurrentMarkers.forEach(m=>m.remove());_mbCurrentMarkers=[];
+  if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
+  document.getElementById('mbUndoBtn').style.display='none';
+  document.getElementById('mbCancelZoneBtn').style.display='none';
+  document.getElementById('mbNewZoneBtn').style.display='inline-block';
+  document.getElementById('mbZoneHint').textContent='Tap on the map to place zone corners. Tap the first point again to close the zone.';
+}
+
+function _mbUpdateZoneCount(){
+  const el=document.getElementById('mbZoneCount');
+  if(el) el.textContent=_mbZones.length+' zone'+(  _mbZones.length!==1?'s':'');
+}
+
+function _mbRenderZoneList(){
+  const el=document.getElementById('mbZoneList');
+  if(!el) return;
+  el.innerHTML=_mbZones.map((z,i)=>'<span style="flex-shrink:0;padding:3px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:10px;cursor:pointer;" onclick="mbDeleteZone('+i+')" title="Tap to delete">'+esc(z.name)+' &#x2715;</span>').join('');
+}
+
+function mbDeleteZone(i){
+  if(!confirm('Delete zone "'+_mbZones[i].name+'"?')) return;
+  if(_mbZones[i].polyLayer) _mbZones[i].polyLayer.remove();
+  _mbZones.splice(i,1);
+  _mbZones.forEach((z,j)=>z.code='Z'+(j+1));
+  _mbUpdateZoneCount(); _mbRenderZoneList();
+}
+
+// ── Landmark placement ────────────────────────────────────────────
+function mbStartLandmark(){
+  _mbPlacingLm = true;
+  if(_mbMapLm) _mbMapLm.getContainer().style.cursor='crosshair';
+  showToast('Tap on the map to place a landmark','info',3000);
+}
+
+function _mbPlaceLandmark(latlng){
+  _mbPlacingLm=false;
+  if(_mbMapLm) _mbMapLm.getContainer().style.cursor='';
+  _mbPendingLmLatLng = latlng;
+  document.getElementById('mbLmName').value='';
+  document.getElementById('mbLmHint').value='';
+  document.getElementById('mbLmMo').classList.add('open');
+}
+
+function _mbAddLmMarker(lm, map){
+  const icon=L.divIcon({className:'',html:'<div style="width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+  return L.marker([lm.lat,lm.lng],{icon}).bindTooltip(esc(lm.name),{className:'zt',direction:'top'}).addTo(map);
+}
+
+function mbConfirmLandmark(){
+  const name=document.getElementById('mbLmName').value.trim();
+  if(!name){showToast('Enter a name for this landmark.','warn');return;}
+  if(_hasProfanity(name)){showToast('Landmark name contains inappropriate language.','warn');return;}
+  const hint=document.getElementById('mbLmHint').value.trim();
+  const ll=_mbPendingLmLatLng;
+  if(!ll){document.getElementById('mbLmMo').classList.remove('open');return;}
+  const lm={name,hint,lat:ll.lat,lng:ll.lng,coins:0};
+  if(_mbMapLm) lm.marker=_mbAddLmMarker(lm,_mbMapLm);
+  _mbLandmarks.push(lm);
+  document.getElementById('mbLmMo').classList.remove('open');
+  _mbPendingLmLatLng=null;
+  const el=document.getElementById('mbLmCount');
+  if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+}
+
+// ── Transit line drawing ──────────────────────────────────────────
+function mbStartLine(){
+  _mbDrawingLine=true;
+  _mbCurrentLineStops=[];
+  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+  document.getElementById('mbNewLineBtn').style.display='none';
+  document.getElementById('mbFinishLineBtn').style.display='inline-block';
+  showToast('Tap stops along the route. Click "Done Drawing" when finished.','info',4000);
+}
+
+function _mbAddLineStop(latlng){
+  if(!_mbDrawingLine||!_mbMapTransit) return;
+  const stopName='Stop '+ (_mbCurrentLineStops.length+1);
+  const stop={name:stopName,lat:latlng.lat,lng:latlng.lng};
+  _mbCurrentLineStops.push(stop);
+  const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:#1d4ed8;border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+  L.marker([latlng.lat,latlng.lng],{icon}).addTo(_mbMapTransit);
+  if(_mbCurrentLineLayer) _mbCurrentLineLayer.remove();
+  if(_mbCurrentLineStops.length>1){
+    _mbCurrentLineLayer=L.polyline(_mbCurrentLineStops.map(s=>[s.lat,s.lng]),{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
+  }
+}
+
+function mbFinishLine(){
+  if(_mbCurrentLineStops.length<2){showToast('Add at least 2 stops.','warn');return;}
+  _mbDrawingLine=false;
+  _mbPendingLineStops=[..._mbCurrentLineStops];
+  document.getElementById('mbLineName').value='';
+  document.getElementById('mbLineMo').classList.add('open');
+  document.getElementById('mbNewLineBtn').style.display='inline-block';
+  document.getElementById('mbFinishLineBtn').style.display='none';
+}
+
+function mbCancelLine(){
+  document.getElementById('mbLineMo').classList.remove('open');
+  _mbPendingLineStops=[];
+  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+  _mbCurrentLineStops=[];
+}
+
+function mbConfirmLine(){
+  const name=document.getElementById('mbLineName').value.trim();
+  if(!name){showToast('Enter a line name.','warn');return;}
+  if(_hasProfanity(name)){showToast('Line name contains inappropriate language.','warn');return;}
+  const type=document.getElementById('mbLineType').value;
+  const color=document.getElementById('mbLineColor').value;
+  const id='line_'+Date.now();
+  const stops=[..._mbPendingLineStops];
+
+  // Compute which zones this line passes through
+  const zonesServed=[];
+  if(_mbZones.length){
+    stops.forEach(stop=>{
+      _mbZones.forEach(z=>{
+        if(z.poly&&z.poly.length>2&&pointInPolyLL(stop.lat,stop.lng,z.poly)){
+          if(!zonesServed.includes(z.code)) zonesServed.push(z.code);
+        }
+      });
+    });
+  }
+
+  const layer=L.polyline(stops.map(s=>[s.lat,s.lng]),{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
+  const line={id,name,type,color,stops,zonesServed,polyLayer:layer};
+  _mbLines.push(line);
+  document.getElementById('mbLineMo').classList.remove('open');
+  _mbPendingLineStops=[];
+  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+  _mbCurrentLineStops=[];
+  const el=document.getElementById('mbLineCount');
+  if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+  _mbRenderLineList();
+  // Update zone line membership
+  _mbLines.forEach(ln=>ln.zonesServed.forEach(zc=>{
+    const z=_mbZones.find(z=>z.code===zc);
+    if(z&&!z.lines.includes(ln.name)) z.lines.push(ln.name);
+  }));
+}
+
+function _mbRenderLineList(){
+  const el=document.getElementById('mbLineList');
+  if(!el) return;
+  el.innerHTML=_mbLines.map((ln,i)=>'<span style="flex-shrink:0;padding:3px 8px;border-radius:20px;border:1px solid var(--border);font-size:10px;cursor:pointer;background:'+ln.color+'22;color:'+ln.color+';border-color:'+ln.color+'" onclick="mbDeleteLine('+i+')" title="Tap to delete">'+esc(ln.name)+' &#x2715;</span>').join('');
+}
+
+function mbDeleteLine(i){
+  if(!confirm('Delete line "'+_mbLines[i].name+'"?')) return;
+  if(_mbLines[i].polyLayer) _mbLines[i].polyLayer.remove();
+  _mbLines.splice(i,1);
+  _mbRenderLineList();
+  const el=document.getElementById('mbLineCount');
+  if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+}
+
+// ── Review & Publish ──────────────────────────────────────────────
+function _renderMbReview(){
+  const el=document.getElementById('mbReviewContent');
+  if(!el) return;
+  const name=document.getElementById('mbName')?.value.trim()||'Unnamed Map';
+  const creator=document.getElementById('mbCreator')?.value.trim()||'Anonymous';
+  const desc=document.getElementById('mbDesc')?.value.trim()||'';
+  const city=_mbCityData?_mbCityData.shortName:'Unknown City';
+  el.innerHTML='<div class="card" style="margin-bottom:10px;font-size:13px;line-height:1.8;">'+
+    '<b>'+esc(name)+'</b><br>'+
+    'City: '+esc(city)+'<br>'+
+    'By: '+esc(creator)+'<br>'+
+    (desc?'<span style="color:var(--muted);font-style:italic;">'+esc(desc)+'</span><br>':'')+
+    '</div>'+
+    '<div class="card" style="margin-bottom:10px;font-size:12px;line-height:1.7;">'+
+    esc(_mbZones.length)+' zones &nbsp;·&nbsp; '+
+    esc(_mbLandmarks.length)+' landmarks &nbsp;·&nbsp; '+
+    esc(_mbLines.length)+' transit lines'+
+    '</div>';
+}
+
+async function publishMap(){
+  const name=(document.getElementById('mbName')?.value.trim())||'';
+  const creator=(document.getElementById('mbCreator')?.value.trim())||'Anonymous';
+  const desc=(document.getElementById('mbDesc')?.value.trim())||'';
+  const status=document.getElementById('mbPublishStatus');
+
+  // Validate
+  if(!name){showToast('Enter a map name.','warn');mbGotoStep('meta');return;}
+  if(!_mbCityData){showToast('Select a city first.','warn');mbGotoStep('meta');return;}
+  if(_mbZones.length<3){showToast('Add at least 3 zones before publishing.','warn');mbGotoStep('zones');return;}
+
+  const profCheck=_checkProfanity([['Map Name',name],['Creator',creator],['Description',desc],
+    ..._mbZones.map(z=>['Zone "'+z.name+'"',z.name]),
+    ..._mbLandmarks.map(lm=>['Landmark "'+lm.name+'"',lm.name]),
+    ..._mbLines.map(ln=>['Line "'+ln.name+'"',ln.name])]);
+  if(profCheck){showToast(profCheck,'error',6000);return;}
+
+  if(status) status.textContent='Publishing\u2026';
+  try{
+    const id='map_'+_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now().toString(36);
+    const cityTag=_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-');
+
+    // Clean zones (remove Leaflet layer refs)
+    const cleanZones=_mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,region:'GAME',lines:z.lines,stops:''}));
+    const cleanLm=_mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng,coins:0}));
+    const cleanLines={};
+    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed};});
+
+    const mapObj={
+      id, name, cityName:_mbCityData.shortName, cityTag, desc, creator,
+      createdAt:Date.now(), playCount:0,
+      config:{
+        cityName:_mbCityData.shortName,
+        cityCenter:{lat:_mbCityData.lat,lng:_mbCityData.lng},
+        transitMode:document.getElementById('mbTransitMode')?.value||'transit',
+        transitTypes:Object.keys(cleanLines).length>0?['transit']:[],
+        zones:cleanZones, landmarks:cleanLm,
+        transitStops:_mbLines.flatMap(ln=>ln.stops),
+        transitLines:cleanLines, lineBonuses:[]
+      }
+    };
+
+    const r=await fetch(MAPS_FB_PATH+'/'+id+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mapObj)});
+    if(!r.ok) throw new Error('Firebase error '+r.status);
+
+    if(status) status.textContent='';
+    showToast('Map published! Find it in Community Maps.','ok',5000);
+    setTimeout(()=>showScreen('screenJoin'),1500);
+  }catch(e){
+    if(status) status.textContent='';
+    showToast('Publish failed: '+e.message,'error',5000);
+  }
+}
+
+// ── pointInPolyLL (used by builder for zone-line intersection) ────
+function pointInPolyLL(lat,lng,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][1],yi=poly[i][0],xj=poly[j][1],yj=poly[j][0];
+    const intersect=((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadL();
@@ -4431,21 +5377,15 @@ if(LS.gameCode&&LS.playerId){
       document.getElementById('lobbyCode').textContent=LS.gameCode;
       renderLobby();showScreen('screenLobby');startPoll();
     } else {
-      // Player refreshed before game started — restore waiting screen
-      showScreen('screenWaiting');
-      document.getElementById('waitingMsg').textContent='Waiting for the host to start the game…';
-      if(LS.myTeamIdx>=0&&G.teams[LS.myTeamIdx]){
-        document.getElementById('waitingTeam').style.display='block';
-        document.getElementById('waitingTeamName').textContent=G.teams[LS.myTeamIdx].name;
-        document.getElementById('waitingTeamName').style.color=G.teams[LS.myTeamIdx].color;
-      }
-      startPoll();
+      showPreGame();startPoll();
     }
   }).catch(()=>{
     // Network error — keep session, let user try again
     showToast('Could not reach server. Check your connection.','warn',5000);
   });
 }
+_seedDCMapIfNeeded();
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').then(reg=>{
@@ -4474,6 +5414,164 @@ function showVersionBanner(){
   if(b)b.style.display='flex';
 }
 </script>
+
+<!-- MAP BUILDER SCREEN -->
+<div class="screen" id="screenMapBuilder" style="flex-direction:column;background:var(--bg);overflow:hidden;">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
+    <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
+  </div>
+
+  <!-- Step indicator -->
+  <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
+    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
+    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Landmarks</div>
+    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Publish</div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;min-height:0;" id="mbPanelWrap">
+
+    <!-- Step 1: Meta -->
+    <div id="mbPanel-meta" style="padding:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
+      <label>Map Name</label>
+      <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
+      <label>Your Name (map credit)</label>
+      <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
+      <label>City</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
+        <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
+      </div>
+      <div id="mbCityResults" style="margin-bottom:8px;"></div>
+      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;font-size:12px;margin-bottom:8px;"></div>
+      <label>Short Description</label>
+      <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
+      <label>Movement Mode</label>
+      <select id="mbTransitMode">
+        <option value="transit">Public Transit</option>
+        <option value="walking">Walking Only</option>
+        <option value="mixed">Mixed</option>
+        <option value="bike">Bikes &amp; Scooters</option>
+      </select>
+      <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
+    </div>
+
+    <!-- Step 2: Zones -->
+    <div id="mbPanel-zones" style="display:none;flex-direction:column;height:calc(100dvh - 100px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap on the map to place zone corners. Tap the first point again to close the zone.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
+          <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
+          <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
+        </div>
+      </div>
+      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
+      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('landmarks')">Next: Add Landmarks &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Landmarks -->
+    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;height:calc(100dvh - 100px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark pin. Aim for 1–2 landmarks per zone. These appear as Featured Landmarks during the game.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
+        </div>
+      </div>
+      <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('transit')">Next: Add Transit &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Transit -->
+    <div id="mbPanel-transit" style="display:none;flex-direction:column;height:calc(100dvh - 100px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. Name each line and set its type. The app will calculate which zones each line passes through.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
+          <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
+        </div>
+      </div>
+      <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
+      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Review & Publish -->
+    <div id="mbPanel-review" style="padding:16px;">
+      <div id="mbReviewContent"></div>
+      <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
+      <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
+      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenJoin')">Save Draft &amp; Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDMARK PLACEMENT MODAL (map builder) -->
+<div class="mo" id="mbLmMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Add Landmark</h2>
+    <label>Name</label>
+    <input type="text" id="mbLmName" placeholder="e.g. City Hall" maxlength="60">
+    <label>Hint / Address (optional)</label>
+    <input type="text" id="mbLmHint" placeholder="e.g. 414 E 12th St" maxlength="80">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('mbLmMo').classList.remove('open');_mbPendingLmLatLng=null;">Cancel</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmLandmark()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE NAME MODAL (map builder) -->
+<div class="mo" id="mbZoneMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Name this Zone</h2>
+    <label>Zone Name</label>
+    <input type="text" id="mbZoneName" placeholder="e.g. Crossroads" maxlength="40">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="mbCancelZoneName()">Discard Zone</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmZoneName()">Save Zone</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSIT LINE MODAL (map builder) -->
+<div class="mo" id="mbLineMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Name this Line</h2>
+    <label>Line Name</label>
+    <input type="text" id="mbLineName" placeholder="e.g. KC Streetcar" maxlength="40">
+    <label>Type</label>
+    <select id="mbLineType">
+      <option value="streetcar">Streetcar / Tram</option>
+      <option value="subway">Subway / Metro</option>
+      <option value="bus">Bus Rapid Transit</option>
+      <option value="commuter">Commuter Rail</option>
+      <option value="ferry">Ferry</option>
+      <option value="light_rail">Light Rail</option>
+    </select>
+    <label>Color</label>
+    <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="mbCancelLine()">Discard</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmLine()">Save Line</button>
+    </div>
+  </div>
+</div>
+
 <div id="toastContainer"></div>
 </body>
 </html>
