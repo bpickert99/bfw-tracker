@@ -902,7 +902,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.73';
+const APP_VERSION='1.74';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -1881,7 +1881,32 @@ function loadL(){try{const d=localStorage.getItem('bfw5L');if(d)LS={...LS,...JSO
 // ═══════════════════════════
 // SCREENS
 // ═══════════════════════════
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='screenMapBuilder') _mbInit();
+}
+function _mbInit(){
+  // Reset builder state and show step 1
+  _mbStep='meta';
+  ['zones','landmarks','transit','review'].forEach(s=>{
+    const p=document.getElementById('mbPanel-'+s);
+    if(p)p.style.display='none';
+  });
+  const meta=document.getElementById('mbPanel-meta');
+  if(meta)meta.style.display='block';
+  ['meta','zones','landmarks','transit','review'].forEach((s,i)=>{
+    const btn=document.getElementById('mbStep-'+s);
+    if(btn){
+      btn.style.borderBottomColor=i===0?'var(--accent)':'transparent';
+      btn.style.color=i===0?'var(--text)':'var(--muted)';
+    }
+  });
+  const pub=document.getElementById('mbPublishBtn');
+  if(pub)pub.style.display='none';
+  const pw=document.getElementById('mbPanelWrap');
+  if(pw)pw.scrollTop=0;
+}
 
 // ═══════════════════════════
 // HOST SETUP
@@ -4810,33 +4835,7 @@ function getMapConfig(){
   return _origGetMapConfig();
 }
 
-// ── Seed DC map to Firebase if not there yet ──────────────────────
-async function _seedDCMapIfNeeded(){
-  const CACHE_KEY = 'tt_dc_map_seeded_v1';
-  try{
-    if(localStorage.getItem(CACHE_KEY)) return; // already done this session
-  }catch(e){}
-  try{
-    const check = await fetch(MAPS_FB_PATH + '/map_dc_wmata.json');
-    if(check.ok){ const d = await check.json(); if(d&&d.id){ try{localStorage.setItem(CACHE_KEY,'1');}catch(e){} return; } }
-    // Write DC map
-    const dcConfig = {
-      cityName:'Washington DC', cityCenter:{lat:38.8895,lng:-77.0353},
-      transitMode:'transit', transitTypes:['metro'],
-      zones:ZONES, landmarks:LANDMARKS,
-      transitStops:METRO_STATIONS, transitLines:MLINES, lineBonuses:LINE_BONUSES
-    };
-    const dcMap = {
-      id:'map_dc_wmata', name:'Washington DC (WMATA)',
-      cityName:'Washington, DC', cityTag:'washington-dc',
-      desc:'Full DC metro area — all 8 wards plus Northern Virginia and Maryland suburbs.',
-      creator:'Transit Tournament', createdAt:Date.now(), playCount:0,
-      config: dcConfig
-    };
-    await fetch(MAPS_FB_PATH+'/map_dc_wmata.json', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(dcMap)});
-    try{localStorage.setItem(CACHE_KEY,'1');}catch(e){}
-  }catch(e){console.warn('DC seed failed',e);}
-}
+// DC map seeded manually via seed-dc.js
 
 // ── Helper: increment play count when game starts ──────────────────
 function _incrementMapPlayCount(mapId){
@@ -5393,8 +5392,6 @@ if(LS.gameCode&&LS.playerId){
     showToast('Could not reach server. Check your connection.','warn',5000);
   });
 }
-_seedDCMapIfNeeded();
-
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').then(reg=>{
@@ -5444,7 +5441,7 @@ function showVersionBanner(){
   <div style="flex:1;overflow-y:auto;min-height:0;" id="mbPanelWrap">
 
     <!-- Step 1: Meta -->
-    <div id="mbPanel-meta" style="display:none;padding:16px;">
+    <div id="mbPanel-meta" style="padding:16px;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
       <label>Map Name</label>
       <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
