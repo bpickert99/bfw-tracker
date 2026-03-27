@@ -34,7 +34,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
 /* JOIN */
-#screenJoin{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
+#screenJoin{align-items:center;justify-content:flex-start;padding:24px;background:var(--surface);overflow-y:auto;}
 .join-logo{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--text);line-height:1;margin-bottom:4px;text-align:center;}
 .join-logo span{color:var(--accent);}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.5px;text-transform:uppercase;}
@@ -371,33 +371,6 @@ input:focus,select:focus{border-color:var(--accent);}
       </div>
     </div>
 
-    <label style="font-size:12px;color:var(--muted);">Movement Mode</label>
-    <select id="cfgTransitMode" style="margin-bottom:8px;" onchange="onTransitModeChange()">
-      <option value="transit">Public Transit (metro, bus, streetcar)</option>
-      <option value="walking">Walking Only</option>
-      <option value="bike">Bikes &amp; Scooters</option>
-      <option value="car">Cars Allowed</option>
-      <option value="mixed">Mixed — player choice</option>
-    </select>
-
-    <div id="cfgTransitTypesSection" style="margin-bottom:8px;">
-      <label style="font-size:12px;color:var(--muted);">Active Transit Types</label>
-      <p style="font-size:11px;color:var(--muted);margin-bottom:6px;line-height:1.5;">These affect which Shop curses are available. Uncheck any that don't exist in your city.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="cfgTransitTypesList">
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_metro" checked> Metro/Subway</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_bus" checked> Bus</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_streetcar"> Streetcar/Tram</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_commuter"> Commuter Rail</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_ferry"> Ferry</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:12px;"><input type="checkbox" id="cfgTransit_bikeshare"> Bike Share</label>
-      </div>
-      <label style="font-size:12px;color:var(--muted);margin-top:8px;">Custom transit name (optional)</label>
-      <input type="text" id="cfgTransitCustomName" placeholder="e.g. KC Streetcar, BART, The T" style="margin-bottom:0;">
-    </div>
-
-    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.5;" id="cfgTransitNote">
-      ℹ️ <b>Transit mode</b> affects the game map scale and which Shop curses are available.
-    </div>
 
     <div class="divider"></div>
     <label>Teams</label>
@@ -931,7 +904,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.71';
+const APP_VERSION='1.72';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -2457,11 +2430,6 @@ function _landmarkCoinsFromCenter(lat,lng,cityLat,cityLng){
 // onMapPresetChange defined in MAP MARKETPLACE section
 
 
-function onTransitModeChange(){
-  const mode=document.getElementById('cfgTransitMode').value;
-  const typeSec=document.getElementById('cfgTransitTypesSection');
-  if(typeSec)typeSec.style.display=(mode==='transit'||mode==='mixed')?'block':'none';
-}
 
 // ── City search ───────────────────────────────────────────────────
 async function searchCity(){
@@ -2508,11 +2476,8 @@ function getMapConfig(){
   if(preset==='dc')return null;
 
   const zones=_candidateZones.filter(z=>_selectedZones.has(z.code));
-  const transitMode=document.getElementById('cfgTransitMode')?.value||'transit';
+  const transitMode='transit';
   const transitTypes=[];
-  ['metro','bus','streetcar','commuter','ferry','bikeshare'].forEach(t=>{
-    if(document.getElementById('cfgTransit_'+t)?.checked)transitTypes.push(t);
-  });
 
   return{
     preset:'custom',
@@ -4714,9 +4679,20 @@ function renderAll(){renderStatus();renderScores();renderMapColors();renderZones
 // ── COLOR PICKER ──────────────────────────────────────────────────────────────
 let cpTgt=null;
 function openCP(i,el){
-  cpTgt=i;const pop=document.getElementById('cpp'),sw=document.getElementById('cpr');
-  sw.innerHTML=PAL.map(c=>'<div class="csw'+(setupTeams[i]?.color===c?' sel':'')+'" style="background:'+c+'" onclick="pickC(\''+c+'\')"></div>').join('');
-  const r=el.getBoundingClientRect();pop.style.top=(r.bottom+6)+'px';pop.style.left=r.left+'px';pop.style.display='block';
+  cpTgt=i;
+  const pop=document.getElementById('cpp'),sw=document.getElementById('cpr');
+  sw.innerHTML='';
+  PAL.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='csw'+(setupTeams[i]?.color===c?' sel':'');
+    d.style.background=c;
+    d.addEventListener('click',()=>pickC(c));
+    sw.appendChild(d);
+  });
+  const r=el.getBoundingClientRect();
+  pop.style.top=(r.bottom+6)+'px';
+  pop.style.left=r.left+'px';
+  pop.style.display='block';
   setTimeout(()=>document.addEventListener('click',closeCP,{once:true}),50);
 }
 function pickC(c){if(cpTgt!==null){setupTeams[cpTgt].color=c;renderTeamSetup();}document.getElementById('cpp').style.display='none';cpTgt=null;}
@@ -4760,23 +4736,28 @@ async function loadCommunityMaps(){
 }
 
 function _renderMapResults(maps){
-  const res = document.getElementById('cfgMapResults');
-  if(!res) return;
+  const res=document.getElementById('cfgMapResults');
+  if(!res)return;
   if(!maps.length){
-    res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps found for that city.</div>';
+    res.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps found for that city.</div>';
     return;
   }
-  res.innerHTML = maps.map(m =>
-    '<div onclick="_selectCommunityMap(\''+m.id+'\')" style="padding:10px 12px;border-radius:10px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:6px;background:var(--surface);transition:border-color .15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+
-      '<div style="font-weight:700;font-size:13px;margin-bottom:2px;">'+esc(m.name)+'</div>'+
-      '<div style="color:var(--muted);">'+esc(m.cityName)+' &nbsp;·&nbsp; by '+esc(m.creator||'Anonymous')+
-        '&nbsp;·&nbsp; '+(m.config&&m.config.zones?m.config.zones.length+' zones':'?')+
-        (m.playCount?' &nbsp;·&nbsp; '+m.playCount+' plays':'')+'</div>'+
-      (m.desc?'<div style="color:var(--muted);margin-top:3px;font-style:italic;">'+esc(m.desc)+'</div>':'')+
-    '</div>'
-  ).join('');
+  res.innerHTML='';
+  maps.forEach(m=>{
+    const div=document.createElement('div');
+    div.style.cssText='padding:10px 12px;border-radius:10px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:6px;background:var(--surface);transition:border-color .15s;';
+    div.innerHTML='<div style="font-weight:700;font-size:13px;margin-bottom:2px;">'+esc(m.name)+'</div>'+
+      '<div style="color:var(--muted);">'+esc(m.cityName)+' &nbsp;&middot;&nbsp; by '+esc(m.creator||'Anonymous')+
+        '&nbsp;&middot;&nbsp; '+(m.config&&m.config.zones?m.config.zones.length+' zones':'?')+
+        (m.playCount?' &nbsp;&middot;&nbsp; '+m.playCount+' plays':'')+
+      '</div>'+
+      (m.desc?'<div style="color:var(--muted);margin-top:3px;font-style:italic;">'+esc(m.desc)+'</div>':'');
+    div.addEventListener('mouseover',()=>div.style.borderColor='var(--accent)');
+    div.addEventListener('mouseout',()=>div.style.borderColor='var(--border)');
+    div.addEventListener('click',()=>_selectCommunityMap(m.id));
+    res.appendChild(div);
+  });
 }
-
 function _filterMapResults(){
   const q = (document.getElementById('cfgMapSearch').value||'').toLowerCase().trim();
   if(!q){ _renderMapResults(_allMaps); return; }
