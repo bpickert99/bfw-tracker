@@ -900,9 +900,167 @@ input:focus,select:focus{border-color:var(--accent);}
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- MAP BUILDER SCREEN -->
+<div class="screen" id="screenMapBuilder" style="background:var(--bg);">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
+    <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
+    <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
+  </div>
+
+  <!-- Step indicator -->
+  <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
+    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
+    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
+    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Landmarks</div>
+    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Publish</div>
+  </div>
+
+  <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow-y:auto;" id="mbPanelWrap">
+
+    <!-- Step 1: Meta -->
+    <div id="mbPanel-meta" style="padding:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
+      <label>Map Name</label>
+      <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
+      <label>Your Name (map credit)</label>
+      <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
+      <label>City</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
+        <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
+      </div>
+      <div id="mbCityResults" style="margin-bottom:8px;"></div>
+      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;font-size:12px;margin-bottom:8px;"></div>
+      <label>Short Description</label>
+      <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
+      <label>Movement Mode</label>
+      <select id="mbTransitMode">
+        <option value="transit">Public Transit</option>
+        <option value="walking">Walking Only</option>
+        <option value="mixed">Mixed</option>
+        <option value="bike">Bikes &amp; Scooters</option>
+      </select>
+      <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
+    </div>
+
+    <!-- Step 2: Zones -->
+    <div id="mbPanel-zones" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap on the map to place zone corners. Tap the first point again to close the zone.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
+          <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
+          <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
+        </div>
+      </div>
+      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
+      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('landmarks')">Next: Add Landmarks &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Landmarks -->
+    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark pin. Aim for 1–2 landmarks per zone. These appear as Featured Landmarks during the game.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
+        </div>
+      </div>
+      <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('transit')">Next: Add Transit &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Transit -->
+    <div id="mbPanel-transit" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. Name each line and set its type. The app will calculate which zones each line passes through.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
+          <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
+          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
+        </div>
+      </div>
+      <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
+      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Review & Publish -->
+    <div id="mbPanel-review" style="display:none;padding:16px;">
+      <div id="mbReviewContent"></div>
+      <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
+      <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
+      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenJoin')">Save Draft &amp; Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDMARK PLACEMENT MODAL (map builder) -->
+<div class="mo" id="mbLmMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Add Landmark</h2>
+    <label>Name</label>
+    <input type="text" id="mbLmName" placeholder="e.g. City Hall" maxlength="60">
+    <label>Hint / Address (optional)</label>
+    <input type="text" id="mbLmHint" placeholder="e.g. 414 E 12th St" maxlength="80">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('mbLmMo').classList.remove('open');_mbPendingLmLatLng=null;">Cancel</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmLandmark()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE NAME MODAL (map builder) -->
+<div class="mo" id="mbZoneMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Name this Zone</h2>
+    <label>Zone Name</label>
+    <input type="text" id="mbZoneName" placeholder="e.g. Crossroads" maxlength="40">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="mbCancelZoneName()">Discard Zone</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmZoneName()">Save Zone</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSIT LINE MODAL (map builder) -->
+<div class="mo" id="mbLineMo">
+  <div class="md" style="max-width:360px;">
+    <h2>Name this Line</h2>
+    <label>Line Name</label>
+    <input type="text" id="mbLineName" placeholder="e.g. KC Streetcar" maxlength="40">
+    <label>Type</label>
+    <select id="mbLineType">
+      <option value="streetcar">Streetcar / Tram</option>
+      <option value="subway">Subway / Metro</option>
+      <option value="bus">Bus Rapid Transit</option>
+      <option value="commuter">Commuter Rail</option>
+      <option value="ferry">Ferry</option>
+      <option value="light_rail">Light Rail</option>
+    </select>
+    <label>Color</label>
+    <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+    <div class="mac">
+      <button class="btn btn-g btn-sm" onclick="mbCancelLine()">Discard</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmLine()">Save Line</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.76';
+const APP_VERSION='1.77';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -5421,162 +5579,6 @@ function showVersionBanner(){
 }
 </script>
 
-<!-- MAP BUILDER SCREEN -->
-<div class="screen" id="screenMapBuilder" style="background:var(--bg);">
-  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
-    <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
-    <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
-  </div>
-
-  <!-- Step indicator -->
-  <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
-    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
-    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
-    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Landmarks</div>
-    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Publish</div>
-  </div>
-
-  <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow-y:auto;" id="mbPanelWrap">
-
-    <!-- Step 1: Meta -->
-    <div id="mbPanel-meta" style="padding:16px;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
-      <label>Map Name</label>
-      <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
-      <label>Your Name (map credit)</label>
-      <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
-      <label>City</label>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
-        <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
-      </div>
-      <div id="mbCityResults" style="margin-bottom:8px;"></div>
-      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;font-size:12px;margin-bottom:8px;"></div>
-      <label>Short Description</label>
-      <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
-      <label>Movement Mode</label>
-      <select id="mbTransitMode">
-        <option value="transit">Public Transit</option>
-        <option value="walking">Walking Only</option>
-        <option value="mixed">Mixed</option>
-        <option value="bike">Bikes &amp; Scooters</option>
-      </select>
-      <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
-    </div>
-
-    <!-- Step 2: Zones -->
-    <div id="mbPanel-zones" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap on the map to place zone corners. Tap the first point again to close the zone.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-          <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
-          <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
-          <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
-        </div>
-      </div>
-      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
-      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
-      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('landmarks')">Next: Add Landmarks &#x2192;</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Landmarks -->
-    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark pin. Aim for 1–2 landmarks per zone. These appear as Featured Landmarks during the game.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;">
-          <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
-        </div>
-      </div>
-      <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
-      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('transit')">Next: Add Transit &#x2192;</button>
-      </div>
-    </div>
-
-    <!-- Step 4: Transit -->
-    <div id="mbPanel-transit" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. Name each line and set its type. The app will calculate which zones each line passes through.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-          <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
-          <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
-        </div>
-      </div>
-      <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
-      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
-      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
-      </div>
-    </div>
-
-    <!-- Step 5: Review & Publish -->
-    <div id="mbPanel-review" style="display:none;padding:16px;">
-      <div id="mbReviewContent"></div>
-      <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
-      <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
-      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenJoin')">Save Draft &amp; Exit</button>
-    </div>
-  </div>
-</div>
-
-<!-- LANDMARK PLACEMENT MODAL (map builder) -->
-<div class="mo" id="mbLmMo">
-  <div class="md" style="max-width:360px;">
-    <h2>Add Landmark</h2>
-    <label>Name</label>
-    <input type="text" id="mbLmName" placeholder="e.g. City Hall" maxlength="60">
-    <label>Hint / Address (optional)</label>
-    <input type="text" id="mbLmHint" placeholder="e.g. 414 E 12th St" maxlength="80">
-    <div class="mac">
-      <button class="btn btn-g btn-sm" onclick="document.getElementById('mbLmMo').classList.remove('open');_mbPendingLmLatLng=null;">Cancel</button>
-      <button class="btn btn-p btn-sm" onclick="mbConfirmLandmark()">Add</button>
-    </div>
-  </div>
-</div>
-
-<!-- ZONE NAME MODAL (map builder) -->
-<div class="mo" id="mbZoneMo">
-  <div class="md" style="max-width:360px;">
-    <h2>Name this Zone</h2>
-    <label>Zone Name</label>
-    <input type="text" id="mbZoneName" placeholder="e.g. Crossroads" maxlength="40">
-    <div class="mac">
-      <button class="btn btn-g btn-sm" onclick="mbCancelZoneName()">Discard Zone</button>
-      <button class="btn btn-p btn-sm" onclick="mbConfirmZoneName()">Save Zone</button>
-    </div>
-  </div>
-</div>
-
-<!-- TRANSIT LINE MODAL (map builder) -->
-<div class="mo" id="mbLineMo">
-  <div class="md" style="max-width:360px;">
-    <h2>Name this Line</h2>
-    <label>Line Name</label>
-    <input type="text" id="mbLineName" placeholder="e.g. KC Streetcar" maxlength="40">
-    <label>Type</label>
-    <select id="mbLineType">
-      <option value="streetcar">Streetcar / Tram</option>
-      <option value="subway">Subway / Metro</option>
-      <option value="bus">Bus Rapid Transit</option>
-      <option value="commuter">Commuter Rail</option>
-      <option value="ferry">Ferry</option>
-      <option value="light_rail">Light Rail</option>
-    </select>
-    <label>Color</label>
-    <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
-    <div class="mac">
-      <button class="btn btn-g btn-sm" onclick="mbCancelLine()">Discard</button>
-      <button class="btn btn-p btn-sm" onclick="mbConfirmLine()">Save Line</button>
-    </div>
-  </div>
-</div>
 
 <div id="toastContainer"></div>
 </body>
