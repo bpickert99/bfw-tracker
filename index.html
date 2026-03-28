@@ -1085,7 +1085,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.92';
+const APP_VERSION='1.93';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -4795,11 +4795,13 @@ function _initMbMapZones(){
     if(_mbDrawing) _mbAddPoint(e.latlng);
     else _mbDeselectZone();
   });
-  _mbZones.forEach((z,i)=>{
-    if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+  // Use whenReady to ensure map has correct dimensions before drawing
+  _mbMapZones.whenReady(()=>{
+    _mbMapZones.invalidateSize();
+    _mbZones.forEach((z,i)=>{
+      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+    });
   });
-  // Force Leaflet to recalculate container size after panel is visible
-  setTimeout(()=>{ if(_mbMapZones) _mbMapZones.invalidateSize(); }, 50);
 }
 
 function _initMbMapLm(){
@@ -4904,12 +4906,32 @@ function mbConfirmZoneName(){
   const area=parseFloat(_polyAreaSqMi(poly).toFixed(2));
   const zone={code,name,poly,area,lines:[],stops:'',polyLayer:null,labelMarker:null,handles:[]};
   _mbZones.push(zone);
-  _mbDrawZoneOnMap(zone,_mbZones.length-1);
+  const _newZoneIdx=_mbZones.length-1;
+  _mbDrawZoneOnMap(zone,_newZoneIdx);
+  // Pan map to show the new zone
+  if(_mbMapZones&&zone.poly.length){
+    const bounds=L.latLngBounds(zone.poly.map(p=>L.latLng(p[0],p[1])));
+    _mbMapZones.fitBounds(bounds,{padding:[40,40],maxZoom:15});
+  }
   _mbUpdateZoneCount();
   _mbRenderZoneList();
 }
 
 function _mbDrawZoneOnMap(zone, idx){
+  if(!_mbMapZones){
+    // Map not ready yet — init it and draw after
+    _initMbMapZones();
+    // Schedule draw for after map is ready
+    const tryDraw = ()=>{
+      if(_mbMapZones){ _mbDrawZoneOnMapNow(zone, idx); }
+      else { setTimeout(tryDraw, 30); }
+    };
+    setTimeout(tryDraw, 30);
+    return;
+  }
+  _mbDrawZoneOnMapNow(zone, idx);
+}
+function _mbDrawZoneOnMapNow(zone, idx){
   if(!_mbMapZones) return;
   if(zone.polyLayer) zone.polyLayer.remove();
   zone.polyLayer = L.polygon(zone.poly,{fillColor:'#3b82f6',fillOpacity:.18,color:'#2563eb',weight:2}).addTo(_mbMapZones);
