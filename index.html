@@ -1071,7 +1071,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.81';
+const APP_VERSION='1.82';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -4898,7 +4898,7 @@ async function loadCommunityMaps(){
   if(!res) return;
   res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading maps\u2026</div>';
   try{
-    const r = await fetch(MAPS_FB_PATH + '.json?orderBy="playCount"&limitToLast=50');
+    const r = await fetch(MAPS_FB_PATH + '.json');
     if(!r.ok){
       res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Firebase error '+r.status+'. Check /maps/ read rules.</div>';
       _allMaps=[]; return;
