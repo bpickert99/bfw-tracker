@@ -1085,7 +1085,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.93';
+const APP_VERSION='1.94';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -4612,10 +4612,7 @@ function _mbLoadFromDraft(d){
   _mbLandmarks = (d.landmarks||[]).map(lm=>({...lm,marker:null}));
   _mbLines = (d.lines||[]).map(ln=>({...ln,polyLayer:null}));
   _mbShopConfig = d.shopConfig||null;
-  // Reset map instances so they re-init with loaded data
-  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
-  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
-  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null;}
+  // Maps will be recreated when user navigates to each step
   // Fill fields
   const set = (id,val)=>{ const el=document.getElementById(id); if(el)el.value=val||''; };
   set('mbName',d.name); set('mbCreator',d.creator); set('mbDesc',d.desc);
@@ -4637,9 +4634,7 @@ function _mbLoadFromPublished(m){
   const linesObj = m.config?.transitLines||{};
   _mbLines = Object.values(linesObj).map(ln=>({...ln,id:ln.id||'line_'+Date.now(),polyLayer:null}));
   _mbShopConfig = m.config?.shopConfig||null;
-  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
-  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
-  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null;}
+  // Maps recreated on step entry
   const set=(id,val)=>{ const el=document.getElementById(id); if(el)el.value=val||''; };
   set('mbName',m.name); set('mbCreator',m.creator); set('mbDesc',m.desc||'');
   _mbStartBuilder();
@@ -4788,51 +4783,55 @@ function _mbMakeMap(elId, existingZones){
 }
 
 function _initMbMapZones(){
-  if(_mbMapZones) return;
-  _mbMapZones = _mbMakeMap('mbMapEl', null);
-  if(!_mbMapZones) return;
-  _mbMapZones.on('click', e=>{
-    if(_mbDrawing) _mbAddPoint(e.latlng);
-    else _mbDeselectZone();
-  });
-  // Use whenReady to ensure map has correct dimensions before drawing
-  _mbMapZones.whenReady(()=>{
-    _mbMapZones.invalidateSize();
-    _mbZones.forEach((z,i)=>{
-      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+  // Destroy any stale map instance first
+  if(_mbMapZones){ try{_mbMapZones.remove();}catch(e){} _mbMapZones=null; }
+  // Clear polyLayer refs so zones re-draw on the new map
+  _mbZones.forEach(z=>{ z.polyLayer=null; z.labelMarker=null; });
+  // Yield to browser layout engine before creating Leaflet map,
+  // so the container has real pixel dimensions
+  setTimeout(()=>{
+    _mbMapZones = _mbMakeMap('mbMapEl', null);
+    if(!_mbMapZones) return;
+    _mbMapZones.on('click', e=>{
+      if(_mbDrawing) _mbAddPoint(e.latlng);
+      else _mbDeselectZone();
     });
-  });
+    _mbZones.forEach((z,i)=>{
+      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMapNow(z,i);
+    });
+  }, 0);
 }
 
 function _initMbMapLm(){
-  if(_mbMapLm) return;
-  _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
-  if(!_mbMapLm) return;
-  _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
-  _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
-  setTimeout(()=>{ if(_mbMapLm) _mbMapLm.invalidateSize(); }, 50);
+  if(_mbMapLm){ try{_mbMapLm.remove();}catch(e){} _mbMapLm=null; }
+  _mbLandmarks.forEach(lm=>{ if(lm.marker){try{lm.marker.remove();}catch(e){}} lm.marker=null; });
+  setTimeout(()=>{
+    _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
+    if(!_mbMapLm) return;
+    _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
+    _mbLandmarks.forEach((lm,i)=>{ lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
+  }, 0);
 }
 
 function _initMbMapTransit(){
-  if(_mbMapTransit) return;
-  _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
-  if(!_mbMapTransit) return;
-  _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
-  _mbLines.forEach(ln=>{
-    if(!ln.polyLayer&&ln.stops.length>1){
-      const pts = _mbSmoothLine(ln.stops, ln.smooth);
-      ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
-      // Restore stop markers
-      ln.stopMarkers=ln.stopMarkers||[];
-      if(!ln.stopMarkers.length){
+  if(_mbMapTransit){ try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null; }
+  _mbLines.forEach(ln=>{ ln.polyLayer=null; ln.stopMarkers=[]; });
+  setTimeout(()=>{
+    _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
+    if(!_mbMapTransit) return;
+    _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
+    _mbLines.forEach(ln=>{
+      if(ln.stops.length>1){
+        const pts=_mbSmoothLine(ln.stops,ln.smooth);
+        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
+        ln.stopMarkers=[];
         ln.stops.forEach(s=>{
           const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:'+ln.color+';border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
           ln.stopMarkers.push(L.marker([s.lat,s.lng],{icon}).addTo(_mbMapTransit));
         });
       }
-    }
-  });
-  setTimeout(()=>{ if(_mbMapTransit) _mbMapTransit.invalidateSize(); }, 50);
+    });
+  }, 0);
 }
 
 // ── Zone drawing ──────────────────────────────────────────────────
@@ -4919,14 +4918,8 @@ function mbConfirmZoneName(){
 
 function _mbDrawZoneOnMap(zone, idx){
   if(!_mbMapZones){
-    // Map not ready yet — init it and draw after
-    _initMbMapZones();
-    // Schedule draw for after map is ready
-    const tryDraw = ()=>{
-      if(_mbMapZones){ _mbDrawZoneOnMapNow(zone, idx); }
-      else { setTimeout(tryDraw, 30); }
-    };
-    setTimeout(tryDraw, 30);
+    // Map not ready yet (deferred init in progress) — retry shortly
+    setTimeout(()=>_mbDrawZoneOnMap(zone, idx), 50);
     return;
   }
   _mbDrawZoneOnMapNow(zone, idx);
