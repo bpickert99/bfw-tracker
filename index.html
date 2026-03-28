@@ -1081,7 +1081,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.89';
+const APP_VERSION='1.90';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2077,6 +2077,8 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   if(id==='screenMapBuilder') _mbInit();
 }
+function openMapBuilder(){ showScreen('screenMapBuilder'); }
+
 function _mbInit(){
   _mbShopConfig=null;
   const pw=document.getElementById('mbPanelWrap');
@@ -4536,7 +4538,7 @@ let _mbShopConfig = null; // [{id, enabled, cost}] — null means use defaults
 // ── Library screen ────────────────────────────────────────────────
 function _mbShowLibrary(){
   // Hide all step panels, show library
-  ['meta','zones','landmarks','transit','review'].forEach(s=>{
+  ['meta','zones','landmarks','transit','shop','review'].forEach(s=>{
     const p=document.getElementById('mbPanel-'+s); if(p)p.style.display='none';
   });
   const lib = document.getElementById('mbPanel-library');
