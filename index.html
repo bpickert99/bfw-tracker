@@ -1085,7 +1085,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.91';
+const APP_VERSION='1.92';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -4789,46 +4789,48 @@ function _mbMakeMap(elId, existingZones){
 
 function _initMbMapZones(){
   if(_mbMapZones) return;
-  // Delay until after browser paint so container has real dimensions
-  requestAnimationFrame(()=>{
-    if(_mbMapZones) return; // guard against double-call
-    _mbMapZones = _mbMakeMap('mbMapEl', null);
-    if(!_mbMapZones) return;
-    _mbMapZones.on('click', e=>{
-      if(_mbDrawing) _mbAddPoint(e.latlng);
-      else _mbDeselectZone();
-    });
-    _mbZones.forEach((z,i)=>{
-      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
-    });
+  _mbMapZones = _mbMakeMap('mbMapEl', null);
+  if(!_mbMapZones) return;
+  _mbMapZones.on('click', e=>{
+    if(_mbDrawing) _mbAddPoint(e.latlng);
+    else _mbDeselectZone();
   });
+  _mbZones.forEach((z,i)=>{
+    if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+  });
+  // Force Leaflet to recalculate container size after panel is visible
+  setTimeout(()=>{ if(_mbMapZones) _mbMapZones.invalidateSize(); }, 50);
 }
 
 function _initMbMapLm(){
   if(_mbMapLm) return;
-  requestAnimationFrame(()=>{
-    if(_mbMapLm) return;
-    _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
-    if(!_mbMapLm) return;
-    _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
-    _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
-  });
+  _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
+  if(!_mbMapLm) return;
+  _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
+  _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
+  setTimeout(()=>{ if(_mbMapLm) _mbMapLm.invalidateSize(); }, 50);
 }
 
 function _initMbMapTransit(){
   if(_mbMapTransit) return;
-  requestAnimationFrame(()=>{
-    if(_mbMapTransit) return;
-    _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
-    if(!_mbMapTransit) return;
-    _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
-    _mbLines.forEach(ln=>{
-      if(!ln.polyLayer&&ln.stops.length>1){
-        const pts = _mbSmoothLine(ln.stops, ln.smooth);
-        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
+  _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
+  if(!_mbMapTransit) return;
+  _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
+  _mbLines.forEach(ln=>{
+    if(!ln.polyLayer&&ln.stops.length>1){
+      const pts = _mbSmoothLine(ln.stops, ln.smooth);
+      ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
+      // Restore stop markers
+      ln.stopMarkers=ln.stopMarkers||[];
+      if(!ln.stopMarkers.length){
+        ln.stops.forEach(s=>{
+          const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:'+ln.color+';border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+          ln.stopMarkers.push(L.marker([s.lat,s.lng],{icon}).addTo(_mbMapTransit));
+        });
       }
-    });
+    }
   });
+  setTimeout(()=>{ if(_mbMapTransit) _mbMapTransit.invalidateSize(); }, 50);
 }
 
 // ── Zone drawing ──────────────────────────────────────────────────
@@ -5167,7 +5169,10 @@ function _mbAddLineStop(latlng){
       : '<div style="width:8px;height:8px;border-radius:50%;background:#1d4ed8;border:2px solid white;"></div>',
     iconSize:isShared?[10,10]:[8,8],iconAnchor:isShared?[5,5]:[4,4]
   });
-  L.marker([stop.lat,stop.lng],{icon}).addTo(_mbMapTransit);
+  const stopMkr = L.marker([stop.lat,stop.lng],{icon}).addTo(_mbMapTransit);
+  // Track in a temp list — moved to ln.stopMarkers on mbConfirmLine
+  if(!window._mbCurrentStopMarkers) window._mbCurrentStopMarkers=[];
+  window._mbCurrentStopMarkers.push(stopMkr);
   if(isShared) showToast('Snapped to existing stop: '+stop.name,'info',1500);
   if(_mbCurrentLineLayer) _mbCurrentLineLayer.remove();
   if(_mbCurrentLineStops.length>1){
@@ -5194,6 +5199,10 @@ function mbFinishLine(){
     if(ln.polyLayer){ ln.polyLayer.remove(); }
     ln.polyLayer=L.polyline(ePts,{color:ln.color,weight:4,opacity:.85}).addTo(_mbMapTransit);
     if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+    // Attach new stop markers to the line
+    const newMkrs=window._mbCurrentStopMarkers||[];
+    window._mbCurrentStopMarkers=[];
+    ln.stopMarkers=[...(ln.stopMarkers||[]),...newMkrs];
     _mbCurrentLineStops=[];
     window._mbExtendingLineIdx=null;
     showToast('Stops added to line.','ok');
@@ -5214,6 +5223,9 @@ function mbFinishLine(){
 
 function mbCancelLine(){
   document.getElementById('mbLineMo').classList.remove('open');
+  // Remove any orphaned stop markers from an abandoned draw
+  (window._mbCurrentStopMarkers||[]).forEach(m=>m.remove());
+  window._mbCurrentStopMarkers=[];
   _mbPendingLineStops=[]; _mbCurrentLineStops=[];
   if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
   window._mbEditingLineIdx=null; window._mbExtendingLineIdx=null;
@@ -5253,7 +5265,9 @@ function mbConfirmLine(){
   stops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!zonesServed.includes(z.code)) zonesServed.push(z.code); }); });
   const pts=_mbSmoothLine(stops,smooth);
   const layer=L.polyline(pts,{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
-  _mbLines.push({id,name,type,color,smooth,stops,zonesServed,polyLayer:layer});
+  const stopMarkers=window._mbCurrentStopMarkers||[];
+  window._mbCurrentStopMarkers=[];
+  _mbLines.push({id,name,type,color,smooth,stops,zonesServed,polyLayer:layer,stopMarkers});
   _mbPendingLineStops=[]; if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;} _mbCurrentLineStops=[];
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
@@ -5318,7 +5332,9 @@ function _mbExtendLine(i){
 
 function mbDeleteLine(i){
   if(!confirm('Delete line "'+_mbLines[i].name+'"?')) return;
-  if(_mbLines[i].polyLayer) _mbLines[i].polyLayer.remove();
+  const ln=_mbLines[i];
+  if(ln.polyLayer) ln.polyLayer.remove();
+  (ln.stopMarkers||[]).forEach(m=>m.remove());
   _mbLines.splice(i,1); _mbRenderLineList();
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
