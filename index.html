@@ -345,8 +345,9 @@ input:focus,select:focus{border-color:var(--accent);}
     <div id="cfgMapCommunitySection" style="margin-bottom:10px;">
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()">
+        <button class="btn btn-g btn-sm" onclick="loadCommunityMaps()">Browse</button>
       </div>
-      <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"></div>
+      <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
       <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface2);border:2px solid var(--accent);border-radius:10px;font-size:12px;line-height:1.6;"></div>
     </div>
 
@@ -1070,7 +1071,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.79';
+const APP_VERSION='1.80';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
