@@ -416,14 +416,14 @@ input:focus,select:focus{border-color:var(--accent);}
     <div id="preGameTeamBadge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:white;"></div>
   </div>
   <!-- Tabs -->
-  <div style="display:flex;background:var(--surface);border-bottom:2px solid var(--border);">
-    <div class="tab active" id="preTabInfo" onclick="switchPreTab('info')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">Game Info</div>
-    <div class="tab" id="preTabRules" onclick="switchPreTab('rules')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Rules</div>
-    <div class="tab" id="preTabMap" onclick="switchPreTab('map')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Map</div>
-    <div class="tab" id="preTabChat" onclick="switchPreTab('chat')" style="padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">Chat</div>
+  <div style="display:flex;background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;">
+    <div id="preTabInfo" onclick="switchPreTab('info')" style="flex:1;padding:10px 4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;text-align:center;border-bottom:2px solid var(--accent);color:var(--text);">Info</div>
+    <div id="preTabRules" onclick="switchPreTab('rules')" style="flex:1;padding:10px 4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;text-align:center;border-bottom:2px solid transparent;color:var(--muted);">Rules</div>
+    <div id="preTabMap" onclick="switchPreTab('map')" style="flex:1;padding:10px 4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;text-align:center;border-bottom:2px solid transparent;color:var(--muted);">Map</div>
+    <div id="preTabChat" onclick="switchPreTab('chat')" style="flex:1;padding:10px 4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;text-align:center;border-bottom:2px solid transparent;color:var(--muted);">Chat</div>
   </div>
   <!-- Content -->
-  <div style="flex:1;overflow-y:auto;min-height:0;">
+  <div style="flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;">
     <!-- Info panel -->
     <div id="prePanel-info" style="padding:20px;">
       <div style="text-align:center;margin-bottom:20px;">
@@ -1071,7 +1071,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.82';
+const APP_VERSION='1.84';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -2650,24 +2650,10 @@ async function selectCity(idx){
 // ── Build final map config for game creation ──────────────────────
 function getMapConfig(){
   const preset=document.getElementById('cfgMapPreset')?.value||'dc';
-  if(preset==='dc')return null;
-
-  const zones=_candidateZones.filter(z=>_selectedZones.has(z.code));
-  const transitMode='transit';
-  const transitTypes=[];
-
-  return{
-    preset:'custom',
-    cityName:_cityData?_cityData.shortName:null,
-    cityCenter:_cityData?{lat:_cityData.lat,lng:_cityData.lng}:null,
-    transitMode,transitTypes,
-    customTransitName:document.getElementById('cfgTransitCustomName')?.value.trim()||null,
-    zones,
-    landmarks:window._cityLandmarks||[],
-    transitStops:[],
-    transitLines:{},
-    lineBonuses:[],
-  };
+  if(preset==='dc') return null;
+  const cfg=window._communityMapConfig||null;
+  if(cfg&&_selectedMapId) return{...cfg,mapId:_selectedMapId};
+  return cfg;
 }
 
 
@@ -3639,7 +3625,8 @@ function initMap(){
     // Don't draw hardcoded WMATA lines at all
   }
   renderMapColors();renderMZL();
-  // Metro station markers (DC only)
+  // Metro station markers (DC only — skip for custom maps)
+  if(!G.config||!G.config.map){
   const stationLineColor={red:'#e63946',blue:'#2563eb',orange:'#f4a636',green:'#059669',yellow:'#d97706',silver:'#8890b0'};
   METRO_STATIONS.forEach(s=>{
     const primaryLine=s.line.split(',')[0].trim();
@@ -3649,13 +3636,14 @@ function initMap(){
       .bindTooltip(s.name,{className:'zt',direction:'top'})
       .addTo(bfwMap);
   });
+  } // end DC-only stations
 }
 function renderMapColors(){
   if(!mapReady)return;
   getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
   renderMZL();updateLocateMarkers();
   const ml=document.getElementById('mapLegend');
-  if(ml)ml.style.display=(G.config&&G.config.map&&G.config.map.preset==='custom')?'none':'block';
+  if(ml)ml.style.display=isCustomMap()?'none':'block';
 }
 function updateLocateMarkers(){
   if(!mapReady||!bfwMap)return;
@@ -4970,14 +4958,9 @@ async function _selectCommunityMap(id){
 // Updated onMapPresetChange to handle community option
 function onMapPresetChange(){
   const preset = document.getElementById('cfgMapPreset').value;
-  const customSec = document.getElementById('cfgMapCustomSection');
   const commSec = document.getElementById('cfgMapCommunitySection');
-  if(customSec) customSec.style.display = preset==='custom'?'block':'none';
   if(commSec) commSec.style.display = preset==='community'?'block':'none';
   if(preset==='community') loadCommunityMaps();
-  // Hide summary if switching away
-  const summary = document.getElementById('mapSelectionSummary');
-  if(summary&&preset!=='community') summary.style.display='none';
 }
 
 // Patch getMapConfig to handle community preset
