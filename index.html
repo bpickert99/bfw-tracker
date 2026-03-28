@@ -1085,7 +1085,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.95';
+const APP_VERSION='1.96';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -4296,7 +4296,7 @@ function switchTab(name){
   if(name==='rules')renderRules();
   if(name==='flop'){initFlop().then(()=>renderFlop());}
   if(name==='shop'){renderShopItems();renderCurses();}
-  if(name==='log'){renderLog();renderChat();}
+  if(name==='log'){renderChat();}
 }
 
 function updateUI(){
@@ -4327,7 +4327,7 @@ function updateUI(){
     }
   }
 }
-function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderLog();renderChat();renderFlop();renderRules();}
+function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();}
 
 // ── COLOR PICKER ──────────────────────────────────────────────────────────────
 let cpTgt=null;
@@ -4453,6 +4453,34 @@ function _incrementMapPlayCount(mapId){
 }
 
 // MAP BUILDER
+
+
+// ── Geometry helpers (used by map builder and game) ──────────────
+function _centroid(poly){
+  if(!poly||!poly.length) return [0,0];
+  let lat=0,lng=0;
+  poly.forEach(p=>{lat+=p[0];lng+=p[1];});
+  return [lat/poly.length,lng/poly.length];
+}
+
+function _polyAreaSqMi(poly){
+  // Shoelace formula in lat/lng approximated to sq miles
+  if(!poly||poly.length<3) return 0;
+  let area=0;
+  const n=poly.length;
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    area+=poly[i][1]*poly[j][0];
+    area-=poly[j][1]*poly[i][0];
+  }
+  area=Math.abs(area)/2;
+  // Convert lat/lng degrees² to sq miles (approx at mid-latitudes)
+  const lat=_centroid(poly)[0];
+  const latRad=lat*Math.PI/180;
+  const degLat=110.574;   // km per degree lat
+  const degLng=111.320*Math.cos(latRad); // km per degree lng
+  return area*degLat*degLng*0.386102; // km² to mi²
+}
 
 // ── Creator identity (persists across sessions) ───────────────────
 function _mbGetCreatorId(){
