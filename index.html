@@ -1058,7 +1058,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- TRANSIT LINE MODAL (map builder) -->
 <div class="mo" id="mbLineMo">
   <div class="md" style="max-width:360px;">
-    <h2>Name this Line</h2>
+    <h2 id="mbLineMoTitle">Name this Line</h2>
     <label>Line Name</label>
     <input type="text" id="mbLineName" placeholder="e.g. KC Streetcar" maxlength="40">
     <label>Type</label>
@@ -1072,16 +1072,20 @@ input:focus,select:focus{border-color:var(--accent);}
     </select>
     <label>Color</label>
     <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+      <input type="checkbox" id="mbLineSmooth" style="width:16px;height:16px;cursor:pointer;">
+      <label for="mbLineSmooth" style="margin:0;font-size:13px;cursor:pointer;">Smooth curve between stops</label>
+    </div>
     <div class="mac">
       <button class="btn btn-g btn-sm" onclick="mbCancelLine()">Discard</button>
-      <button class="btn btn-p btn-sm" onclick="mbConfirmLine()">Save Line</button>
+      <button class="btn btn-p btn-sm" id="mbLineSaveBtn" onclick="mbConfirmLine()">Save Line</button>
     </div>
   </div>
 </div>
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.90';
+const APP_VERSION='1.91';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -1853,8 +1857,9 @@ function getTransitLines(){
     const out={};
     Object.entries(raw).forEach(([k,ln])=>{
       if(ln.stops&&ln.stops.length>1&&!ln.paths){
+        const spts=ln.smooth?_mbSmoothLine(ln.stops,true):ln.stops.map(s=>[s.lat,s.lng]);
         out[k]={color:ln.color||'#3b82f6',w:3,opacity:.85,
-          paths:[ln.stops.map(s=>[s.lat,s.lng])]};
+          paths:[spts]};
       } else if(ln.paths){
         out[k]=ln;
       }
@@ -4475,7 +4480,7 @@ function _mbSaveDraft(){
       cityData: _mbCityData,
       zones: _mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,lines:z.lines,stops:z.stops||''})),
       landmarks: _mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint,lat:lm.lat,lng:lm.lng})),
-      lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]})),
+      lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[]})),
       shopConfig: _mbGetCleanShopConfig(),
       savedAt: Date.now(),
       publishedId: _mbCurrentDraftId.startsWith('draft_') ? null : _mbCurrentDraftId
@@ -4784,32 +4789,46 @@ function _mbMakeMap(elId, existingZones){
 
 function _initMbMapZones(){
   if(_mbMapZones) return;
-  _mbMapZones = _mbMakeMap('mbMapEl', null);
-  if(!_mbMapZones) return;
-  _mbMapZones.on('click', e=>{
-    if(_mbDrawing) _mbAddPoint(e.latlng);
-    else _mbDeselectZone(); // click empty space = deselect
-  });
-  // Restore existing zones
-  _mbZones.forEach((z,i)=>{
-    if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+  // Delay until after browser paint so container has real dimensions
+  requestAnimationFrame(()=>{
+    if(_mbMapZones) return; // guard against double-call
+    _mbMapZones = _mbMakeMap('mbMapEl', null);
+    if(!_mbMapZones) return;
+    _mbMapZones.on('click', e=>{
+      if(_mbDrawing) _mbAddPoint(e.latlng);
+      else _mbDeselectZone();
+    });
+    _mbZones.forEach((z,i)=>{
+      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+    });
   });
 }
 
 function _initMbMapLm(){
   if(_mbMapLm) return;
-  _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
-  if(!_mbMapLm) return;
-  _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
-  _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
+  requestAnimationFrame(()=>{
+    if(_mbMapLm) return;
+    _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
+    if(!_mbMapLm) return;
+    _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
+    _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
+  });
 }
 
 function _initMbMapTransit(){
   if(_mbMapTransit) return;
-  _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
-  if(!_mbMapTransit) return;
-  _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
-  _mbLines.forEach(ln=>{ if(!ln.polyLayer&&ln.stops.length>1){ ln.polyLayer=L.polyline(ln.stops.map(s=>[s.lat,s.lng]),{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit); }});
+  requestAnimationFrame(()=>{
+    if(_mbMapTransit) return;
+    _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
+    if(!_mbMapTransit) return;
+    _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
+    _mbLines.forEach(ln=>{
+      if(!ln.polyLayer&&ln.stops.length>1){
+        const pts = _mbSmoothLine(ln.stops, ln.smooth);
+        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
+      }
+    });
+  });
 }
 
 // ── Zone drawing ──────────────────────────────────────────────────
@@ -5091,13 +5110,71 @@ function mbStartLine(){
   showToast('Tap stops along the route. Click Done when finished.','info',4000);
 }
 
+
+// ── Catmull-Rom spline for smooth transit lines ───────────────────
+function _mbSmoothLine(stops, smooth){
+  if(!smooth||stops.length<3) return stops.map(s=>[s.lat,s.lng]);
+  const pts = stops.map(s=>[s.lat,s.lng]);
+  const out = [];
+  const tension = 0.5;
+  const steps = 12; // interpolation steps between each pair
+  for(let i=0; i<pts.length-1; i++){
+    const p0 = pts[Math.max(0,i-1)];
+    const p1 = pts[i];
+    const p2 = pts[i+1];
+    const p3 = pts[Math.min(pts.length-1,i+2)];
+    for(let t=0; t<steps; t++){
+      const u = t/steps;
+      const u2=u*u, u3=u2*u;
+      const lat =
+        tension*((-u3+2*u2-u)*p0[0]+(3*u3-5*u2+2)*p1[0]+(-3*u3+4*u2+u)*p2[0]+(u3-u2)*p3[0]);
+      const lng =
+        tension*((-u3+2*u2-u)*p0[1]+(3*u3-5*u2+2)*p1[1]+(-3*u3+4*u2+u)*p2[1]+(u3-u2)*p3[1]);
+      out.push([lat,lng]);
+    }
+  }
+  out.push(pts[pts.length-1]);
+  return out;
+}
+
+// ── Snap to nearby existing stop ─────────────────────────────────
+const SNAP_PX = 24; // snap radius in pixels
+function _mbSnapToExistingStop(latlng){
+  if(!_mbMapTransit) return null;
+  const clickPt = _mbMapTransit.latLngToContainerPoint(latlng);
+  for(const ln of _mbLines){
+    for(const stop of ln.stops){
+      const stopPt = _mbMapTransit.latLngToContainerPoint(L.latLng(stop.lat,stop.lng));
+      const dist = Math.hypot(clickPt.x-stopPt.x, clickPt.y-stopPt.y);
+      if(dist<=SNAP_PX) return {lat:stop.lat,lng:stop.lng,name:stop.name,shared:true};
+    }
+  }
+  return null;
+}
+
 function _mbAddLineStop(latlng){
   if(!_mbDrawingLine||!_mbMapTransit) return;
-  _mbCurrentLineStops.push({name:'Stop '+(_mbCurrentLineStops.length+1),lat:latlng.lat,lng:latlng.lng});
-  const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:#1d4ed8;border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
-  L.marker([latlng.lat,latlng.lng],{icon}).addTo(_mbMapTransit);
+  // Snap to existing stop if close enough
+  const snapped = _mbSnapToExistingStop(latlng);
+  const stop = snapped || {name:'Stop '+(_mbCurrentLineStops.length+1),lat:latlng.lat,lng:latlng.lng};
+  _mbCurrentLineStops.push(stop);
+  // Visual: shared stops get a distinct marker
+  const isShared = !!snapped;
+  const icon=L.divIcon({
+    className:'',
+    html:isShared
+      ? '<div style="width:10px;height:10px;border-radius:50%;background:white;border:2.5px solid #1d4ed8;"></div>'
+      : '<div style="width:8px;height:8px;border-radius:50%;background:#1d4ed8;border:2px solid white;"></div>',
+    iconSize:isShared?[10,10]:[8,8],iconAnchor:isShared?[5,5]:[4,4]
+  });
+  L.marker([stop.lat,stop.lng],{icon}).addTo(_mbMapTransit);
+  if(isShared) showToast('Snapped to existing stop: '+stop.name,'info',1500);
   if(_mbCurrentLineLayer) _mbCurrentLineLayer.remove();
-  if(_mbCurrentLineStops.length>1) _mbCurrentLineLayer=L.polyline(_mbCurrentLineStops.map(s=>[s.lat,s.lng]),{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
+  if(_mbCurrentLineStops.length>1){
+    const smooth = document.getElementById('mbLineSmooth')?.checked||false;
+    const pts = _mbSmoothLine(_mbCurrentLineStops, smooth);
+    _mbCurrentLineLayer=L.polyline(pts,{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
+  }
 }
 
 function mbFinishLine(){
@@ -5113,8 +5190,9 @@ function mbFinishLine(){
     ln.stops=[...ln.stops,...newStops];
     // Recompute zones served
     newStops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!ln.zonesServed.includes(z.code)) ln.zonesServed.push(z.code); }); });
-    if(ln.polyLayer) ln.polyLayer.setLatLngs(ln.stops.map(s=>[s.lat,s.lng]));
-    else ln.polyLayer=L.polyline(ln.stops.map(s=>[s.lat,s.lng]),{color:ln.color,weight:4,opacity:.85}).addTo(_mbMapTransit);
+    const ePts=_mbSmoothLine(ln.stops,ln.smooth||false);
+    if(ln.polyLayer){ ln.polyLayer.remove(); }
+    ln.polyLayer=L.polyline(ePts,{color:ln.color,weight:4,opacity:.85}).addTo(_mbMapTransit);
     if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
     _mbCurrentLineStops=[];
     window._mbExtendingLineIdx=null;
@@ -5127,6 +5205,10 @@ function mbFinishLine(){
   _mbCurrentLineStops=[];
   window._mbEditingLineIdx=null;
   document.getElementById('mbLineName').value='';
+  const _t=document.getElementById('mbLineMoTitle');
+  if(_t) _t.textContent='Name this Line';
+  const _b=document.getElementById('mbLineSaveBtn');
+  if(_b) _b.textContent='Save Line';
   document.getElementById('mbLineMo').classList.add('open');
 }
 
@@ -5151,8 +5233,12 @@ function mbConfirmLine(){
   // Editing existing line
   if(window._mbEditingLineIdx!=null){
     const ln=_mbLines[window._mbEditingLineIdx];
-    ln.name=name; ln.type=type; ln.color=color;
-    if(ln.polyLayer) ln.polyLayer.setStyle({color,weight:4,opacity:.85});
+    const smooth2=document.getElementById('mbLineSmooth')?.checked||false;
+    ln.name=name; ln.type=type; ln.color=color; ln.smooth=smooth2;
+    // Re-draw with updated smooth setting
+    if(ln.polyLayer) ln.polyLayer.remove();
+    const pts2=_mbSmoothLine(ln.stops,smooth2);
+    ln.polyLayer=L.polyline(pts2,{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
     window._mbEditingLineIdx=null;
     _mbRenderLineList();
     return;
@@ -5161,11 +5247,13 @@ function mbConfirmLine(){
   // New line
   window._mbEditingLineIdx=null;
   const stops=[..._mbPendingLineStops];
+  const smooth=document.getElementById('mbLineSmooth')?.checked||false;
   const id='line_'+Date.now();
   const zonesServed=[];
   stops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!zonesServed.includes(z.code)) zonesServed.push(z.code); }); });
-  const layer=L.polyline(stops.map(s=>[s.lat,s.lng]),{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
-  _mbLines.push({id,name,type,color,stops,zonesServed,polyLayer:layer});
+  const pts=_mbSmoothLine(stops,smooth);
+  const layer=L.polyline(pts,{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
+  _mbLines.push({id,name,type,color,smooth,stops,zonesServed,polyLayer:layer});
   _mbPendingLineStops=[]; if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;} _mbCurrentLineStops=[];
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
@@ -5203,6 +5291,12 @@ function _mbEditLine(i){
   document.getElementById('mbLineName').value=ln.name;
   document.getElementById('mbLineType').value=ln.type||'streetcar';
   document.getElementById('mbLineColor').value=ln.color||'#3b82f6';
+  const t=document.getElementById('mbLineMoTitle');
+  if(t) t.textContent='Edit Line';
+  const b=document.getElementById('mbLineSaveBtn');
+  if(b) b.textContent='Update Line';
+  const sm=document.getElementById('mbLineSmooth');
+  if(sm) sm.checked=!!ln.smooth;
   document.getElementById('mbLineMo').classList.add('open');
 }
 
@@ -5264,7 +5358,7 @@ async function publishMap(){
     const cleanZones=_mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,region:'GAME',lines:z.lines,stops:''}));
     const cleanLm=_mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng,coins:0}));
     const cleanLines={};
-    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]};});
+    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[]};});
     const cleanShop=_mbGetCleanShopConfig();
     const mapObj={
       id,name,cityName:_mbCityData.shortName,
