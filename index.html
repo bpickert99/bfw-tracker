@@ -921,6 +921,13 @@ input:focus,select:focus{border-color:var(--accent);}
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow-y:auto;" id="mbPanelWrap">
 
+    <!-- Library -->
+    <div id="mbPanel-library" style="display:none;padding:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Your maps — both drafts and published. Tap Edit to continue working on a map.</div>
+      <button class="btn btn-p" style="width:100%;margin-bottom:14px;" onclick="_mbCurrentDraftId=null;_mbZones=[];_mbLandmarks=[];_mbLines=[];_mbCityData=null;if(_mbMapZones){try{_mbMapZones.remove();}catch(e){}}_mbMapZones=null;if(_mbMapLm){try{_mbMapLm.remove();}catch(e){}}_mbMapLm=null;if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){}}_mbMapTransit=null;document.getElementById('mbPanel-library').style.display='none';document.getElementById('mbSteps').style.display='flex';['mbName','mbCreator','mbDesc','mbCitySearch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const conf=document.getElementById('mbCityConfirmed');if(conf)conf.style.display='none';document.getElementById('mbCityResults').innerHTML='';document.getElementById('mbZoneList').innerHTML='';document.getElementById('mbLineList').innerHTML='';document.getElementById('mbZoneCount').textContent='0 zones';document.getElementById('mbLmCount').textContent='0 landmarks';document.getElementById('mbLineCount').textContent='0 lines';mbGotoStep('meta');">+ Create New Map</button>
+      <div id="mbLibraryList"></div>
+    </div>
+
     <!-- Step 1: Meta -->
     <div id="mbPanel-meta" style="padding:16px;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
@@ -950,7 +957,8 @@ input:focus,select:focus{border-color:var(--accent);}
     <!-- Step 2: Zones -->
     <div id="mbPanel-zones" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap on the map to place zone corners. Tap the first point again to close the zone.</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
+        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--accent);"></div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
           <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
           <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
@@ -1016,8 +1024,9 @@ input:focus,select:focus{border-color:var(--accent);}
     <label>Hint / Address (optional)</label>
     <input type="text" id="mbLmHint" placeholder="e.g. 414 E 12th St" maxlength="80">
     <div class="mac">
-      <button class="btn btn-g btn-sm" onclick="document.getElementById('mbLmMo').classList.remove('open');_mbPendingLmLatLng=null;">Cancel</button>
-      <button class="btn btn-p btn-sm" onclick="mbConfirmLandmark()">Add</button>
+      <button class="btn btn-xs" style="background:#fff0f0;color:var(--accent);border:1px solid #fecaca;display:none;" id="mbLmDeleteBtn" onclick="mbDeleteLandmark()">Delete</button>
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('mbLmMo').classList.remove('open');_mbPendingLmLatLng=null;_mbEditingLmIdx=null;">Cancel</button>
+      <button class="btn btn-p btn-sm" onclick="mbConfirmLandmark()">Save</button>
     </div>
   </div>
 </div>
@@ -1061,7 +1070,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.78';
+const APP_VERSION='1.79';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -2046,25 +2055,10 @@ function showScreen(id){
   if(id==='screenMapBuilder') _mbInit();
 }
 function _mbInit(){
-  // Reset builder state and show step 1
-  _mbStep='meta';
-  ['zones','landmarks','transit','review'].forEach(s=>{
-    const p=document.getElementById('mbPanel-'+s);
-    if(p)p.style.display='none';
-  });
-  const meta=document.getElementById('mbPanel-meta');
-  if(meta)meta.style.display='block';
-  ['meta','zones','landmarks','transit','review'].forEach((s,i)=>{
-    const btn=document.getElementById('mbStep-'+s);
-    if(btn){
-      btn.style.borderBottomColor=i===0?'var(--accent)':'transparent';
-      btn.style.color=i===0?'var(--text)':'var(--muted)';
-    }
-  });
-  const pub=document.getElementById('mbPublishBtn');
-  if(pub)pub.style.display='none';
+  // Show library screen first
   const pw=document.getElementById('mbPanelWrap');
   if(pw)pw.scrollTop=0;
+  _mbShowLibrary();
 }
 
 // ═══════════════════════════
@@ -5009,76 +5003,278 @@ function _incrementMapPlayCount(mapId){
 // MAP BUILDER
 // ═══════════════════════════════════════════════════════════════════
 
-function openMapBuilder(){
-  // Reset all builder state
-  _mbZones=[];_mbLandmarks=[];_mbLines=[];
-  _mbDrawing=false;_mbPlacingLm=false;_mbDrawingLine=false;
-  _mbCurrentPoly=[];_mbCurrentMarkers=[];_mbCurrentLineStops=[];
-  _mbPendingZonePoly=null;_mbPendingLmLatLng=null;_mbPendingLineStops=[];
-  _mbCityData=null;
-  // Destroy old Leaflet map instances so they re-init cleanly
-  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){}  _mbMapZones=null;}
-  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){}  _mbMapLm=null;}
-  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){}  _mbMapTransit=null;}
-  // Clear input fields
-  ['mbName','mbCreator','mbDesc','mbCitySearch'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
-  const conf=document.getElementById('mbCityConfirmed');
-  if(conf)conf.style.display='none';
-  document.getElementById('mbCityResults').innerHTML='';
-  document.getElementById('mbZoneList').innerHTML='';
-  document.getElementById('mbLineList').innerHTML='';
-  document.getElementById('mbZoneCount').textContent='0 zones';
-  document.getElementById('mbLmCount').textContent='0 landmarks';
-  document.getElementById('mbLineCount').textContent='0 lines';
-  document.getElementById('mbPublishStatus').textContent='';
-  document.getElementById('mbReviewContent').innerHTML='';
-  // Show the screen and go to step 1
-  showScreen('screenMapBuilder');
-  mbGotoStep('meta');
+// ── Creator identity (persists across sessions) ───────────────────
+function _mbGetCreatorId(){
+  try{
+    let id = localStorage.getItem('tt_creator_id');
+    if(!id){ id = 'cr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7); localStorage.setItem('tt_creator_id',id); }
+    return id;
+  }catch(e){ return 'cr_anon'; }
 }
 
-// Simple profanity filter
-const _PROFANITY = ['fuck','shit','ass','bitch','cunt','dick','cock','pussy','nigger','faggot','retard','whore'];
-function _hasProfanity(text){
-  const low = (text||'').toLowerCase();
-  return _PROFANITY.some(w=>low.includes(w));
+// ── Draft persistence ─────────────────────────────────────────────
+const MB_DRAFTS_KEY = 'tt_drafts_v1';
+let _mbCurrentDraftId = null;
+
+function _mbSaveDraft(){
+  try{
+    const drafts = JSON.parse(localStorage.getItem(MB_DRAFTS_KEY)||'{}');
+    if(!_mbCurrentDraftId) _mbCurrentDraftId = 'draft_'+Date.now().toString(36);
+    drafts[_mbCurrentDraftId] = {
+      id: _mbCurrentDraftId,
+      name: document.getElementById('mbName')?.value.trim()||'Untitled',
+      creator: document.getElementById('mbCreator')?.value.trim()||'',
+      desc: document.getElementById('mbDesc')?.value.trim()||'',
+      transitMode: document.getElementById('mbTransitMode')?.value||'transit',
+      cityData: _mbCityData,
+      zones: _mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,lines:z.lines,stops:z.stops||''})),
+      landmarks: _mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint,lat:lm.lat,lng:lm.lng})),
+      lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]})),
+      savedAt: Date.now(),
+      publishedId: _mbCurrentDraftId.startsWith('draft_') ? null : _mbCurrentDraftId
+    };
+    localStorage.setItem(MB_DRAFTS_KEY, JSON.stringify(drafts));
+  }catch(e){ console.warn('Draft save failed',e); }
 }
+
+function _mbLoadDraft(id){
+  try{
+    const drafts = JSON.parse(localStorage.getItem(MB_DRAFTS_KEY)||'{}');
+    return drafts[id]||null;
+  }catch(e){ return null; }
+}
+
+function _mbGetAllDrafts(){
+  try{ return Object.values(JSON.parse(localStorage.getItem(MB_DRAFTS_KEY)||'{}')); }
+  catch(e){ return []; }
+}
+
+function _mbDeleteDraft(id){
+  try{
+    const drafts = JSON.parse(localStorage.getItem(MB_DRAFTS_KEY)||'{}');
+    delete drafts[id];
+    localStorage.setItem(MB_DRAFTS_KEY, JSON.stringify(drafts));
+  }catch(e){}
+}
+
+// ── Profanity filter ──────────────────────────────────────────────
+const _PROFANITY = ['fuck','shit','ass','bitch','cunt','dick','cock','pussy','nigger','faggot','retard','whore'];
+function _hasProfanity(text){ return _PROFANITY.some(w=>(text||'').toLowerCase().includes(w)); }
 function _checkProfanity(fields){
-  for(const [label,val] of fields){
-    if(_hasProfanity(val)) return 'Profanity detected in "'+label+'". Please edit before publishing.';
-  }
+  for(const [label,val] of fields){ if(_hasProfanity(val)) return 'Profanity detected in "'+label+'". Please edit before publishing.'; }
   return null;
 }
 
-// Builder state
-let _mbMap = null;
-let _mbStep = 'meta';
+// ── Builder state ─────────────────────────────────────────────────
+let _mbStep = 'library';
 let _mbCityData = null;
-
-// Zone drawing state
-let _mbZones = [];         // [{code, name, poly: [[lat,lng],...], polyLayer}]
-let _mbDrawing = false;    // currently drawing a zone
-let _mbCurrentPoly = [];   // points of zone being drawn
-let _mbCurrentPolyLine = null; // Leaflet polyline preview
-let _mbCurrentMarkers = []; // markers for current poly points
-let _mbPendingZonePoly = null; // closed polygon awaiting name
-
-// Landmark state
-let _mbLandmarks = [];     // [{name, hint, lat, lng, marker}]
+let _mbZones = [];
+let _mbDrawing = false;
+let _mbCurrentPoly = [];
+let _mbCurrentPolyLine = null;
+let _mbCurrentMarkers = [];
+let _mbPendingZonePoly = null;
+let _mbSelectedZoneIdx = null;   // zone selected for editing
+let _mbEditHandles = [];          // drag handle markers for selected zone
+let _mbLandmarks = [];
 let _mbPlacingLm = false;
 let _mbPendingLmLatLng = null;
-
-// Transit state
-let _mbLines = [];          // [{id, name, type, color, stops: [{name,lat,lng}], polyLayer}]
+let _mbEditingLmIdx = null;
+let _mbLines = [];
 let _mbDrawingLine = false;
 let _mbCurrentLineStops = [];
 let _mbCurrentLineLayer = null;
 let _mbPendingLineStops = [];
-
-// Map instances (one per step)
 let _mbMapZones = null, _mbMapLm = null, _mbMapTransit = null;
+
+// ── Entry point ───────────────────────────────────────────────────
+function openMapBuilder(){
+  showScreen('screenMapBuilder');
+}
+
+// ── Library screen ────────────────────────────────────────────────
+function _mbShowLibrary(){
+  // Hide all step panels, show library
+  ['meta','zones','landmarks','transit','review'].forEach(s=>{
+    const p=document.getElementById('mbPanel-'+s); if(p)p.style.display='none';
+  });
+  const lib = document.getElementById('mbPanel-library');
+  if(lib) lib.style.display='block';
+  const steps = document.getElementById('mbSteps');
+  if(steps) steps.style.display='none';
+  const pub = document.getElementById('mbPublishBtn');
+  if(pub) pub.style.display='none';
+  _mbRenderLibrary();
+}
+
+async function _mbRenderLibrary(){
+  const el = document.getElementById('mbLibraryList');
+  if(!el) return;
+  const creatorId = _mbGetCreatorId();
+  const drafts = _mbGetAllDrafts();
+
+  // Fetch your published maps from Firebase
+  let published = [];
+  try{
+    const r = await fetch(MAPS_FB_PATH+'.json');
+    if(r.ok){
+      const data = await r.json();
+      if(data) published = Object.values(data).filter(m=>m.creatorId===creatorId);
+    }
+  }catch(e){ /* offline */ }
+
+  if(!drafts.length && !published.length){
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No maps yet. Create your first one!</div>';
+    return;
+  }
+
+  // Merge: drafts + published (dedup by publishedId)
+  const draftPublishedIds = new Set(drafts.filter(d=>d.publishedId).map(d=>d.publishedId));
+
+  let html = '';
+  if(drafts.length){
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;">Drafts</div>';
+    drafts.forEach(d=>{
+      html += _mbMapCard(d.id, d.name, d.cityData?.shortName||'Unknown city',
+        d.zones?.length||0, d.savedAt, false, d.publishedId?true:false);
+    });
+  }
+
+  const unpublishedMaps = published.filter(m=>!draftPublishedIds.has(m.id));
+  if(unpublishedMaps.length){
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 6px;">Published (no local draft)</div>';
+    unpublishedMaps.forEach(m=>{
+      html += _mbMapCard(m.id, m.name, m.cityName, m.config?.zones?.length||0, m.createdAt, true, true);
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+function _mbMapCard(id, name, city, zoneCount, ts, isPublished, showUnpublish){
+  const date = ts ? new Date(ts).toLocaleDateString() : '';
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">'+
+    '<div style="font-weight:700;font-size:14px;margin-bottom:2px;">'+esc(name)+'</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+esc(city)+' &middot; '+zoneCount+' zones'+(isPublished?' &middot; <span style="color:var(--green);font-weight:700;">Published</span>':'')+(date?' &middot; '+date:'')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      '<button class="btn btn-p btn-xs" onclick="_mbEditMap(\''+id+'\')">&#x270F; Edit</button>'+
+      (showUnpublish&&isPublished ? '<button class="btn btn-g btn-xs" onclick="_mbUnpublishMap(\''+id+'\')">Unpublish</button>' : '')+
+      '<button class="btn btn-xs" style="background:#fff0f0;color:var(--accent);border:1px solid #fecaca;" onclick="_mbDeleteMap(\''+id+'\',\''+esc(name)+'\')">Delete</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function _mbEditMap(id){
+  // Try loading as draft first, then as published map
+  const draft = _mbLoadDraft(id);
+  if(draft){
+    _mbLoadFromDraft(draft);
+  } else {
+    // Load from Firebase
+    fetch(MAPS_FB_PATH+'/'+id+'.json').then(r=>r.json()).then(m=>{
+      if(!m){ showToast('Map not found.','warn'); return; }
+      _mbLoadFromPublished(m);
+    }).catch(()=>showToast('Could not load map.','error'));
+  }
+}
+
+function _mbLoadFromDraft(d){
+  _mbCurrentDraftId = d.id;
+  _mbCityData = d.cityData||null;
+  _mbZones = (d.zones||[]).map(z=>({...z,polyLayer:null,handles:[]}));
+  _mbLandmarks = (d.landmarks||[]).map(lm=>({...lm,marker:null}));
+  _mbLines = (d.lines||[]).map(ln=>({...ln,polyLayer:null}));
+  // Reset map instances so they re-init with loaded data
+  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
+  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
+  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null;}
+  // Fill fields
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el)el.value=val||''; };
+  set('mbName',d.name); set('mbCreator',d.creator); set('mbDesc',d.desc);
+  if(document.getElementById('mbTransitMode')) document.getElementById('mbTransitMode').value=d.transitMode||'transit';
+  if(d.cityData){
+    const conf=document.getElementById('mbCityConfirmed');
+    if(conf){conf.style.display='block';conf.textContent='\u2713 '+d.cityData.name;}
+  }
+  _mbStartBuilder();
+}
+
+function _mbLoadFromPublished(m){
+  _mbCurrentDraftId = 'pub_'+m.id;
+  _mbCityData = m.config?.cityCenter ? {
+    name:m.cityName, shortName:m.cityName, lat:m.config.cityCenter.lat, lng:m.config.cityCenter.lng
+  } : null;
+  _mbZones = (m.config?.zones||[]).map(z=>({...z,polyLayer:null,handles:[]}));
+  _mbLandmarks = (m.config?.landmarks||[]).map(lm=>({...lm,marker:null}));
+  const linesObj = m.config?.transitLines||{};
+  _mbLines = Object.values(linesObj).map(ln=>({...ln,id:ln.id||'line_'+Date.now(),polyLayer:null}));
+  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
+  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
+  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null;}
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el)el.value=val||''; };
+  set('mbName',m.name); set('mbCreator',m.creator); set('mbDesc',m.desc||'');
+  _mbStartBuilder();
+}
+
+function _mbStartBuilder(){
+  const steps = document.getElementById('mbSteps');
+  if(steps) steps.style.display='flex';
+  document.getElementById('mbPanel-library').style.display='none';
+  _mbUpdateZoneCount();
+  const lmEl=document.getElementById('mbLmCount');
+  if(lmEl) lmEl.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+  mbGotoStep('meta');
+}
+
+async function _mbDeleteMap(id, name){
+  if(!confirm('Permanently delete "'+name+'"? This cannot be undone.')) return;
+  // Delete from Firebase if it's a published map
+  const isPublished = !id.startsWith('draft_');
+  if(isPublished){
+    try{
+      await fetch(MAPS_FB_PATH+'/'+id+'.json',{method:'DELETE'});
+    }catch(e){ showToast('Could not delete from server.','error'); return; }
+  }
+  // Delete local draft with this id or with publishedId matching
+  const drafts = _mbGetAllDrafts();
+  drafts.forEach(d=>{
+    if(d.id===id || d.publishedId===id) _mbDeleteDraft(d.id);
+  });
+  showToast('"'+name+'" deleted.','ok');
+  _mbRenderLibrary();
+}
+
+async function _mbUnpublishMap(id){
+  if(!confirm('Remove this map from the community library? It will be kept as a local draft.')) return;
+  try{
+    // Fetch the map data first so we can save it as a draft
+    const r = await fetch(MAPS_FB_PATH+'/'+id+'.json');
+    if(r.ok){
+      const m = await r.json();
+      if(m){
+        // Save as local draft
+        try{
+          const drafts = JSON.parse(localStorage.getItem(MB_DRAFTS_KEY)||'{}');
+          const draftId = 'draft_'+Date.now().toString(36);
+          drafts[draftId] = {
+            id:draftId, name:m.name, creator:m.creator, desc:m.desc||'',
+            transitMode:m.config?.transitMode||'transit',
+            cityData:_mbCityData||{name:m.cityName,shortName:m.cityName,lat:m.config?.cityCenter?.lat,lng:m.config?.cityCenter?.lng},
+            zones:(m.config?.zones||[]).map(z=>({...z,polyLayer:null})),
+            landmarks:(m.config?.landmarks||[]).map(lm=>({...lm,marker:null})),
+            lines:Object.values(m.config?.transitLines||{}).map(ln=>({...ln,polyLayer:null})),
+            savedAt:Date.now(), publishedId:null
+          };
+          localStorage.setItem(MB_DRAFTS_KEY,JSON.stringify(drafts));
+        }catch(e){}
+      }
+    }
+    await fetch(MAPS_FB_PATH+'/'+id+'.json',{method:'DELETE'});
+    showToast('Map unpublished and saved as draft.','ok');
+    _mbRenderLibrary();
+  }catch(e){ showToast('Could not unpublish map.','error'); }
+}
 
 // ── Step navigation ───────────────────────────────────────────────
 function mbGotoStep(step){
@@ -5098,11 +5294,13 @@ function mbGotoStep(step){
   if(step==='landmarks') _initMbMapLm();
   if(step==='transit') _initMbMapTransit();
   if(step==='review') _renderMbReview();
+  // Auto-save draft on every step transition
+  _mbSaveDraft();
   const pw = document.getElementById('mbPanelWrap');
   if(pw) pw.scrollTop = 0;
 }
 
-// ── City search (reuses Nominatim) ────────────────────────────────
+// ── City search ───────────────────────────────────────────────────
 async function mbSearchCity(){
   const q = document.getElementById('mbCitySearch').value.trim();
   if(!q) return;
@@ -5114,7 +5312,14 @@ async function mbSearchCity(){
     const data = await r.json();
     if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results.</div>';return;}
     window._mbNomResults = data;
-    res.innerHTML = data.map((item,i)=>'<div onclick="mbSelectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+esc(item.display_name)+'</div>').join('');
+    res.innerHTML='';
+    data.forEach((item,i)=>{
+      const d=document.createElement('div');
+      d.style.cssText='padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);';
+      d.textContent=item.display_name;
+      d.addEventListener('click',()=>mbSelectCity(i));
+      res.appendChild(d);
+    });
   }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed.</div>';}
 }
 
@@ -5129,26 +5334,23 @@ function mbSelectCity(idx){
   };
   document.getElementById('mbCityResults').innerHTML='';
   const conf = document.getElementById('mbCityConfirmed');
-  if(conf){ conf.style.display='block'; conf.textContent='&#x2713; '+item.display_name; }
+  if(conf){ conf.style.display='block'; conf.textContent='\u2713 '+item.display_name; }
 }
 
-// ── Map initialization helpers ────────────────────────────────────
+// ── Map initialization ────────────────────────────────────────────
 function _mbMakeMap(elId, existingZones){
   const el = document.getElementById(elId);
   if(!el) return null;
   const cd = _mbCityData;
   const center = cd ? [cd.lat,cd.lng] : [39.0,-94.6];
-  const zoom = cd ? 12 : 11;
-  const m = L.map(elId, {center, zoom, zoomControl:true, attributionControl:false});
+  const m = L.map(elId, {center, zoom:12, zoomControl:true, attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
-  // Draw existing zones for reference
   if(existingZones){
     existingZones.forEach(z=>{
       if(z.poly&&z.poly.length>2){
-        const layer = L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.15,color:'#3b82f6',weight:2}).addTo(m);
-        const c = _centroid(z.poly);
-        L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:10px;font-weight:700;color:#1d4ed8;pointer-events:none;">'+esc(z.name)+'</div>',iconAnchor:[20,8]}),interactive:false}).addTo(m);
-        z.polyLayer = layer;
+        L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.08,color:'#94a3b8',weight:1.5,interactive:false}).addTo(m);
+        const c=_centroid(z.poly);
+        L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:10px;font-weight:700;color:#94a3b8;pointer-events:none;">'+esc(z.name)+'</div>',iconAnchor:[20,8]}),interactive:false}).addTo(m);
       }
     });
   }
@@ -5160,9 +5362,14 @@ function _initMbMapZones(){
   if(_mbMapZones) return;
   _mbMapZones = _mbMakeMap('mbMapEl', null);
   if(!_mbMapZones) return;
-  _mbMapZones.on('click', e=>{ if(_mbDrawing) _mbAddPoint(e.latlng); });
-  // Redraw any existing zones
-  _mbZones.forEach(z=>{ if(!z.polyLayer&&z.poly.length>2){ z.polyLayer=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.15,color:'#3b82f6',weight:2}).addTo(_mbMapZones); }});
+  _mbMapZones.on('click', e=>{
+    if(_mbDrawing) _mbAddPoint(e.latlng);
+    else _mbDeselectZone(); // click empty space = deselect
+  });
+  // Restore existing zones
+  _mbZones.forEach((z,i)=>{
+    if(z.poly&&z.poly.length>2) _mbDrawZoneOnMap(z,i);
+  });
 }
 
 function _initMbMapLm(){
@@ -5170,8 +5377,7 @@ function _initMbMapLm(){
   _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
   if(!_mbMapLm) return;
   _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
-  // Redraw landmarks
-  _mbLandmarks.forEach(lm=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,_mbMapLm); });
+  _mbLandmarks.forEach((lm,i)=>{ if(!lm.marker) lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
 }
 
 function _initMbMapTransit(){
@@ -5179,17 +5385,17 @@ function _initMbMapTransit(){
   _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
   if(!_mbMapTransit) return;
   _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
-  // Redraw lines
-  _mbLines.forEach(line=>{ if(!line.polyLayer&&line.stops.length>1){ line.polyLayer=L.polyline(line.stops.map(s=>[s.lat,s.lng]),{color:line.color,weight:4,opacity:.8}).addTo(_mbMapTransit); }});
+  _mbLines.forEach(ln=>{ if(!ln.polyLayer&&ln.stops.length>1){ ln.polyLayer=L.polyline(ln.stops.map(s=>[s.lat,s.lng]),{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit); }});
 }
 
 // ── Zone drawing ──────────────────────────────────────────────────
 function mbStartZone(){
+  _mbDeselectZone();
   _mbDrawing = true;
   _mbCurrentPoly = [];
   _mbCurrentMarkers = [];
   if(_mbCurrentPolyLine){ _mbCurrentPolyLine.remove(); _mbCurrentPolyLine=null; }
-  document.getElementById('mbZoneHint').textContent = 'Tap points on the map. Tap the first point again (or a nearby point) to close the zone.';
+  document.getElementById('mbZoneHint').textContent = 'Tap to place corners. Tap the first point to close.';
   document.getElementById('mbUndoBtn').style.display='inline-block';
   document.getElementById('mbCancelZoneBtn').style.display='inline-block';
   document.getElementById('mbNewZoneBtn').style.display='none';
@@ -5198,37 +5404,25 @@ function mbStartZone(){
 function _mbAddPoint(latlng){
   if(!_mbDrawing||!_mbMapZones) return;
   const lat=latlng.lat, lng=latlng.lng;
-
-  // Check if closing the polygon (click near first point)
   if(_mbCurrentPoly.length>=3){
     const first=_mbCurrentPoly[0];
-    const dist=Math.hypot(lat-first[0],lng-first[1]);
-    if(dist<0.001){ _mbCloseZone(); return; }
+    if(Math.hypot(lat-first[0],lng-first[1])<0.001){ _mbCloseZone(); return; }
   }
-
   _mbCurrentPoly.push([lat,lng]);
   const m=L.circleMarker([lat,lng],{radius:6,fillColor:'#e63946',fillOpacity:1,color:'white',weight:2}).addTo(_mbMapZones);
-  if(_mbCurrentPoly.length===1){
-    m.bindTooltip('Tap here to close',{permanent:false,className:'zt'});
-  }
+  if(_mbCurrentPoly.length===1) m.bindTooltip('Tap to close',{permanent:false,className:'zt'});
   _mbCurrentMarkers.push(m);
-
   if(_mbCurrentPolyLine) _mbCurrentPolyLine.remove();
-  if(_mbCurrentPoly.length>1){
-    _mbCurrentPolyLine = L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
-  }
+  if(_mbCurrentPoly.length>1) _mbCurrentPolyLine=L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
 }
 
 function _mbCloseZone(){
   if(_mbCurrentPoly.length<3) return;
-  // Clear preview
-  _mbCurrentMarkers.forEach(m=>m.remove());
-  _mbCurrentMarkers=[];
+  _mbCurrentMarkers.forEach(m=>m.remove()); _mbCurrentMarkers=[];
   if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
   _mbDrawing=false;
   _mbPendingZonePoly=[..._mbCurrentPoly];
   _mbCurrentPoly=[];
-  // Show the zone name modal
   document.getElementById('mbZoneName').value='';
   document.getElementById('mbZoneMo').classList.add('open');
   document.getElementById('mbUndoBtn').style.display='none';
@@ -5236,26 +5430,91 @@ function _mbCloseZone(){
   document.getElementById('mbNewZoneBtn').style.display='inline-block';
 }
 
-function mbCancelZoneName(){
-  document.getElementById('mbZoneMo').classList.remove('open');
-  _mbPendingZonePoly=null;
-}
+function mbCancelZoneName(){ document.getElementById('mbZoneMo').classList.remove('open'); _mbPendingZonePoly=null; }
 
 function mbConfirmZoneName(){
-  const name = document.getElementById('mbZoneName').value.trim();
+  const name=document.getElementById('mbZoneName').value.trim();
   if(!name){showToast('Enter a zone name.','warn');return;}
   if(_hasProfanity(name)){showToast('Zone name contains inappropriate language.','warn');return;}
   document.getElementById('mbZoneMo').classList.remove('open');
   const code='Z'+(_mbZones.length+1);
-  const poly = _mbPendingZonePoly;
-  _mbPendingZonePoly=null;
+  const poly=_mbPendingZonePoly; _mbPendingZonePoly=null;
   const area=parseFloat(_polyAreaSqMi(poly).toFixed(2));
-  const layer=L.polygon(poly,{fillColor:'#3b82f6',fillOpacity:.2,color:'#2563eb',weight:2}).addTo(_mbMapZones);
-  const c=_centroid(poly);
-  L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:11px;font-weight:700;color:#1d4ed8;pointer-events:none;">'+esc(name)+'</div>',iconAnchor:[20,8]}),interactive:false}).addTo(_mbMapZones);
-  _mbZones.push({code,name,poly,area,polyLayer:layer,lines:[],stops:''});
+  const zone={code,name,poly,area,lines:[],stops:'',polyLayer:null,labelMarker:null,handles:[]};
+  _mbZones.push(zone);
+  _mbDrawZoneOnMap(zone,_mbZones.length-1);
   _mbUpdateZoneCount();
   _mbRenderZoneList();
+}
+
+function _mbDrawZoneOnMap(zone, idx){
+  if(!_mbMapZones) return;
+  if(zone.polyLayer) zone.polyLayer.remove();
+  zone.polyLayer = L.polygon(zone.poly,{fillColor:'#3b82f6',fillOpacity:.18,color:'#2563eb',weight:2}).addTo(_mbMapZones);
+  zone.polyLayer.on('click', e=>{ L.DomEvent.stopPropagation(e); _mbSelectZone(idx); });
+  if(zone.labelMarker) zone.labelMarker.remove();
+  const c=_centroid(zone.poly);
+  zone.labelMarker=L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:11px;font-weight:700;color:#1d4ed8;pointer-events:none;text-shadow:0 1px 2px white;">'+esc(zone.name)+'</div>',iconAnchor:[20,8]}),interactive:false,zIndexOffset:-100}).addTo(_mbMapZones);
+}
+
+// ── Zone selection & vertex editing ──────────────────────────────
+function _mbSelectZone(idx){
+  _mbDeselectZone();
+  _mbSelectedZoneIdx = idx;
+  const zone = _mbZones[idx];
+  if(!zone||!_mbMapZones) return;
+  // Highlight selected zone
+  if(zone.polyLayer) zone.polyLayer.setStyle({fillColor:'#7c3aed',color:'#7c3aed',fillOpacity:.25,weight:2.5});
+  // Show drag handles at each vertex
+  zone.poly.forEach((pt,ptIdx)=>{
+    const handle = L.circleMarker([pt[0],pt[1]],{
+      radius:7, fillColor:'white', fillOpacity:1, color:'#7c3aed', weight:2, draggable:true
+    }).addTo(_mbMapZones);
+    handle.on('mousedown', ()=>_mbMapZones.dragging.disable());
+    handle.on('drag', e=>{
+      const ll=e.target.getLatLng();
+      zone.poly[ptIdx]=[ll.lat,ll.lng];
+      if(zone.polyLayer) zone.polyLayer.setLatLngs(zone.poly);
+    });
+    handle.on('dragend', ()=>{
+      _mbMapZones.dragging.enable();
+      zone.area=parseFloat(_polyAreaSqMi(zone.poly).toFixed(2));
+      // Update label
+      if(zone.labelMarker) zone.labelMarker.setLatLng(_centroid(zone.poly));
+    });
+    _mbEditHandles.push(handle);
+  });
+  // Show rename/delete toolbar
+  document.getElementById('mbZoneHint').textContent = 'Drag vertices to reshape. Tap outside to deselect.';
+  _mbRenderZoneToolbar(idx);
+}
+
+function _mbDeselectZone(){
+  if(_mbSelectedZoneIdx===null) return;
+  const zone=_mbZones[_mbSelectedZoneIdx];
+  if(zone&&zone.polyLayer) zone.polyLayer.setStyle({fillColor:'#3b82f6',color:'#2563eb',fillOpacity:.18,weight:2});
+  _mbEditHandles.forEach(h=>h.remove()); _mbEditHandles=[];
+  _mbSelectedZoneIdx=null;
+  document.getElementById('mbZoneHint').textContent='Tap a zone to edit its vertices. Tap + New Zone to draw.';
+  document.getElementById('mbZoneToolbar').style.display='none';
+}
+
+function _mbRenderZoneToolbar(idx){
+  const bar=document.getElementById('mbZoneToolbar');
+  if(!bar) return;
+  const z=_mbZones[idx];
+  bar.style.display='flex';
+  bar.innerHTML='<span style="font-size:12px;font-weight:700;flex:1;line-height:28px;">'+esc(z.name)+'</span>'+
+    '<button class="btn btn-g btn-xs" onclick="_mbRenameZone('+idx+')">Rename</button>'+
+    '<button class="btn btn-xs" style="background:#fff0f0;color:var(--accent);border:1px solid #fecaca;" onclick="mbDeleteZone('+idx+')">Delete</button>';
+}
+
+function _mbRenameZone(idx){
+  const z=_mbZones[idx];
+  document.getElementById('mbZoneName').value=z.name;
+  // Store idx so confirm knows it's a rename not a new zone
+  window._mbRenamingIdx=idx;
+  document.getElementById('mbZoneMo').classList.add('open');
 }
 
 function mbUndoPoint(){
@@ -5263,44 +5522,51 @@ function mbUndoPoint(){
   _mbCurrentPoly.pop();
   const m=_mbCurrentMarkers.pop(); if(m)m.remove();
   if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
-  if(_mbCurrentPoly.length>1){
-    _mbCurrentPolyLine=L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
-  }
+  if(_mbCurrentPoly.length>1) _mbCurrentPolyLine=L.polyline(_mbCurrentPoly,{color:'#e63946',weight:2,dashArray:'5,5'}).addTo(_mbMapZones);
 }
 
 function mbCancelZone(){
-  _mbDrawing=false;
-  _mbCurrentPoly=[];
-  _mbCurrentMarkers.forEach(m=>m.remove());_mbCurrentMarkers=[];
+  _mbDrawing=false; _mbCurrentPoly=[];
+  _mbCurrentMarkers.forEach(m=>m.remove()); _mbCurrentMarkers=[];
   if(_mbCurrentPolyLine){_mbCurrentPolyLine.remove();_mbCurrentPolyLine=null;}
   document.getElementById('mbUndoBtn').style.display='none';
   document.getElementById('mbCancelZoneBtn').style.display='none';
   document.getElementById('mbNewZoneBtn').style.display='inline-block';
-  document.getElementById('mbZoneHint').textContent='Tap on the map to place zone corners. Tap the first point again to close the zone.';
+  document.getElementById('mbZoneHint').textContent='Tap a zone to edit its vertices. Tap + New Zone to draw.';
 }
 
 function _mbUpdateZoneCount(){
   const el=document.getElementById('mbZoneCount');
-  if(el) el.textContent=_mbZones.length+' zone'+(  _mbZones.length!==1?'s':'');
+  if(el) el.textContent=_mbZones.length+' zone'+(_mbZones.length!==1?'s':'');
 }
 
 function _mbRenderZoneList(){
   const el=document.getElementById('mbZoneList');
   if(!el) return;
-  el.innerHTML=_mbZones.map((z,i)=>'<span style="flex-shrink:0;padding:3px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:10px;cursor:pointer;" onclick="mbDeleteZone('+i+')" title="Tap to delete">'+esc(z.name)+' &#x2715;</span>').join('');
+  el.innerHTML='';
+  _mbZones.forEach((z,i)=>{
+    const s=document.createElement('span');
+    s.style.cssText='flex-shrink:0;padding:3px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:10px;cursor:pointer;';
+    s.textContent=z.name+' \u2715';
+    s.title='Tap to delete';
+    s.addEventListener('click',()=>mbDeleteZone(i));
+    el.appendChild(s);
+  });
 }
 
 function mbDeleteZone(i){
   if(!confirm('Delete zone "'+_mbZones[i].name+'"?')) return;
+  _mbDeselectZone();
   if(_mbZones[i].polyLayer) _mbZones[i].polyLayer.remove();
+  if(_mbZones[i].labelMarker) _mbZones[i].labelMarker.remove();
   _mbZones.splice(i,1);
   _mbZones.forEach((z,j)=>z.code='Z'+(j+1));
   _mbUpdateZoneCount(); _mbRenderZoneList();
 }
 
-// ── Landmark placement ────────────────────────────────────────────
+// ── Landmark placement & editing ──────────────────────────────────
 function mbStartLandmark(){
-  _mbPlacingLm = true;
+  _mbPlacingLm=true;
   if(_mbMapLm) _mbMapLm.getContainer().style.cursor='crosshair';
   showToast('Tap on the map to place a landmark','info',3000);
 }
@@ -5308,15 +5574,30 @@ function mbStartLandmark(){
 function _mbPlaceLandmark(latlng){
   _mbPlacingLm=false;
   if(_mbMapLm) _mbMapLm.getContainer().style.cursor='';
-  _mbPendingLmLatLng = latlng;
+  _mbPendingLmLatLng=latlng; _mbEditingLmIdx=null;
   document.getElementById('mbLmName').value='';
   document.getElementById('mbLmHint').value='';
+  const delBtn=document.getElementById('mbLmDeleteBtn');
+  if(delBtn)delBtn.style.display='none';
   document.getElementById('mbLmMo').classList.add('open');
 }
 
-function _mbAddLmMarker(lm, map){
-  const icon=L.divIcon({className:'',html:'<div style="width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>',iconSize:[10,10],iconAnchor:[5,5]});
-  return L.marker([lm.lat,lm.lng],{icon}).bindTooltip(esc(lm.name),{className:'zt',direction:'top'}).addTo(map);
+function _mbAddLmMarker(lm, idx, map){
+  const icon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:pointer;"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+  const marker=L.marker([lm.lat,lm.lng],{icon}).addTo(map);
+  marker.bindTooltip(esc(lm.name),{className:'zt',direction:'top'});
+  marker.on('click',()=>_mbEditLandmark(idx));
+  return marker;
+}
+
+function _mbEditLandmark(idx){
+  _mbEditingLmIdx=idx;
+  const lm=_mbLandmarks[idx];
+  document.getElementById('mbLmName').value=lm.name;
+  document.getElementById('mbLmHint').value=lm.hint||'';
+  const delBtn=document.getElementById('mbLmDeleteBtn');
+  if(delBtn)delBtn.style.display='inline-block';
+  document.getElementById('mbLmMo').classList.add('open');
 }
 
 function mbConfirmLandmark(){
@@ -5324,38 +5605,60 @@ function mbConfirmLandmark(){
   if(!name){showToast('Enter a name for this landmark.','warn');return;}
   if(_hasProfanity(name)){showToast('Landmark name contains inappropriate language.','warn');return;}
   const hint=document.getElementById('mbLmHint').value.trim();
-  const ll=_mbPendingLmLatLng;
-  if(!ll){document.getElementById('mbLmMo').classList.remove('open');return;}
-  const lm={name,hint,lat:ll.lat,lng:ll.lng,coins:0};
-  if(_mbMapLm) lm.marker=_mbAddLmMarker(lm,_mbMapLm);
-  _mbLandmarks.push(lm);
   document.getElementById('mbLmMo').classList.remove('open');
-  _mbPendingLmLatLng=null;
+
+  if(_mbEditingLmIdx!==null){
+    // Editing existing
+    const lm=_mbLandmarks[_mbEditingLmIdx];
+    lm.name=name; lm.hint=hint;
+    if(lm.marker) lm.marker.unbindTooltip().bindTooltip(esc(name),{className:'zt',direction:'top'});
+    _mbEditingLmIdx=null;
+  } else {
+    // New landmark
+    const ll=_mbPendingLmLatLng;
+    if(!ll) return;
+    const lm={name,hint,lat:ll.lat,lng:ll.lng,coins:0,marker:null};
+    const idx=_mbLandmarks.length;
+    if(_mbMapLm) lm.marker=_mbAddLmMarker(lm,idx,_mbMapLm);
+    _mbLandmarks.push(lm);
+    _mbPendingLmLatLng=null;
+  }
   const el=document.getElementById('mbLmCount');
   if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
 }
 
-// ── Transit line drawing ──────────────────────────────────────────
+function mbDeleteLandmark(){
+  if(_mbEditingLmIdx===null) return;
+  if(!confirm('Delete this landmark?')) return;
+  document.getElementById('mbLmMo').classList.remove('open');
+  const lm=_mbLandmarks[_mbEditingLmIdx];
+  if(lm.marker) lm.marker.remove();
+  _mbLandmarks.splice(_mbEditingLmIdx,1);
+  // Re-bind click handlers with new indices
+  if(_mbMapLm){
+    _mbLandmarks.forEach((l,i)=>{ if(l.marker) l.marker.off('click').on('click',()=>_mbEditLandmark(i)); });
+  }
+  _mbEditingLmIdx=null;
+  const el=document.getElementById('mbLmCount');
+  if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+}
+
+// ── Transit lines ─────────────────────────────────────────────────
 function mbStartLine(){
-  _mbDrawingLine=true;
-  _mbCurrentLineStops=[];
+  _mbDrawingLine=true; _mbCurrentLineStops=[];
   if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
   document.getElementById('mbNewLineBtn').style.display='none';
   document.getElementById('mbFinishLineBtn').style.display='inline-block';
-  showToast('Tap stops along the route. Click "Done Drawing" when finished.','info',4000);
+  showToast('Tap stops along the route. Click Done when finished.','info',4000);
 }
 
 function _mbAddLineStop(latlng){
   if(!_mbDrawingLine||!_mbMapTransit) return;
-  const stopName='Stop '+ (_mbCurrentLineStops.length+1);
-  const stop={name:stopName,lat:latlng.lat,lng:latlng.lng};
-  _mbCurrentLineStops.push(stop);
+  _mbCurrentLineStops.push({name:'Stop '+(_mbCurrentLineStops.length+1),lat:latlng.lat,lng:latlng.lng});
   const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:#1d4ed8;border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
   L.marker([latlng.lat,latlng.lng],{icon}).addTo(_mbMapTransit);
   if(_mbCurrentLineLayer) _mbCurrentLineLayer.remove();
-  if(_mbCurrentLineStops.length>1){
-    _mbCurrentLineLayer=L.polyline(_mbCurrentLineStops.map(s=>[s.lat,s.lng]),{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
-  }
+  if(_mbCurrentLineStops.length>1) _mbCurrentLineLayer=L.polyline(_mbCurrentLineStops.map(s=>[s.lat,s.lng]),{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
 }
 
 function mbFinishLine(){
@@ -5381,72 +5684,52 @@ function mbConfirmLine(){
   if(_hasProfanity(name)){showToast('Line name contains inappropriate language.','warn');return;}
   const type=document.getElementById('mbLineType').value;
   const color=document.getElementById('mbLineColor').value;
-  const id='line_'+Date.now();
   const stops=[..._mbPendingLineStops];
-
-  // Compute which zones this line passes through
+  const id='line_'+Date.now();
   const zonesServed=[];
-  if(_mbZones.length){
-    stops.forEach(stop=>{
-      _mbZones.forEach(z=>{
-        if(z.poly&&z.poly.length>2&&pointInPolyLL(stop.lat,stop.lng,z.poly)){
-          if(!zonesServed.includes(z.code)) zonesServed.push(z.code);
-        }
-      });
-    });
-  }
-
+  stops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!zonesServed.includes(z.code)) zonesServed.push(z.code); }); });
   const layer=L.polyline(stops.map(s=>[s.lat,s.lng]),{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
-  const line={id,name,type,color,stops,zonesServed,polyLayer:layer};
-  _mbLines.push(line);
+  _mbLines.push({id,name,type,color,stops,zonesServed,polyLayer:layer});
   document.getElementById('mbLineMo').classList.remove('open');
-  _mbPendingLineStops=[];
-  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
-  _mbCurrentLineStops=[];
+  _mbPendingLineStops=[]; if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;} _mbCurrentLineStops=[];
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
   _mbRenderLineList();
-  // Update zone line membership
-  _mbLines.forEach(ln=>ln.zonesServed.forEach(zc=>{
-    const z=_mbZones.find(z=>z.code===zc);
-    if(z&&!z.lines.includes(ln.name)) z.lines.push(ln.name);
-  }));
+  _mbZones.forEach((z,zi)=>{ if(zonesServed.includes(z.code)&&!z.lines.includes(name)) z.lines.push(name); });
 }
 
 function _mbRenderLineList(){
-  const el=document.getElementById('mbLineList');
-  if(!el) return;
-  el.innerHTML=_mbLines.map((ln,i)=>'<span style="flex-shrink:0;padding:3px 8px;border-radius:20px;border:1px solid var(--border);font-size:10px;cursor:pointer;background:'+ln.color+'22;color:'+ln.color+';border-color:'+ln.color+'" onclick="mbDeleteLine('+i+')" title="Tap to delete">'+esc(ln.name)+' &#x2715;</span>').join('');
+  const el=document.getElementById('mbLineList'); if(!el) return;
+  el.innerHTML='';
+  _mbLines.forEach((ln,i)=>{
+    const s=document.createElement('span');
+    s.style.cssText='flex-shrink:0;padding:3px 8px;border-radius:20px;font-size:10px;cursor:pointer;background:'+ln.color+'22;color:'+ln.color+';border:1px solid '+ln.color+';';
+    s.textContent=ln.name+' \u2715';
+    s.addEventListener('click',()=>mbDeleteLine(i));
+    el.appendChild(s);
+  });
 }
 
 function mbDeleteLine(i){
   if(!confirm('Delete line "'+_mbLines[i].name+'"?')) return;
   if(_mbLines[i].polyLayer) _mbLines[i].polyLayer.remove();
-  _mbLines.splice(i,1);
-  _mbRenderLineList();
+  _mbLines.splice(i,1); _mbRenderLineList();
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
 }
 
 // ── Review & Publish ──────────────────────────────────────────────
 function _renderMbReview(){
-  const el=document.getElementById('mbReviewContent');
-  if(!el) return;
+  const el=document.getElementById('mbReviewContent'); if(!el) return;
   const name=document.getElementById('mbName')?.value.trim()||'Unnamed Map';
   const creator=document.getElementById('mbCreator')?.value.trim()||'Anonymous';
-  const desc=document.getElementById('mbDesc')?.value.trim()||'';
   const city=_mbCityData?_mbCityData.shortName:'Unknown City';
+  const desc=document.getElementById('mbDesc')?.value.trim()||'';
   el.innerHTML='<div class="card" style="margin-bottom:10px;font-size:13px;line-height:1.8;">'+
-    '<b>'+esc(name)+'</b><br>'+
-    'City: '+esc(city)+'<br>'+
-    'By: '+esc(creator)+'<br>'+
-    (desc?'<span style="color:var(--muted);font-style:italic;">'+esc(desc)+'</span><br>':'')+
-    '</div>'+
-    '<div class="card" style="margin-bottom:10px;font-size:12px;line-height:1.7;">'+
-    esc(_mbZones.length)+' zones &nbsp;·&nbsp; '+
-    esc(_mbLandmarks.length)+' landmarks &nbsp;·&nbsp; '+
-    esc(_mbLines.length)+' transit lines'+
-    '</div>';
+    '<b>'+esc(name)+'</b><br>City: '+esc(city)+'<br>By: '+esc(creator)+
+    (desc?'<br><span style="color:var(--muted);font-style:italic;">'+esc(desc)+'</span>':'')+
+    '</div><div class="card" style="font-size:12px;line-height:1.7;">'+
+    _mbZones.length+' zones &nbsp;&middot;&nbsp; '+_mbLandmarks.length+' landmarks &nbsp;&middot;&nbsp; '+_mbLines.length+' transit lines</div>';
 }
 
 async function publishMap(){
@@ -5454,54 +5737,50 @@ async function publishMap(){
   const creator=(document.getElementById('mbCreator')?.value.trim())||'Anonymous';
   const desc=(document.getElementById('mbDesc')?.value.trim())||'';
   const status=document.getElementById('mbPublishStatus');
-
-  // Validate
   if(!name){showToast('Enter a map name.','warn');mbGotoStep('meta');return;}
   if(!_mbCityData){showToast('Select a city first.','warn');mbGotoStep('meta');return;}
   if(_mbZones.length<3){showToast('Add at least 3 zones before publishing.','warn');mbGotoStep('zones');return;}
-
   const profCheck=_checkProfanity([['Map Name',name],['Creator',creator],['Description',desc],
     ..._mbZones.map(z=>['Zone "'+z.name+'"',z.name]),
     ..._mbLandmarks.map(lm=>['Landmark "'+lm.name+'"',lm.name]),
     ..._mbLines.map(ln=>['Line "'+ln.name+'"',ln.name])]);
   if(profCheck){showToast(profCheck,'error',6000);return;}
-
   if(status) status.textContent='Publishing\u2026';
   try{
+    const creatorId=_mbGetCreatorId();
     const id='map_'+_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now().toString(36);
-    const cityTag=_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-');
-
-    // Clean zones (remove Leaflet layer refs)
     const cleanZones=_mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,region:'GAME',lines:z.lines,stops:''}));
     const cleanLm=_mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng,coins:0}));
     const cleanLines={};
-    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed};});
-
+    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]};});
     const mapObj={
-      id, name, cityName:_mbCityData.shortName, cityTag, desc, creator,
-      createdAt:Date.now(), playCount:0,
+      id,name,cityName:_mbCityData.shortName,
+      cityTag:_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-'),
+      desc,creator,creatorId,createdAt:Date.now(),playCount:0,
       config:{
-        cityName:_mbCityData.shortName,
-        cityCenter:{lat:_mbCityData.lat,lng:_mbCityData.lng},
+        cityName:_mbCityData.shortName,cityCenter:{lat:_mbCityData.lat,lng:_mbCityData.lng},
         transitMode:document.getElementById('mbTransitMode')?.value||'transit',
         transitTypes:Object.keys(cleanLines).length>0?['transit']:[],
-        zones:cleanZones, landmarks:cleanLm,
+        zones:cleanZones,landmarks:cleanLm,
         transitStops:_mbLines.flatMap(ln=>ln.stops),
-        transitLines:cleanLines, lineBonuses:[]
+        transitLines:cleanLines,lineBonuses:[]
       }
     };
-
     const r=await fetch(MAPS_FB_PATH+'/'+id+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mapObj)});
     if(!r.ok) throw new Error('Firebase error '+r.status);
-
+    // Update draft to record publishedId
+    if(_mbCurrentDraftId) _mbDeleteDraft(_mbCurrentDraftId);
+    _mbCurrentDraftId=id;
+    _mbSaveDraft();
     if(status) status.textContent='';
     showToast('Map published! Find it in Community Maps.','ok',5000);
-    setTimeout(()=>showScreen('screenJoin'),1500);
+    setTimeout(()=>{ showScreen('screenMapBuilder'); },1500);
   }catch(e){
     if(status) status.textContent='';
     showToast('Publish failed: '+e.message,'error',5000);
   }
 }
+
 
 // ── pointInPolyLL (used by builder for zone-line intersection) ────
 function pointInPolyLL(lat,lng,poly){
