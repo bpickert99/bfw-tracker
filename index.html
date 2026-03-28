@@ -923,7 +923,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">6. Publish</div>
   </div>
 
-  <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow-y:auto;" id="mbPanelWrap">
+  <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow:hidden;" id="mbPanelWrap">
 
     <!-- Library -->
     <div id="mbPanel-library" style="display:none;padding:16px;">
@@ -933,7 +933,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <!-- Step 1: Meta -->
-    <div id="mbPanel-meta" style="padding:16px;">
+    <div id="mbPanel-meta" style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
       <label>Map Name</label>
       <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
@@ -959,7 +959,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <!-- Step 2: Zones -->
-    <div id="mbPanel-zones" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+    <div id="mbPanel-zones" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
         <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--accent);"></div>
@@ -978,7 +978,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <!-- Step 3: Landmarks -->
-    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark pin. Aim for 1–2 landmarks per zone. These appear as Featured Landmarks during the game.</div>
         <div style="display:flex;gap:6px;margin-top:6px;">
@@ -993,7 +993,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <!-- Step 4: Transit -->
-    <div id="mbPanel-transit" style="display:none;flex-direction:column;height:calc(100dvh - 90px);">
+    <div id="mbPanel-transit" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. Name each line and set its type. The app will calculate which zones each line passes through.</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
@@ -1010,14 +1010,14 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
 
     <!-- Step 5: Shop Config -->
-    <div id="mbPanel-shop" style="display:none;padding:16px;">
+    <div id="mbPanel-shop" style="display:none;padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Choose which shop items are available in your game and set their coin costs. Items requiring transit lines are automatically hidden if your map has none.</div>
       <div id="mbShopConfigList"></div>
       <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
     </div>
 
     <!-- Step 6: Review & Publish -->
-    <div id="mbPanel-review" style="display:none;padding:16px;">
+    <div id="mbPanel-review" style="display:none;padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
       <div id="mbReviewContent"></div>
       <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
       <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
@@ -1085,7 +1085,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.94';
+const APP_VERSION='1.95';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
