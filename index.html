@@ -902,7 +902,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.75';
+const APP_VERSION='1.76';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -5422,7 +5422,7 @@ function showVersionBanner(){
 </script>
 
 <!-- MAP BUILDER SCREEN -->
-<div class="screen" id="screenMapBuilder" style="background:var(--bg);overflow:hidden;position:relative;">
+<div class="screen" id="screenMapBuilder" style="background:var(--bg);">
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
     <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
