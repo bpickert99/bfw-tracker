@@ -326,6 +326,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
     <div class="fr" style="margin-bottom:0;">
       <div><label style="font-size:12px;">Minutes</label><input type="number" id="cfgVoteTimeout" value="5" min="1" max="30" style="max-width:100px;"></div>
+      <div><label style="font-size:12px;">Starting Coins (per team)</label><input type="number" id="cfgStartCoins" value="10" min="0" max="100" style="max-width:100px;"></div>
     </div>
 
     <div class="divider"></div>
@@ -515,6 +516,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="sg" id="sg"></div>
     <p style="font-size:11px;color:var(--muted)" id="locHint"></p>
     <div id="endGameSection" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <button class="btn btn-g btn-sm" style="width:100%;margin-bottom:6px;" onclick="hostAwardCoins()">🎁 Award Coins to Team</button>
       <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fecaca;color:var(--accent);width:100%;" onclick="confirmEndGame()">⏹ End Game</button>
     </div>
   </div>
@@ -917,7 +919,8 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
     <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Landmarks</div>
     <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Publish</div>
+    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Shop</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">6. Publish</div>
   </div>
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow-y:auto;" id="mbPanelWrap">
@@ -1002,11 +1005,18 @@ input:focus,select:focus{border-color:var(--accent);}
       <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
       <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
       <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
+        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('shop')">Next: Configure Shop &#x2192;</button>
       </div>
     </div>
 
-    <!-- Step 5: Review & Publish -->
+    <!-- Step 5: Shop Config -->
+    <div id="mbPanel-shop" style="display:none;padding:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Choose which shop items are available in your game and set their coin costs. Items requiring transit lines are automatically hidden if your map has none.</div>
+      <div id="mbShopConfigList"></div>
+      <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
+    </div>
+
+    <!-- Step 6: Review & Publish -->
     <div id="mbPanel-review" style="display:none;padding:16px;">
       <div id="mbReviewContent"></div>
       <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
@@ -1071,19 +1081,11 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.84';
+const APP_VERSION='1.89';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
-// ── Variables hoisted to prevent TDZ errors ─────────────────────
-// Current fresh GPS (updated by watchPosition)
+// GPS updated by watchPosition
 let _freshLat=null,_freshLng=null;
-// Hoisted declarations (prevent TDZ errors)
-let _cityData=null;
-let _osmRoutes=[];
-let _candidateZones=[];
-let _selectedZones=new Set();
-let _osmBbox=null;
-let _cityBoundaryPoly=null;
 const POLL_SLOW = 15000;
 const POLL_FAST = 4000;
 let _currentPollInterval=POLL_SLOW;
@@ -1093,7 +1095,7 @@ const SHOP_ITEMS_DATA=[
   {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'🔍'},
   {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'📡',dur:30},
   {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour',icon:'🚗',dur:60,needsRegion:true},
-  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must visit a random metro stop and photo-verify before depositing',icon:'🚇'},
+  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'🚇'},
   {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line',icon:'🎫',dur:120,needsLine:true},
   {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
   {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
@@ -1379,9 +1381,7 @@ function replaceFlopItem(flopId){
 }
 
 
-// ═══════════════════════════════════════════════════════════════
 // LANDMARKS
-// ═══════════════════════════════════════════════════════════════
 let lmPhotoFile = null;
 
 function openLandmarkMo(){
@@ -1846,24 +1846,50 @@ const MLINE_PATHS = {
 // Falls back to hardcoded DC data when no custom map is configured.
 function getZones(){return(G.config&&G.config.map&&G.config.map.zones&&G.config.map.zones.length)?G.config.map.zones:ZONES;}
 function getTransitStops(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitStops)||[];return METRO_STATIONS;}
-function getTransitLines(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitLines)||{};return MLINES;}
+function getTransitLines(){
+  if(G.config&&G.config.map!==null&&G.config.map!==undefined){
+    const raw=(G.config.map&&G.config.map.transitLines)||{};
+    // Normalize builder format (stops:[]) to initMap format (paths:[[[lat,lng],...]])
+    const out={};
+    Object.entries(raw).forEach(([k,ln])=>{
+      if(ln.stops&&ln.stops.length>1&&!ln.paths){
+        out[k]={color:ln.color||'#3b82f6',w:3,opacity:.85,
+          paths:[ln.stops.map(s=>[s.lat,s.lng])]};
+      } else if(ln.paths){
+        out[k]=ln;
+      }
+    });
+    return out;
+  }
+  return MLINES;
+}
 function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:LINE_BONUSES;}
 function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
 function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
 function isCustomMap(){return !!(G.config&&G.config.map);}
 function getAvailableShopItems(){
+  const shopCfg = G.config&&G.config.map&&G.config.map.shopConfig;
   return SHOP_ITEMS_DATA.filter(item=>{
-    if(!isCustomMap())return true;
-    if(item.needsRegion)return false;
-    if(item.type==='detour')return getTransitStops().length>0;
-    if(item.needsLine)return Object.keys(getTransitLines()).length>0;
+    // DC map: no shop config, use existing guards
+    if(!isCustomMap()){
+      return true;
+    }
+    // Custom map with shop config: use creator's choices
+    if(shopCfg){
+      const entry = shopCfg.find(s=>s.id===item.name);
+      if(entry) return entry.enabled;
+      // Items not in config (e.g. new items added later): hide by default
+      return false;
+    }
+    // Custom map without shop config: apply default guards
+    if(item.needsRegion) return false;
+    if(item.type==='detour') return true; // landmark detours always available
+    if(item.needsLine) return Object.keys(getTransitLines()).length>0;
     return true;
   });
 }
 
-// ═══════════════════════════
 // ZONE & MAP DATA
-// ═══════════════════════════
 // Polygons follow actual political boundaries, streets, and county lines
 const ZONES=[
   // DC WARDS — follow real street boundaries per 2022 redistricting
@@ -2035,9 +2061,7 @@ const LINE_BONUSES=[
 const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--gl)",silver:"var(--sl)",yellow:"var(--yl)"};
 const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
 
-// ═══════════════════════════
 // STATE
-// ═══════════════════════════
 let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
 let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
 let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
@@ -2047,24 +2071,20 @@ const _seenCurseIds=new Set(); // tracks curse IDs we've already alerted locally
 function saveL(){try{localStorage.setItem('bfw5L',JSON.stringify(LS));}catch(e){}}
 function loadL(){try{const d=localStorage.getItem('bfw5L');if(d)LS={...LS,...JSON.parse(d)};}catch(e){}}
 
-// ═══════════════════════════
 // SCREENS
-// ═══════════════════════════
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='screenMapBuilder') _mbInit();
 }
 function _mbInit(){
-  // Show library screen first
+  _mbShopConfig=null;
   const pw=document.getElementById('mbPanelWrap');
   if(pw)pw.scrollTop=0;
   _mbShowLibrary();
 }
 
-// ═══════════════════════════
 // HOST SETUP
-// ═══════════════════════════
 function renderTeamSetup(){
   const list=document.getElementById('teamSetupList');list.innerHTML='';
   setupTeams.forEach((team,i)=>{
@@ -2088,566 +2108,7 @@ function toggleFlopFields(){
 }
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
-// ═══════════════════════════════════════════════════════════════════
-// MAP & TRANSIT SETUP — City Boundary + Neighborhood Zone Builder
-// ═══════════════════════════════════════════════════════════════════
 
-
-// ── OSM Area ID from Nominatim result ────────────────────────────
-function _osmAreaId(){
-  if(!_cityData||!_cityData.osmId)return null;
-  const type=_cityData.osmType||'relation';
-  const id=parseInt(_cityData.osmId);
-  if(type==='relation')return 3600000000+id;
-  if(type==='way')return 2400000000+id;
-  return null;
-}
-
-// ── Chain outer ways of an OSM relation into one polygon ─────────
-function _chainOuterWays(outers){
-  if(!outers.length)return[];
-  let segs=outers.map(w=>w.geometry.map(g=>[g.lat,g.lon]));
-  let chain=segs[0];
-  let remaining=segs.slice(1);
-  while(remaining.length){
-    const last=chain[chain.length-1];
-    let found=false;
-    for(let i=0;i<remaining.length;i++){
-      const seg=remaining[i];
-      const dF=Math.hypot(last[0]-seg[0][0],last[1]-seg[0][1]);
-      const dE=Math.hypot(last[0]-seg[seg.length-1][0],last[1]-seg[seg.length-1][1]);
-      if(dF<0.0002){chain=chain.concat(seg.slice(1));remaining.splice(i,1);found=true;break;}
-      if(dE<0.0002){chain=chain.concat([...seg].reverse().slice(1));remaining.splice(i,1);found=true;break;}
-    }
-    if(!found)break;
-  }
-  return chain;
-}
-
-function _chainRelationOuters(rel){
-  const outers=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry&&(m.role==='outer'||m.role===''));
-  if(!outers.length){
-    const ways=(rel.members||[]).filter(m=>m.type==='way'&&m.geometry);
-    if(!ways.length)return[];
-    return _chainOuterWays(ways);
-  }
-  return _chainOuterWays(outers);
-}
-
-// ── Geometry helpers ─────────────────────────────────────────────
-function _wayToCoords(el){
-  if(el.geometry&&el.geometry.length)return el.geometry.map(g=>[g.lat,g.lon]);
-  return[];
-}
-
-function _centroid(poly){
-  let lat=0,lng=0;
-  poly.forEach(p=>{lat+=p[0];lng+=p[1];});
-  return[lat/poly.length,lng/poly.length];
-}
-
-function _polyAreaSqMi(poly){
-  let area=0;
-  const n=poly.length;
-  for(let i=0;i<n;i++){
-    const j=(i+1)%n;
-    area+=poly[i][1]*poly[j][0]-poly[j][1]*poly[i][0];
-  }
-  return Math.abs(area)/2*69*53;
-}
-
-function _bboxStr(bb){
-  if(Array.isArray(bb)&&bb.length===4)return bb[0]+','+bb[2]+','+bb[1]+','+bb[3];
-  return null;
-}
-
-function _isExcluded(lat,lng,excludedPolys){
-  return excludedPolys.some(poly=>pointInPolyLL(lat,lng,poly));
-}
-
-// ── Overpass helper ───────────────────────────────────────────────
-async function _overpass(query){
-  const r=await fetch('https://overpass-api.de/api/interpreter',
-    {method:'POST',body:'data='+encodeURIComponent(query),
-     headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-  if(!r.ok)throw new Error('Overpass '+r.status);
-  return r.json();
-}
-
-// ── Fetch actual city boundary polygon from OSM ───────────────────
-async function _fetchCityBoundary(){
-  if(!_cityData)return null;
-  if(_cityData.osmType==='relation'&&_cityData.osmId){
-    try{
-      const q='[out:json][timeout:30];relation('+_cityData.osmId+');out geom;';
-      const data=await _overpass(q);
-      const rel=(data.elements||[])[0];
-      if(rel&&rel.members){
-        const poly=_chainRelationOuters(rel);
-        if(poly.length>2)return poly;
-      }
-    }catch(e){console.warn('Boundary fetch failed',e);}
-  }
-  // Fallback: use Nominatim bbox as rough polygon
-  const bb=_osmBbox;
-  if(!bb)return null;
-  const s=parseFloat(bb[0]),w=parseFloat(bb[2]),n=parseFloat(bb[1]),e=parseFloat(bb[3]);
-  return[[s,w],[n,w],[n,e],[s,e]];
-}
-
-// ── Adjacency check between two zones ────────────────────────────
-function _zonesAdjacent(a,b){
-  const THRESH=0.0008; // ~80m in degrees, forgiving for OSM gaps
-  // Bounding box pre-filter
-  const aLats=a.poly.map(p=>p[0]),aLngs=a.poly.map(p=>p[1]);
-  const bLats=b.poly.map(p=>p[0]),bLngs=b.poly.map(p=>p[1]);
-  if(Math.min(...aLats)>Math.max(...bLats)+THRESH)return false;
-  if(Math.max(...aLats)<Math.min(...bLats)-THRESH)return false;
-  if(Math.min(...aLngs)>Math.max(...bLngs)+THRESH)return false;
-  if(Math.max(...aLngs)<Math.min(...bLngs)-THRESH)return false;
-  // Point proximity check
-  for(const pa of a.poly){
-    for(const pb of b.poly){
-      if(Math.abs(pa[0]-pb[0])<THRESH&&Math.abs(pa[1]-pb[1])<THRESH)return true;
-    }
-  }
-  return false;
-}
-
-function _isAdjacentToSelected(zone){
-  for(const code of _selectedZones){
-    const other=_candidateZones.find(z=>z.code===code);
-    if(other&&_zonesAdjacent(zone,other))return true;
-  }
-  return false;
-}
-
-// Auto-select up to maxCount most-dense contiguous zones
-function _autoSelectContiguousZones(maxCount){
-  _selectedZones=new Set();
-  if(!_candidateZones.length)return;
-  // Start from most dense zone
-  _selectedZones.add(_candidateZones[0].code);
-  while(_selectedZones.size<maxCount){
-    let best=null,bestD=-1;
-    for(const z of _candidateZones){
-      if(_selectedZones.has(z.code))continue;
-      if(!_isAdjacentToSelected(z))continue;
-      if((z.density||0)>bestD){bestD=z.density||0;best=z;}
-    }
-    if(!best)break;
-    _selectedZones.add(best.code);
-  }
-}
-
-// ── Main zone builder ─────────────────────────────────────────────
-async function buildZones(){
-  const status=document.getElementById('cfgZoneStatus');
-  const sec=document.getElementById('cfgZoneSection');
-  if(!_cityData||!status||!sec)return;
-  sec.style.display='block';
-  _candidateZones=[];
-  _selectedZones=new Set();
-
-  try{
-    // Step 1: City boundary
-    status.innerHTML='&#x23F3; Loading city boundary from OpenStreetMap…';
-    _cityBoundaryPoly=await _fetchCityBoundary();
-    if(!_cityBoundaryPoly||_cityBoundaryPoly.length<3){
-      status.innerHTML='&#x26A0; Could not load city boundary. Try a more specific city name (e.g. include the state).';
-      return;
-    }
-
-    // Step 2: Neighborhoods within city
-    status.innerHTML='&#x23F3; Fetching neighborhoods within '+esc(_cityData.shortName)+'…';
-    let zones=await _fetchNeighborhoodsInCity();
-
-    // Step 3: If not enough, fall back to landmarks
-    if(zones.length<4){
-      status.innerHTML='&#x23F3; Few neighborhoods found — using landmark-based zones…';
-      zones=await _buildLandmarkZones();
-    }
-
-    if(!zones.length){
-      status.innerHTML='&#x26A0; Could not generate zones for this area. Try a larger city or include the state name in your search.';
-      return;
-    }
-
-    // Step 4: Urban density scoring
-    status.innerHTML='&#x23F3; Scoring zones by urban density (this may take a moment)…';
-    await _scoreZonesByDensity(zones);
-
-    // Sort: most urban first
-    zones.sort((a,b)=>(b.density||0)-(a.density||0));
-    zones.forEach((z,i)=>z.code='Z'+(i+1));
-    _candidateZones=zones;
-
-    // Step 5: Auto-select top contiguous zones
-    _autoSelectContiguousZones(Math.min(15,zones.length));
-
-    const modeWord=zones[0]&&zones[0].fromLandmarks?'landmark':'neighborhood';
-    status.innerHTML='&#x2713; '+zones.length+' '+modeWord+' zones found within '+esc(_cityData.shortName)+'. Tap to include or exclude — selected zones must remain connected.';
-    _renderZonePicker();
-
-    // Background: fetch Flop landmarks
-    _fetchCityLandmarks();
-
-  }catch(e){
-    status.innerHTML='&#x26A0; Could not load map data. Check your connection and try again.';
-    console.error('buildZones error',e);
-  }
-}
-
-// ── Fetch OSM neighborhoods clipped to city boundary ─────────────
-async function _fetchNeighborhoodsInCity(){
-  const areaId=_osmAreaId();
-  const bb=_osmBbox;
-  const bbox=_bboxStr(bb)||(_cityData.lat-0.15)+','+(_cityData.lng-0.15)+','+(_cityData.lat+0.15)+','+(_cityData.lng+0.15);
-
-  let q;
-  if(areaId){
-    // Constrain to the city's actual OSM boundary
-    q=`[out:json][timeout:45];
-area(${areaId})->.city;
-(
-  way["place"~"neighbourhood|quarter|suburb"](area.city);
-  relation["place"~"neighbourhood|quarter|suburb"](area.city);
-  way["boundary"="administrative"]["admin_level"~"8|9|10|11"](area.city);
-  relation["boundary"="administrative"]["admin_level"~"8|9|10|11"](area.city);
-);
-out geom;`;
-  } else {
-    q=`[out:json][timeout:30];
-(
-  way["place"~"neighbourhood|quarter|suburb"](${bbox});
-  relation["place"~"neighbourhood|quarter|suburb"](${bbox});
-);
-out geom;`;
-  }
-
-  const data=await _overpass(q);
-  const elements=(data.elements||[]).filter(el=>el.tags&&(el.tags.name||el.tags['name:en']));
-
-  const zones=[];
-  const seen=new Set();
-
-  elements.forEach(el=>{
-    const name=el.tags.name||el.tags['name:en'];
-    if(!name||seen.has(name.toLowerCase()))return;
-
-    let poly=[];
-    if(el.type==='way')poly=_wayToCoords(el);
-    else if(el.type==='relation')poly=_chainRelationOuters(el);
-    if(poly.length<3)return;
-
-    const ctr=_centroid(poly);
-    // Must be inside city boundary
-    if(_cityBoundaryPoly&&!pointInPolyLL(ctr[0],ctr[1],_cityBoundaryPoly))return;
-
-    const area=_polyAreaSqMi(poly);
-    if(area<0.02||area>25)return; // skip tiny or enormous zones
-
-    seen.add(name.toLowerCase());
-    zones.push({
-      code:'Z'+(zones.length+1),name,poly,
-      area:parseFloat(area.toFixed(2)),
-      region:'GAME',lines:[],stops:'',density:0
-    });
-  });
-
-  return zones;
-}
-
-// ── Landmark-based Voronoi fallback ───────────────────────────────
-async function _buildLandmarkZones(){
-  const bb=_osmBbox;
-  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
-  const areaId=_osmAreaId();
-
-  let q;
-  if(areaId){
-    q=`[out:json][timeout:30];
-area(${areaId})->.city;
-(
-  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](area.city);
-  node["historic"~"monument|memorial|building|castle"](area.city);
-  node["amenity"~"theatre|arts_centre|library"](area.city);
-  way["leisure"="park"]["name"](area.city);
-);
-out 30;`;
-  } else {
-    q=`[out:json][timeout:20];
-(
-  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](${bbox});
-  node["historic"~"monument|memorial|building|castle"](${bbox});
-  node["leisure"="park"]["name"](${bbox});
-);
-out 20;`;
-  }
-
-  const data=await _overpass(q);
-  const lms=(data.elements||[]).filter(el=>el.lat&&el.lon&&el.tags&&el.tags.name);
-
-  if(lms.length<3)return[];
-
-  // Filter to inside city boundary
-  const pts=lms.filter(lm=>!_cityBoundaryPoly||pointInPolyLL(lm.lat,lm.lng,_cityBoundaryPoly));
-  if(!pts.length)return[];
-
-  // Create Voronoi-style zones: for each point, its zone is all area
-  // closer to it than any other point, clipped to bbox
-  // Simple approximate Voronoi: create a grid and assign each cell to nearest point
-  const gridSize=0.004; // ~400m cells
-  const allLats=pts.map(p=>p.lat),allLngs=pts.map(p=>p.lng);
-  const minLat=Math.min(...allLats)-0.01,maxLat=Math.max(...allLats)+0.01;
-  const minLng=Math.min(...allLngs)-0.01,maxLng=Math.max(...allLngs)+0.01;
-
-  // Assign grid cells to nearest landmark
-  const assignment={}; // ptIdx -> [[lat,lng]]
-  pts.forEach((_,i)=>assignment[i]=[]);
-
-  for(let lat=minLat;lat<maxLat;lat+=gridSize){
-    for(let lng=minLng;lng<maxLng;lng+=gridSize){
-      // Must be inside city boundary
-      const cellLat=lat+gridSize/2,cellLng=lng+gridSize/2;
-      if(_cityBoundaryPoly&&!pointInPolyLL(cellLat,cellLng,_cityBoundaryPoly))continue;
-      let bestIdx=0,bestD=Infinity;
-      pts.forEach((p,i)=>{
-        const d=Math.hypot(cellLat-p.lat,cellLng-p.lng);
-        if(d<bestD){bestD=d;bestIdx=i;}
-      });
-      assignment[bestIdx].push([cellLat,cellLng]);
-    }
-  }
-
-  // Convert cell clusters to bounding polygons
-  const zones=[];
-  pts.forEach((lm,i)=>{
-    const cells=assignment[i];
-    if(cells.length<2)return;
-    // Build convex-hull-like polygon from cell centers
-    const lats=cells.map(c=>c[0]),lngs=cells.map(c=>c[1]);
-    const minLa=Math.min(...lats)-gridSize/2,maxLa=Math.max(...lats)+gridSize/2;
-    const minLn=Math.min(...lngs)-gridSize/2,maxLn=Math.max(...lngs)+gridSize/2;
-    const poly=[[minLa,minLn],[maxLa,minLn],[maxLa,maxLn],[minLa,maxLn]];
-    const area=_polyAreaSqMi(poly);
-    if(area<0.01)return;
-    zones.push({
-      code:'Z'+(zones.length+1),
-      name:lm.tags.name,
-      poly,area:parseFloat(area.toFixed(2)),
-      region:'GAME',lines:[],stops:'',density:0,fromLandmarks:true
-    });
-  });
-
-  return zones;
-}
-
-// ── Score zones by amenity density ───────────────────────────────
-async function _scoreZonesByDensity(zones){
-  if(!zones.length)return;
-  const allLats=zones.flatMap(z=>z.poly.map(p=>p[0]));
-  const allLngs=zones.flatMap(z=>z.poly.map(p=>p[1]));
-  const minLat=Math.min(...allLats),maxLat=Math.max(...allLats);
-  const minLng=Math.min(...allLngs),maxLng=Math.max(...allLngs);
-  const bbox=minLat+','+minLng+','+maxLat+','+maxLng;
-  try{
-    const q=`[out:json][timeout:30];
-(
-  node["amenity"~"restaurant|cafe|bar|fast_food|pub|bank|pharmacy"](${bbox});
-  node["shop"](${bbox});
-);
-out;`;
-    const data=await _overpass(q);
-    const amenities=data.elements||[];
-    zones.forEach(z=>{
-      z.density=amenities.filter(a=>a.lat&&a.lon&&pointInPolyLL(a.lat,a.lon,z.poly)).length;
-    });
-  }catch(e){console.warn('Density scoring failed',e);}
-}
-
-// ── Zone picker UI ────────────────────────────────────────────────
-function _renderZonePicker(){
-  const container=document.getElementById('cfgZoneCheckboxes');
-  const countEl=document.getElementById('cfgZoneCount');
-  if(!container)return;
-  container.innerHTML=_candidateZones.map(z=>{
-    const sel=_selectedZones.has(z.code);
-    const densityBar=z.density>0?` <span style="font-size:9px;opacity:.6;">${z.density>50?'●●●':z.density>20?'●●':'●'}</span>`:'';
-    return `<button class="btn btn-sm" data-code="${z.code}" onclick="_toggleZone(this)" style="background:${sel?'var(--accent)':'var(--surface2)'};color:${sel?'white':'var(--text)'};border:1px solid ${sel?'var(--accent)':'var(--border)'};font-size:11px;padding:4px 8px;">${esc(z.name)}${densityBar}</button>`;
-  }).join('');
-  _updateZoneCount();
-}
-
-function _toggleZone(btn){
-  const code=btn.dataset.code;
-  const willSelect=!_selectedZones.has(code);
-  if(willSelect){
-    // Check adjacency: must be adjacent to current selection (or selection is empty)
-    if(_selectedZones.size>0){
-      const zone=_candidateZones.find(z=>z.code===code);
-      if(!zone||!_isAdjacentToSelected(zone)){
-        showToast('Zones must be contiguous — this zone isn\'t adjacent to your current selection.','warn');
-        return;
-      }
-    }
-    _selectedZones.add(code);
-    btn.style.background='var(--accent)';btn.style.color='white';btn.style.borderColor='var(--accent)';
-  } else {
-    // Check that removing this zone doesn't split the selection
-    const testSet=new Set(_selectedZones);
-    testSet.delete(code);
-    if(testSet.size>1&&!_isSelectionContiguous(testSet)){
-      showToast('Removing this zone would split the map — remove a zone from the edge instead.','warn');
-      return;
-    }
-    _selectedZones.delete(code);
-    btn.style.background='var(--surface2)';btn.style.color='var(--text)';btn.style.borderColor='var(--border)';
-  }
-  _updateZoneCount();
-}
-
-function _isSelectionContiguous(sel){
-  if(sel.size<=1)return true;
-  const codes=[...sel];
-  const visited=new Set([codes[0]]);
-  const queue=[codes[0]];
-  while(queue.length){
-    const cur=queue.shift();
-    const curZone=_candidateZones.find(z=>z.code===cur);
-    if(!curZone)continue;
-    for(const code of codes){
-      if(visited.has(code))continue;
-      const other=_candidateZones.find(z=>z.code===code);
-      if(other&&_zonesAdjacent(curZone,other)){
-        visited.add(code);
-        queue.push(code);
-      }
-    }
-  }
-  return visited.size===codes.length;
-}
-
-function _updateZoneCount(){
-  const el=document.getElementById('cfgZoneCount');
-  const n=_selectedZones.size;
-  if(el)el.textContent=n+' zone'+(n!==1?'s':'')+' selected'+(n<4?' — add more for a better game':n>18?' — consider removing some':'');
-}
-
-function resetZoneSelection(){
-  _selectedZones=new Set();
-  _autoSelectContiguousZones(Math.min(15,_candidateZones.length));
-  _renderZonePicker();
-}
-
-// ── Fetch landmarks for Flop ──────────────────────────────────────
-async function _fetchCityLandmarks(){
-  if(!_cityData)return;
-  const areaId=_osmAreaId();
-  const bb=_osmBbox;
-  const bbox=_bboxStr(bb)||(_cityData.lat-0.1)+','+(_cityData.lng-0.1)+','+(_cityData.lat+0.1)+','+(_cityData.lng+0.1);
-  try{
-    let q;
-    if(areaId){
-      q=`[out:json][timeout:25];
-area(${areaId})->.city;
-(
-  node["tourism"~"museum|attraction|viewpoint|gallery|monument|artwork"](area.city);
-  node["historic"~"monument|memorial|building|castle|ruins"](area.city);
-  node["amenity"~"theatre|arts_centre|library"](area.city);
-  way["leisure"="park"]["name"](area.city);
-);
-out 40;`;
-    } else {
-      q=`[out:json][timeout:20];
-(
-  node["tourism"~"museum|attraction|viewpoint|gallery|monument"](${bbox});
-  node["historic"~"monument|memorial|building|castle"](${bbox});
-  node["leisure"="park"]["name"](${bbox});
-);
-out 30;`;
-    }
-    const data=await _overpass(q);
-    const cityLat=_cityData.lat,cityLng=_cityData.lng;
-    const lms=(data.elements||[])
-      .filter(el=>el.tags&&el.tags.name&&el.lat&&el.lon)
-      // Filter to inside city boundary
-      .filter(el=>!_cityBoundaryPoly||pointInPolyLL(el.lat,el.lon,_cityBoundaryPoly))
-      .map(el=>({
-        name:el.tags.name,
-        hint:_cityData.shortName||'',
-        lat:el.lat,lng:el.lon,
-        // Coin value based on distance from city center, not DC
-        coins:_landmarkCoinsFromCenter(el.lat,el.lng,cityLat,cityLng)
-      }));
-    window._cityLandmarks=lms;
-    const status=document.getElementById('cfgZoneStatus');
-    if(status&&lms.length){
-      const cur=status.innerHTML;
-      if(!cur.includes('landmarks'))status.innerHTML=cur+'  ·  '+lms.length+' landmarks loaded for Flop.';
-    }
-  }catch(e){console.warn('Landmark fetch failed',e);}
-}
-
-// Coin value relative to city center (not DC)
-function _landmarkCoinsFromCenter(lat,lng,cityLat,cityLng){
-  const R=3958.8;
-  const dLat=(lat-cityLat)*Math.PI/180;
-  const dLng=(lng-cityLng)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(cityLat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
-  const d=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-  if(d<0.5)return 6;
-  if(d<1.5)return 7;
-  if(d<3)return 8;
-  if(d<6)return 9;
-  return 10;
-}
-
-// ── Preset toggle ─────────────────────────────────────────────────
-// onMapPresetChange defined in MAP MARKETPLACE section
-
-
-
-// ── City search ───────────────────────────────────────────────────
-async function searchCity(){
-  const q=document.getElementById('cfgCitySearch').value.trim();
-  if(!q)return;
-  const btn=document.getElementById('citySearchBtn');
-  const res=document.getElementById('cfgCityResults');
-  btn.textContent='Searching…';btn.disabled=true;res.innerHTML='';
-  try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q='+encodeURIComponent(q),
-      {headers:{'Accept-Language':'en','User-Agent':'BattleForWashington/1.0'}});
-    const data=await r.json();
-    if(!data.length){res.innerHTML='<div style="font-size:12px;color:var(--muted);">No results. Try including the state (e.g. "Kansas City, MO")</div>';return;}
-    window._nominatimResults=data;
-    res.innerHTML=data.map((item,i)=>
-      '<div onclick="selectCity('+i+')" style="padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);">'+
-      esc(item.display_name)+'</div>'
-    ).join('');
-  }catch(e){res.innerHTML='<div style="font-size:12px;color:var(--accent);">Search failed. Check your connection.</div>';}
-  btn.textContent='Search';btn.disabled=false;
-}
-
-async function selectCity(idx){
-  const item=window._nominatimResults&&window._nominatimResults[idx];
-  if(!item)return;
-  _cityData={
-    name:item.display_name,
-    shortName:item.address?(item.address.city||item.address.town||item.address.village||item.display_name.split(',')[0]).trim():item.display_name.split(',')[0].trim(),
-    lat:parseFloat(item.lat),
-    lng:parseFloat(item.lon),
-    bb:item.boundingbox,
-    osmId:item.osm_id,
-    osmType:item.osm_type
-  };
-  _osmBbox=item.boundingbox;
-  document.getElementById('cfgCityResults').innerHTML=
-    '<div style="padding:8px 10px;border-radius:8px;font-size:12px;border:2px solid var(--accent);background:var(--surface2);">&#x2713; '+esc(item.display_name)+'</div>';
-  await buildZones();
-}
-
-// ── Build final map config for game creation ──────────────────────
 function getMapConfig(){
   const preset=document.getElementById('cfgMapPreset')?.value||'dc';
   if(preset==='dc') return null;
@@ -2656,6 +2117,12 @@ function getMapConfig(){
   return cfg;
 }
 
+function onMapPresetChange(){
+  const preset=document.getElementById('cfgMapPreset').value;
+  const commSec=document.getElementById('cfgMapCommunitySection');
+  if(commSec) commSec.style.display=preset==='community'?'block':'none';
+  if(preset==='community') loadCommunityMaps();
+}
 
 async function createGame(){
   const hn=document.getElementById('hostName').value.trim();
@@ -2676,6 +2143,7 @@ async function createGame(){
     flopRefreshEnabled:flopRefreshOn,
     flopRefreshMins:flopRefreshOn?parseInt(document.getElementById('cfgFlopMins')?.value)||45:0,
     voteTimeoutMins:parseInt(document.getElementById('cfgVoteTimeout')?.value)||5,
+    startCoins:parseInt(document.getElementById('cfgStartCoins')?.value)||10,
     flopItemExpiry:document.getElementById('cfgFlopItemExpiry')?.checked||false,
     map:mapCfg,
   };
@@ -2686,9 +2154,7 @@ async function createGame(){
   saveL();document.getElementById('lobbyCode').textContent=code;renderLobby();showScreen('screenLobby');startPoll();
 }
 
-// ═══════════════════════════
 // JOIN
-// ═══════════════════════════
 async function rejoinLookup(){
   const code=document.getElementById('rejoinCode').value.trim().toUpperCase();
   const errEl=document.getElementById('rejoinError');
@@ -2722,8 +2188,15 @@ async function rejoinConfirm(){
   LS.fbUrl=FB_URL;LS.gameCode=code;LS.playerName=player.name;LS.playerId=pid;
   LS.isHost=false;LS.mode='player';LS.myTeamIdx=player.teamIdx>=0?player.teamIdx:-1;
   saveL();startPoll();
-  if(G.started){enterApp();}
-  else{showScreen('screenWaiting');document.getElementById('waitingMsg').textContent='Waiting for the host to start the game…';}
+  if(G.started){
+    const cfg3=G.config||{};
+    const[sh3,sm3]=(cfg3.start||'00:00').split(':').map(Number);
+    const now3=new Date(),st3=new Date(now3);
+    st3.setHours(sh3,sm3,0,0);
+    if(st3>now3){ showPreGame(); } else { enterApp(); }
+  } else {
+    showPreGame();
+  }
 }
 
 async function joinGame(){
@@ -2761,9 +2234,7 @@ async function joinGame(){
   if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 }
 
-// ═══════════════════════════
 // FIREBASE
-// ═══════════════════════════
 async function pushState(){
   if(!LS.gameCode)return false;
   try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});return r.ok;}catch(e){return false;}
@@ -2836,7 +2307,15 @@ async function poll(){
         showNotif(`You're on ${tn}!`);
       }
     }
-    if(!prevStarted&&G.started){enterApp();showNotif('⚡ Game started! Get moving!');sendPN('Transit Tournament','The game has started! Get moving.');}
+    if(!prevStarted&&G.started){
+      const cfg2=G.config||{};
+      const[sh2,sm2]=(cfg2.start||'00:00').split(':').map(Number);
+      const now2=new Date(),st2=new Date(now2);
+      st2.setHours(sh2,sm2,0,0);
+      if(st2>now2){ showPreGame(); } else { enterApp(); }
+      showNotif('⚡ Game started! Get moving!');
+      sendPN('Transit Tournament','The game has started! Get moving.');
+    }
     if(G.ended&&document.getElementById('finalScoresMo')&&!document.getElementById('finalScoresMo').classList.contains('open')){showFinalScores();}
     // Show curse alert ONLY to the targeted team
     if(G.curses&&prevStarted){
@@ -2902,9 +2381,7 @@ async function poll(){
 }
 async function pushGps(lat,lng){if(!LS.gameCode)return;fetch(`${FB_URL}/gpsLocs/${LS.gameCode}/${LS.playerId}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat,lng,t:Date.now(),teamIdx:LS.myTeamIdx})}).catch(()=>{});}
 
-// ═══════════════════════════
 // LOBBY
-// ═══════════════════════════
 function backToSetup(){
   if(!confirm('Go back to setup? The game code will be cancelled and players will need to rejoin.'))return;
   if(pollIv){clearInterval(pollIv);pollIv=null;}
@@ -2954,8 +2431,12 @@ async function confirmStartGame(){
 }
 async function startGame(){
   G.started=true;
+  // Give each team their starting coins
+  const startCoins=(G.config&&G.config.startCoins!=null)?G.config.startCoins:10;
+  if(!G.coins)G.coins={};
+  G.teams.forEach((_,i)=>{ if(!G.coins[i]) G.coins[i]=startCoins; });
   regenerateFlop(false);
-  logEv('🚀 Game started! Good luck to all teams.');
+  logEv('🚀 Game started! Each team starts with '+startCoins+' coins. Good luck!');
   await pushState();
   const cfg=G.config||{};
   const[sh,sm]=(cfg.start||'00:00').split(':').map(Number);
@@ -2971,9 +2452,7 @@ async function startGame(){
   // Increment play count for community maps
   if(G.config&&G.config.map&&G.config.mapId) _incrementMapPlayCount(G.config.mapId);
 }
-// ═══════════════════════════════════════════════════════════════════
 // PRE-GAME COUNTDOWN SCREEN
-// ═══════════════════════════════════════════════════════════════════
 let _preGameCountdownIv = null;
 let _preMap = null;
 let _preGameTab = 'info';
@@ -3097,20 +2576,12 @@ function _initPreMap(){
 }
 
 function _renderPreGameRules(){
-  const el = document.getElementById('preRulesContent');
-  if(!el) return;
-  const cfg = G.config||{};
-  const toT = t=>{if(!t)return'?';const[hh,mm]=t.split(':').map(Number);const ap=hh>=12?'PM':'AM';return(hh%12||12)+(mm>0?':'+String(mm).padStart(2,'0'):'')+' '+ap;};
-  el.innerHTML = '<div class="card" style="font-size:13px;line-height:1.8;margin-bottom:10px;">'+
-    '<b>Game runs</b> '+toT(cfg.start||'10:00')+' \u2013 '+toT(cfg.end||'19:00')+'.<br>'+
-    (cfg.lunchEnabled?'<b>Lunch break:</b> '+toT(cfg.lunchStart||'12:00')+' \u2013 '+toT(cfg.lunchEnd||'13:00')+'.<br>':'')+
-    '<b>Scoring locked at</b> '+toT(cfg.score||cfg.end||'18:00')+'.</div>'+
-    '<div class="card" style="font-size:13px;line-height:1.8;margin-bottom:10px;">'+
-    '<b>Earn coins</b> via The Flop challenges and Featured Landmarks.<br>'+
-    '<b>Deposit coins</b> into zones (GPS-verified) to control them.<br>'+
-    '<b>Score:</b> 1 pt per zone controlled at scoring time + 2 pt area bonus.'+
-    (getLineBonuses().length?'<br><b>Line bonuses</b> for controlling both terminals of a transit line.':'')+
-    '</div>';
+  const preEl = document.getElementById('preRulesContent');
+  if(!preEl) return;
+  const mainEl = document.getElementById('rulesContent');
+  if(mainEl && mainEl.children.length === 0) renderRules();
+  if(mainEl && mainEl.innerHTML) preEl.innerHTML = mainEl.innerHTML;
+  else { renderRules(); if(mainEl) preEl.innerHTML = mainEl.innerHTML; }
 }
 
 function _renderPreGameChat(){
@@ -3181,9 +2652,7 @@ function copyStatusCode(){
 }
 function copyCode(){navigator.clipboard.writeText(LS.gameCode).then(()=>showNotif('Code copied!')).catch(()=>{});}
 
-// ═══════════════════════════
 // ENTER APP
-// ═══════════════════════════
 function _updateHeaderVar(){
   const hdr=document.querySelector('#screenApp>header');
   const tabs=document.querySelector('#screenApp>.tabs');
@@ -3219,9 +2688,7 @@ function updateMyTeamBadge(){
   else b.style.display='none';
 }
 
-// ═══════════════════════════
 // CLOCK
-// ═══════════════════════════
 // ── LUNCH OVERLAY ────────────────────────────────────────────────────────────
 // lunchShowing hoisted
 
@@ -3358,9 +2825,7 @@ function updateClock(){
 }
 setInterval(updateClock,1000);updateClock();
 
-// ═══════════════════════════
 // NOTIFICATIONS
-// ═══════════════════════════
 
 function showToast(msg, type, duration){
   type=type||'info'; duration=duration||3500;
@@ -3376,9 +2841,7 @@ function showToast(msg, type, duration){
 function showNotif(msg,dur=3500){const b=document.getElementById('notifBanner');b.textContent=msg;b.classList.add('show');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),dur);}
 function sendPN(title,body){if('Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body,icon:'./icon-192.png'});}catch(e){}}}
 
-// ═══════════════════════════
 // GPS
-// ═══════════════════════════
 let gpsIv=null, gpsWatchId=null;
 
 function startGpsWatch(){
@@ -3418,9 +2881,7 @@ function downgradeGpsToBackground(){
   startGpsWatch(); // restarts in low-accuracy mode
 }
 
-// ═══════════════════════════
 // STATUS
-// ═══════════════════════════
 function renderStatus(){
   updateClock(); // refresh phase countdown
   const g=document.getElementById('sg');if(!g)return;g.innerHTML='';
@@ -3475,9 +2936,7 @@ function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.ge
 function closeLocMo(){document.getElementById('locMo').classList.remove('open');locTI=null;}
 async function submitLoc(){if(locTI===null)return;const zone=document.getElementById('locZSel').value,notes=document.getElementById('locNotes').value.trim();if(!G.locs)G.locs={};G.locs[locTI]={zone,notes,time:Date.now()};const zn=getZones().find(z=>z.code===zone)?.name||zone;logEv(`📍 <b>${esc(G.teams[locTI]?.name)}</b> → <b>${zone} ${zn}</b>${notes?` (${esc(notes)})`:''}`,false);await pushState();renderStatus();renderMapColors();closeLocMo();}
 
-// ═══════════════════════════
 // SCORES
-// ═══════════════════════════
 function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
 function computeScores(){
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
@@ -3498,9 +2957,7 @@ function renderScores(){
   (_lb.length?_lb.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join(''):'');
 }
 
-// ═══════════════════════════
 // MAP
-// ═══════════════════════════
 
 // ── TRANSIT LAYER TOGGLE ─────────────────────────────────────────
 let _transitLayerShowing = false;
@@ -3578,10 +3035,8 @@ function initMap(){
   }
   bfwMap=L.map('mapEl',{center:_center,zoom:_zoom,zoomControl:true,attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd'}).addTo(bfwMap);
-  // Only draw hardcoded transit lines for DC preset
-  if(!G.config||!G.config.map){
-    Object.entries(getTransitLines()).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
-  }
+  // Draw transit lines — DC uses hardcoded MLINES, custom maps use builder lines
+  Object.entries(getTransitLines()).forEach(([ln,cfg])=>{cfg.paths.forEach(path=>{const flatPath=Array.isArray(path[0][0])?path[0]:path;L.polyline(flatPath,{color:cfg.color,weight:cfg.w||3,opacity:cfg.opacity||.9,smoothFactor:1,interactive:false,lineJoin:'round'}).addTo(bfwMap);});});
   getZones().forEach(z=>{
     const poly=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,interactive:true});
     const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]),clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
@@ -3662,9 +3117,7 @@ function renderMZL(){
   el.innerHTML=getZones().map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span></div>`;}).join('');
 }
 
-// ═══════════════════════════
 // ZONES LIST
-// ═══════════════════════════
 function renderZones(){
   const con=document.getElementById('zoneContainer');if(!con)return;con.innerHTML='';
   const zones=getZones();
@@ -3690,9 +3143,7 @@ function renderZones(){
   });
 }
 
-// ═══════════════════════════
 // DEPOSIT
-// ═══════════════════════════
 function canDeposit(){return G.started&&LS.myTeamIdx>=0;}
 
 // _freshLat/_freshLng declared at top of script
@@ -3965,9 +3416,7 @@ async function submitDep(){
 }
 
 
-// ════════════════════════════════════════════════════════════════════════════
 // ZONE CHALLENGE
-// ════════════════════════════════════════════════════════════════════════════
 const ZONE_CHALLENGE_TASKS = [
   'Highest number found on a single licence plate — note the full plate number',
   'Most national flags spotted from your current position',
@@ -4238,7 +3687,11 @@ function renderShopItems(){
   const _shopItems=getAvailableShopItems();
   grid.innerHTML=_shopItems.map((item)=>{
     const i=SHOP_ITEMS_DATA.indexOf(item);
-    const cost=parseInt(item.cost)||0;
+    // Use map creator's cost if available, else parse default
+    const shopCfg2 = G.config&&G.config.map&&G.config.map.shopConfig;
+    const shopEntry = shopCfg2 ? shopCfg2.find(s=>s.id===item.name) : null;
+    const cost = shopEntry ? (shopEntry.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
+    const costDisplay = item.needsWager ? 'your wager' : cost+' coins';
     const canAfford=coins>=cost;
     // Zone Challenge special rendering
     let challengeBlocked=false, challengeReason='';
@@ -4253,7 +3706,7 @@ function renderShopItems(){
     return '<div onclick="'+clickFn+'" style="background:var(--surface);border:1px solid '+(blocked?'#e2e8f0':'var(--border)')+';border-radius:10px;padding:10px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';transition:border-color .15s;" '+(!blocked?'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"':'')+'>'+
       '<div style="font-size:22px;margin-bottom:4px">'+item.icon+'</div>'+
       '<div style="font-weight:700;font-size:12px;margin-bottom:2px">'+item.name+'</div>'+
-      '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px">'+item.cost+'</div>'+
+      '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px">'+costDisplay+'</div>'+
       '<div style="font-size:10px;color:var(--muted);line-height:1.4">'+item.desc+'</div>'+
       '</div>';
   }).join('');
@@ -4345,7 +3798,9 @@ async function confirmPurchase(){
     return;
   }
   // Check and deduct coins BEFORE creating curse
-  const coinCost=parseInt(item.cost)||0;
+  const shopCfg3 = G.config&&G.config.map&&G.config.map.shopConfig;
+  const shopEntry2 = shopCfg3 ? shopCfg3.find(s=>s.id===item.name) : null;
+  const coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
   if(coinCost>0){
     if(!G.coins)G.coins={};
     const cur=G.coins[caster]||0;
@@ -4382,7 +3837,7 @@ async function confirmPurchase(){
     }
     curseNotes='Go to: '+destName;
     if(!G.detours)G.detours={};
-    G.detours[target]={active:true,station:s.name,assignedAt:now};
+    G.detours[target]={active:true,station:destName,assignedAt:now};
   }
 
   if(!G.curses)G.curses=[];
@@ -4404,14 +3859,36 @@ async function confirmPurchase(){
   renderCurses();
 }
 
-async function addCurse(){}
-
+async function hostAwardCoins(){
+  if(!LS.isHost){showToast('Host only.','warn');return;}
+  const sel=document.createElement('div');
+  sel.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--surface);border-radius:16px;padding:20px;width:280px;';
+  const teamOpts=G.teams.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join('');
+  box.innerHTML='<div style="font-weight:700;font-size:15px;margin-bottom:12px;">Award Coins</div>'+
+    '<label>Team</label><select id="_awardTeamSel" style="margin-bottom:10px;">'+teamOpts+'</select>'+
+    '<label>Amount</label><input type="number" id="_awardAmount" value="5" min="1" max="50" style="margin-bottom:12px;">'+
+    '<div style="display:flex;gap:8px;"><button class="btn btn-g btn-sm" style="flex:1" id="_awardCancel">Cancel</button><button class="btn btn-p btn-sm" style="flex:1" id="_awardConfirm">Award</button></div>';
+  sel.appendChild(box);
+  document.body.appendChild(sel);
+  document.getElementById('_awardCancel').addEventListener('click',()=>sel.remove());
+  document.getElementById('_awardConfirm').addEventListener('click',async()=>{
+    const ti=parseInt(document.getElementById('_awardTeamSel').value);
+    const amt=parseInt(document.getElementById('_awardAmount').value)||0;
+    if(amt<1){showToast('Enter a valid amount.','warn');return;}
+    if(!G.coins)G.coins={};
+    G.coins[ti]=(G.coins[ti]||0)+amt;
+    logEv('🎁 Host awarded <b>'+amt+' coins</b> to <b>'+esc(G.teams[ti]?.name)+'</b>.');
+    await pushState();sel.remove();showToast('Coins awarded!','ok');
+  });
+}
 // ── CURSE ALERTS ────────────────────────────────────────────────────────────
 const CURSE_DESCRIPTIONS={
   'Spy':'Your coin total has been revealed to the purchasing team.',
   'Locate':'Your GPS is being tracked for 30 minutes. You cannot hide!',
   'Interstate Travellers':'You cannot deposit coins in the blocked region for the next hour!',
-  'Forced Detour':'You MUST travel to the specified metro stop and submit a photo of the station sign before you can deposit coins.',
+  'Forced Detour':'You MUST travel to the specified destination and submit a photo before you can deposit coins.',
   'Transit Cost':'You will lose 3 coins on every deposit into a zone served by the chosen line for 2 hours!',
   'Line Lockdown':'No team can deposit into zones served by the chosen line for 2 hours.',
 };
@@ -4443,7 +3920,8 @@ function renderCurses(){
     if(myLocates.length)bannerHtml+='<div class="loc-banner">📡 <b>Your team is being tracked!</b> Your GPS is being shared for the duration of the Locate curse.</div>';
     if(myDetour){
       const det=G.detours[LS.myTeamIdx];
-      bannerHtml+='<div class="loc-banner" style="background:#fff7ed;border-color:#fed7aa;">🚇 <b>Forced Detour active!</b> You must go to <b>'+esc(det.station)+'</b> before depositing.<br><button class="btn btn-p btn-sm" style="margin-top:8px;width:100%" onclick="openDetourClearance()">📷 I am at the station — submit proof</button></div>';
+      const detourLabel=isCustomMap()?'location':'station';
+    bannerHtml+='<div class="loc-banner" style="background:#fff7ed;border-color:#fed7aa;">🚇 <b>Forced Detour active!</b> You must go to <b>'+esc(det.station)+'</b> before depositing.<br><button class="btn btn-p btn-sm" style="margin-top:8px;width:100%" onclick="openDetourClearance()">📷 I am at the '+detourLabel+' — submit proof</button></div>';
     }
     lb.innerHTML=bannerHtml;
   }
@@ -4630,9 +4108,6 @@ function logEv(text,push=true){
   if(G.chat.length>500)G.chat.shift();
   if(push)renderChat();
 }
-function logAndChat(text){logEv(text,true);}
-function renderLog(){}
-
 function renderChat(){
   const el=document.getElementById('chatMessages');if(!el)return;
   if(!G.chat||!G.chat.length){el.innerHTML='<div class="empty" style="padding:16px 0">No messages yet</div>';return;}
@@ -4702,13 +4177,18 @@ function renderRules(){
   const lunchOn=cfg.lunchEnabled!==false&&cfg.lunchStart;
   const lunchStart=fmtTime(cfg.lunchStart||'12:00');
   const lunchEnd=fmtTime(cfg.lunchEnd||'13:00');
+  const startCoinsCount=(G.config&&G.config.startCoins!=null)?G.config.startCoins:10;
   let schedHtml='Game runs <b>'+start+'–'+end+'</b>. ';
   if(lunchOn)schedHtml+='Lunch break <b>'+lunchStart+'–'+lunchEnd+'</b> (all activity paused). ';
   else schedHtml+='No lunch break. ';
   schedHtml+='Scores locked at <b>'+score+'</b>.<br><br>';
+  schedHtml+='<b>Starting coins:</b> Each team begins with <b>'+startCoinsCount+' coins</b>.<br>';
   schedHtml+='<b>Zones:</b> 1 pt each for any zone your team leads at scoring time.<br>';
   schedHtml+='<b>Area Bonus:</b> 2 pts for the team controlling the largest total area.<br>';
-  schedHtml+='<b>Line Bonus:</b> 1 pt per metro line where your team leads both terminal zones (Red Line excluded; Blue/Orange share one point).';
+  const hasLines=isCustomMap()?Object.keys(getTransitLines()).length>0:true;
+  if(hasLines){
+    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls both terminal zones.';
+  }
   addTitle('Schedule',true);
   addCard(schedHtml);
 
@@ -4729,8 +4209,9 @@ function renderRules(){
 
   // ── Landmarks ─────────────────────────────────────────────────
   addTitle('Landmarks');
+  const cityName=isCustomMap()&&G.config.map?.cityName?G.config.map.cityName:'the play area';
   addCard(
-    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real DMV location worth 8–11 coins depending on distance from the Mall. '
+    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 6–10 coins depending on distance from the city center. '
     +'Race there, take a photo with your team, and submit for a vote. '
     +'Once claimed, a new landmark is immediately assigned. '
     +'If unclaimed, the landmark rotates every <b>30 minutes</b>.'
@@ -4739,10 +4220,10 @@ function renderRules(){
   // ── Depositing ────────────────────────────────────────────────
   addTitle('Depositing into Zones');
   addCard(
-    'Tap <b>Deposit Coins</b> on the Zones tab. Your live GPS determines which zone you are in — '
-    +'you must be physically inside the zone and at least 100 feet (~30m) from any metro station. '
-    +'No depositing from trains or platforms. '
-    +'The team with the highest total deposit in a zone controls it.'
+    'Tap <b>Deposit Coins</b> on the Zones tab. Your live GPS determines which zone you are in. '
+    +(isCustomMap()?'You must be physically inside the zone to deposit.'
+      :'You must be physically inside the zone and at least 100 feet (~30m) from any metro station. No depositing from trains or platforms.')+
+    ' The team with the highest total deposit in a zone controls it.'
   );
 
   // ── Zone Challenge ────────────────────────────────────────────
@@ -4773,8 +4254,8 @@ function renderRules(){
     [
       ['Spy','3 🪙','Instantly reveals the target team\'s current coin total'],
       ['Locate','3 🪙','Tracks target team GPS on the map for 30 minutes'],
-      ['Interstate Travellers','6 🪙','Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour'],
-      ['Forced Detour','6 🪙','Target must reach a specific metro stop and photo-verify before depositing'],
+      ['Interstate Travellers','6 🪙','Target cannot deposit in one chosen region for 1 hour'],
+      ['Forced Detour','6 🪙',isCustomMap()?'Target must reach a specific landmark and photo-verify before depositing':'Target must reach a specific metro stop and photo-verify before depositing'],
       ['Transit Cost','10 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours'],
       ['Line Lockdown','10 🪙','No team can deposit into zones on a chosen line for 2 hours'],
       ['Zone Challenge','your wager','Head-to-head counting contest — win: both wagers deposited in zone (2× return); lose: defender keeps both'],
@@ -4867,9 +4348,7 @@ function closeCP(){document.getElementById('cpp').style.display='none';cpTgt=nul
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 ['depMo','locMo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',e=>{if(e.target===el){if(id==='depMo')closeDep();else closeLocMo();}});});
 
-// ═══════════════════════════════════════════════════════════════════
 // MAP MARKETPLACE — Firebase /maps/{mapId}
-// ═══════════════════════════════════════════════════════════════════
 
 // Map schema:
 // /maps/{id}: {id, name, cityName, cityTag, desc, creator, createdAt,
@@ -4955,28 +4434,7 @@ async function _selectCommunityMap(id){
   window._communityMapConfig = _selectedMapConfig;
 }
 
-// Updated onMapPresetChange to handle community option
-function onMapPresetChange(){
-  const preset = document.getElementById('cfgMapPreset').value;
-  const commSec = document.getElementById('cfgMapCommunitySection');
-  if(commSec) commSec.style.display = preset==='community'?'block':'none';
-  if(preset==='community') loadCommunityMaps();
-}
-
-// Patch getMapConfig to handle community preset
-const _origGetMapConfig = getMapConfig;
-function getMapConfig(){
-  const preset = document.getElementById('cfgMapPreset')?.value||'dc';
-  if(preset==='dc') return null;
-  if(preset==='community'){
-    const cfg=window._communityMapConfig||null;
-    if(cfg&&_selectedMapId) return{...cfg,mapId:_selectedMapId};
-    return cfg;
-  }
-  return _origGetMapConfig();
-}
-
-// DC map seeded manually via seed-dc.js
+// DC map seeded manually — see seed-dc.js
 
 // ── Helper: increment play count when game starts ──────────────────
 function _incrementMapPlayCount(mapId){
@@ -4987,9 +4445,7 @@ function _incrementMapPlayCount(mapId){
   }).catch(()=>{});
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // MAP BUILDER
-// ═══════════════════════════════════════════════════════════════════
 
 // ── Creator identity (persists across sessions) ───────────────────
 function _mbGetCreatorId(){
@@ -5018,6 +4474,7 @@ function _mbSaveDraft(){
       zones: _mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,lines:z.lines,stops:z.stops||''})),
       landmarks: _mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint,lat:lm.lat,lng:lm.lng})),
       lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]})),
+      shopConfig: _mbGetCleanShopConfig(),
       savedAt: Date.now(),
       publishedId: _mbCurrentDraftId.startsWith('draft_') ? null : _mbCurrentDraftId
     };
@@ -5074,11 +4531,7 @@ let _mbCurrentLineStops = [];
 let _mbCurrentLineLayer = null;
 let _mbPendingLineStops = [];
 let _mbMapZones = null, _mbMapLm = null, _mbMapTransit = null;
-
-// ── Entry point ───────────────────────────────────────────────────
-function openMapBuilder(){
-  showScreen('screenMapBuilder');
-}
+let _mbShopConfig = null; // [{id, enabled, cost}] — null means use defaults
 
 // ── Library screen ────────────────────────────────────────────────
 function _mbShowLibrary(){
@@ -5098,10 +4551,8 @@ function _mbShowLibrary(){
 async function _mbRenderLibrary(){
   const el = document.getElementById('mbLibraryList');
   if(!el) return;
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading your maps…</div>';
   const creatorId = _mbGetCreatorId();
-  const drafts = _mbGetAllDrafts();
-
-  // Fetch your published maps from Firebase
   let published = [];
   try{
     const r = await fetch(MAPS_FB_PATH+'.json');
@@ -5109,34 +4560,14 @@ async function _mbRenderLibrary(){
       const data = await r.json();
       if(data) published = Object.values(data).filter(m=>m.creatorId===creatorId);
     }
-  }catch(e){ /* offline */ }
-
-  if(!drafts.length && !published.length){
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No maps yet. Create your first one!</div>';
+  }catch(e){}
+  if(!published.length){
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No published maps yet. Create your first one!</div>';
     return;
   }
-
-  // Merge: drafts + published (dedup by publishedId)
-  const draftPublishedIds = new Set(drafts.filter(d=>d.publishedId).map(d=>d.publishedId));
-
-  let html = '';
-  if(drafts.length){
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;">Drafts</div>';
-    drafts.forEach(d=>{
-      html += _mbMapCard(d.id, d.name, d.cityData?.shortName||'Unknown city',
-        d.zones?.length||0, d.savedAt, false, d.publishedId?true:false);
-    });
-  }
-
-  const unpublishedMaps = published.filter(m=>!draftPublishedIds.has(m.id));
-  if(unpublishedMaps.length){
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 6px;">Published (no local draft)</div>';
-    unpublishedMaps.forEach(m=>{
-      html += _mbMapCard(m.id, m.name, m.cityName, m.config?.zones?.length||0, m.createdAt, true, true);
-    });
-  }
-
-  el.innerHTML = html;
+  published.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  el.innerHTML = published.map(m=>_mbMapCard(m.id,m.name,m.cityName,
+    m.config?.zones?.length||0,m.createdAt,true,true)).join('');
 }
 
 function _mbMapCard(id, name, city, zoneCount, ts, isPublished, showUnpublish){
@@ -5173,6 +4604,7 @@ function _mbLoadFromDraft(d){
   _mbZones = (d.zones||[]).map(z=>({...z,polyLayer:null,handles:[]}));
   _mbLandmarks = (d.landmarks||[]).map(lm=>({...lm,marker:null}));
   _mbLines = (d.lines||[]).map(ln=>({...ln,polyLayer:null}));
+  _mbShopConfig = d.shopConfig||null;
   // Reset map instances so they re-init with loaded data
   if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
   if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
@@ -5197,6 +4629,7 @@ function _mbLoadFromPublished(m){
   _mbLandmarks = (m.config?.landmarks||[]).map(lm=>({...lm,marker:null}));
   const linesObj = m.config?.transitLines||{};
   _mbLines = Object.values(linesObj).map(ln=>({...ln,id:ln.id||'line_'+Date.now(),polyLayer:null}));
+  _mbShopConfig = m.config?.shopConfig||null;
   if(_mbMapZones){try{_mbMapZones.remove();}catch(e){} _mbMapZones=null;}
   if(_mbMapLm){try{_mbMapLm.remove();}catch(e){} _mbMapLm=null;}
   if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null;}
@@ -5267,7 +4700,7 @@ async function _mbUnpublishMap(id){
 // ── Step navigation ───────────────────────────────────────────────
 function mbGotoStep(step){
   _mbStep = step;
-  ['meta','zones','landmarks','transit','review'].forEach(s=>{
+  ['meta','zones','landmarks','transit','shop','review'].forEach(s=>{
     const panel = document.getElementById('mbPanel-'+s);
     const stepBtn = document.getElementById('mbStep-'+s);
     if(panel) panel.style.display = s===step?(s==='zones'||s==='landmarks'||s==='transit'?'flex':'block'):'none';
@@ -5281,6 +4714,7 @@ function mbGotoStep(step){
   if(step==='zones') _initMbMapZones();
   if(step==='landmarks') _initMbMapLm();
   if(step==='transit') _initMbMapTransit();
+  if(step==='shop') _renderMbShopConfig();
   if(step==='review') _renderMbReview();
   // Auto-save draft on every step transition
   _mbSaveDraft();
@@ -5425,6 +4859,23 @@ function mbConfirmZoneName(){
   if(!name){showToast('Enter a zone name.','warn');return;}
   if(_hasProfanity(name)){showToast('Zone name contains inappropriate language.','warn');return;}
   document.getElementById('mbZoneMo').classList.remove('open');
+  // Rename existing zone
+  if(window._mbRenamingIdx!=null){
+    const z=_mbZones[window._mbRenamingIdx];
+    z.name=name;
+    // Update label on map
+    if(z.labelMarker){
+      z.labelMarker.remove();
+      const c=_centroid(z.poly);
+      z.labelMarker=L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:11px;font-weight:700;color:#1d4ed8;pointer-events:none;text-shadow:0 1px 2px white;">'+esc(name)+'</div>',iconAnchor:[20,8]}),interactive:false,zIndexOffset:-100}).addTo(_mbMapZones);
+    }
+    _mbRenderZoneList();
+    _mbRenderZoneToolbar(window._mbRenamingIdx);
+    window._mbRenamingIdx=null;
+    return;
+  }
+  // New zone
+  window._mbRenamingIdx=null;
   const code='Z'+(_mbZones.length+1);
   const poly=_mbPendingZonePoly; _mbPendingZonePoly=null;
   const area=parseFloat(_polyAreaSqMi(poly).toFixed(2));
@@ -5453,23 +4904,21 @@ function _mbSelectZone(idx){
   if(!zone||!_mbMapZones) return;
   // Highlight selected zone
   if(zone.polyLayer) zone.polyLayer.setStyle({fillColor:'#7c3aed',color:'#7c3aed',fillOpacity:.25,weight:2.5});
-  // Show drag handles at each vertex
+  // Show drag handles at each vertex — L.marker with draggable:true (circleMarker can't drag)
   zone.poly.forEach((pt,ptIdx)=>{
-    const handle = L.circleMarker([pt[0],pt[1]],{
-      radius:7, fillColor:'white', fillOpacity:1, color:'#7c3aed', weight:2, draggable:true
-    }).addTo(_mbMapZones);
-    handle.on('mousedown', ()=>_mbMapZones.dragging.disable());
-    handle.on('drag', e=>{
+    const handleIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:14px;height:14px;border-radius:50%;background:white;border:2.5px solid #7c3aed;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab;"></div>',
+      iconSize:[14,14],iconAnchor:[7,7]
+    });
+    const handle=L.marker([pt[0],pt[1]],{icon:handleIcon,draggable:true,zIndexOffset:1000}).addTo(_mbMapZones);
+    handle.on('drag',e=>{
       const ll=e.target.getLatLng();
       zone.poly[ptIdx]=[ll.lat,ll.lng];
       if(zone.polyLayer) zone.polyLayer.setLatLngs(zone.poly);
-    });
-    handle.on('dragend', ()=>{
-      _mbMapZones.dragging.enable();
-      zone.area=parseFloat(_polyAreaSqMi(zone.poly).toFixed(2));
-      // Update label
       if(zone.labelMarker) zone.labelMarker.setLatLng(_centroid(zone.poly));
     });
+    handle.on('dragend',()=>{ zone.area=parseFloat(_polyAreaSqMi(zone.poly).toFixed(2)); });
     _mbEditHandles.push(handle);
   });
   // Show rename/delete toolbar
@@ -5650,20 +5099,43 @@ function _mbAddLineStop(latlng){
 }
 
 function mbFinishLine(){
-  if(_mbCurrentLineStops.length<2){showToast('Add at least 2 stops.','warn');return;}
   _mbDrawingLine=false;
-  _mbPendingLineStops=[..._mbCurrentLineStops];
-  document.getElementById('mbLineName').value='';
-  document.getElementById('mbLineMo').classList.add('open');
   document.getElementById('mbNewLineBtn').style.display='inline-block';
   document.getElementById('mbFinishLineBtn').style.display='none';
+
+  // Extending an existing line
+  if(window._mbExtendingLineIdx!=null){
+    if(_mbCurrentLineStops.length<1){showToast('Tap at least 1 new stop.','warn');_mbDrawingLine=false;return;}
+    const ln=_mbLines[window._mbExtendingLineIdx];
+    const newStops=[..._mbCurrentLineStops];
+    ln.stops=[...ln.stops,...newStops];
+    // Recompute zones served
+    newStops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!ln.zonesServed.includes(z.code)) ln.zonesServed.push(z.code); }); });
+    if(ln.polyLayer) ln.polyLayer.setLatLngs(ln.stops.map(s=>[s.lat,s.lng]));
+    else ln.polyLayer=L.polyline(ln.stops.map(s=>[s.lat,s.lng]),{color:ln.color,weight:4,opacity:.85}).addTo(_mbMapTransit);
+    if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+    _mbCurrentLineStops=[];
+    window._mbExtendingLineIdx=null;
+    showToast('Stops added to line.','ok');
+    return;
+  }
+
+  if(_mbCurrentLineStops.length<2){showToast('Add at least 2 stops.','warn');return;}
+  _mbPendingLineStops=[..._mbCurrentLineStops];
+  _mbCurrentLineStops=[];
+  window._mbEditingLineIdx=null;
+  document.getElementById('mbLineName').value='';
+  document.getElementById('mbLineMo').classList.add('open');
 }
 
 function mbCancelLine(){
   document.getElementById('mbLineMo').classList.remove('open');
-  _mbPendingLineStops=[];
+  _mbPendingLineStops=[]; _mbCurrentLineStops=[];
   if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
-  _mbCurrentLineStops=[];
+  window._mbEditingLineIdx=null; window._mbExtendingLineIdx=null;
+  _mbDrawingLine=false;
+  document.getElementById('mbNewLineBtn').style.display='inline-block';
+  document.getElementById('mbFinishLineBtn').style.display='none';
 }
 
 function mbConfirmLine(){
@@ -5672,30 +5144,80 @@ function mbConfirmLine(){
   if(_hasProfanity(name)){showToast('Line name contains inappropriate language.','warn');return;}
   const type=document.getElementById('mbLineType').value;
   const color=document.getElementById('mbLineColor').value;
+  document.getElementById('mbLineMo').classList.remove('open');
+
+  // Editing existing line
+  if(window._mbEditingLineIdx!=null){
+    const ln=_mbLines[window._mbEditingLineIdx];
+    ln.name=name; ln.type=type; ln.color=color;
+    if(ln.polyLayer) ln.polyLayer.setStyle({color,weight:4,opacity:.85});
+    window._mbEditingLineIdx=null;
+    _mbRenderLineList();
+    return;
+  }
+
+  // New line
+  window._mbEditingLineIdx=null;
   const stops=[..._mbPendingLineStops];
   const id='line_'+Date.now();
   const zonesServed=[];
   stops.forEach(stop=>{ _mbZones.forEach(z=>{ if(z.poly&&pointInPolyLL(stop.lat,stop.lng,z.poly)&&!zonesServed.includes(z.code)) zonesServed.push(z.code); }); });
   const layer=L.polyline(stops.map(s=>[s.lat,s.lng]),{color,weight:4,opacity:.85}).addTo(_mbMapTransit);
   _mbLines.push({id,name,type,color,stops,zonesServed,polyLayer:layer});
-  document.getElementById('mbLineMo').classList.remove('open');
   _mbPendingLineStops=[]; if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;} _mbCurrentLineStops=[];
   const el=document.getElementById('mbLineCount');
   if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
   _mbRenderLineList();
-  _mbZones.forEach((z,zi)=>{ if(zonesServed.includes(z.code)&&!z.lines.includes(name)) z.lines.push(name); });
+  _mbZones.forEach((z)=>{ if(zonesServed.includes(z.code)&&!z.lines.includes(name)) z.lines.push(name); });
 }
 
 function _mbRenderLineList(){
   const el=document.getElementById('mbLineList'); if(!el) return;
   el.innerHTML='';
   _mbLines.forEach((ln,i)=>{
-    const s=document.createElement('span');
-    s.style.cssText='flex-shrink:0;padding:3px 8px;border-radius:20px;font-size:10px;cursor:pointer;background:'+ln.color+'22;color:'+ln.color+';border:1px solid '+ln.color+';';
-    s.textContent=ln.name+' \u2715';
-    s.addEventListener('click',()=>mbDeleteLine(i));
-    el.appendChild(s);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='flex-shrink:0;display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:20px;background:'+ln.color+'22;border:1px solid '+ln.color+';';
+    const label=document.createElement('span');
+    label.style.cssText='font-size:10px;color:'+ln.color+';cursor:pointer;';
+    label.textContent=ln.name;
+    label.addEventListener('click',()=>_mbEditLine(i));
+    const addBtn=document.createElement('button');
+    addBtn.style.cssText='background:none;border:none;font-size:10px;color:'+ln.color+';cursor:pointer;padding:0 2px;';
+    addBtn.textContent='+';
+    addBtn.title='Add stops to this line';
+    addBtn.addEventListener('click',()=>_mbExtendLine(i));
+    const delBtn=document.createElement('button');
+    delBtn.style.cssText='background:none;border:none;font-size:10px;color:var(--accent);cursor:pointer;padding:0 2px;';
+    delBtn.textContent='✕';
+    delBtn.addEventListener('click',()=>mbDeleteLine(i));
+    wrap.appendChild(label); wrap.appendChild(addBtn); wrap.appendChild(delBtn);
+    el.appendChild(wrap);
   });
+}
+
+function _mbEditLine(i){
+  const ln=_mbLines[i];
+  window._mbEditingLineIdx=i;
+  document.getElementById('mbLineName').value=ln.name;
+  document.getElementById('mbLineType').value=ln.type||'streetcar';
+  document.getElementById('mbLineColor').value=ln.color||'#3b82f6';
+  document.getElementById('mbLineMo').classList.add('open');
+}
+
+function _mbExtendLine(i){
+  if(_mbDrawingLine){showToast('Finish the current line first.','warn');return;}
+  window._mbExtendingLineIdx=i;
+  _mbCurrentLineStops=[];
+  _mbDrawingLine=true;
+  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+  document.getElementById('mbNewLineBtn').style.display='none';
+  document.getElementById('mbFinishLineBtn').style.display='inline-block';
+  const ln=_mbLines[i];
+  showToast('Tap new stops to extend "'+ln.name+'". Click Done when finished.','info',4000);
+  // Draw existing stops faintly
+  if(_mbMapTransit&&ln.stops.length>1){
+    L.polyline(ln.stops.map(s=>[s.lat,s.lng]),{color:ln.color,weight:3,opacity:.4,dashArray:'4,4'}).addTo(_mbMapTransit);
+  }
 }
 
 function mbDeleteLine(i){
@@ -5741,6 +5263,7 @@ async function publishMap(){
     const cleanLm=_mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng,coins:0}));
     const cleanLines={};
     _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,stops:ln.stops,zonesServed:ln.zonesServed||[]};});
+    const cleanShop=_mbGetCleanShopConfig();
     const mapObj={
       id,name,cityName:_mbCityData.shortName,
       cityTag:_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-'),
@@ -5751,7 +5274,8 @@ async function publishMap(){
         transitTypes:Object.keys(cleanLines).length>0?['transit']:[],
         zones:cleanZones,landmarks:cleanLm,
         transitStops:_mbLines.flatMap(ln=>ln.stops),
-        transitLines:cleanLines,lineBonuses:[]
+        transitLines:cleanLines,lineBonuses:[],
+        shopConfig:cleanShop
       }
     };
     const r=await fetch(MAPS_FB_PATH+'/'+id+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mapObj)});
@@ -5769,6 +5293,123 @@ async function publishMap(){
   }
 }
 
+
+
+// ── Map builder: shop configuration ──────────────────────────────
+
+// Default costs — used when no shopConfig is set
+const MB_SHOP_DEFAULTS = [
+  {id:'Spy',        label:'🔍 Spy',              defaultCost:3,  alwaysShow:true,  desc:'Reveals target team coin total'},
+  {id:'Locate',     label:'📡 Locate',           defaultCost:3,  alwaysShow:true,  desc:'Track target team GPS for 30 min'},
+  {id:'Forced Detour', label:'🚇 Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a nearby landmark'},
+  {id:'Zone Challenge',label:'⚔️ Zone Challenge',defaultCost:0,  alwaysShow:true,  desc:'Wager-based zone contest (cost = wager)'},
+  {id:'Interstate Travellers',label:'🚗 Region Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing in a region (DC only)'},
+  {id:'Transit Cost',label:'🎫 Transit Cost',    defaultCost:10, alwaysShow:false, desc:'Target loses coins on deposits near a line'},
+  {id:'Line Lockdown',label:'🔒 Line Lockdown',  defaultCost:10, alwaysShow:false, desc:'No deposits on a transit line for 2 hours'},
+];
+
+function _mbGetCleanShopConfig(){
+  if(!_mbShopConfig) return null; // null = use game defaults
+  return _mbShopConfig.map(s=>({id:s.id,enabled:s.enabled,cost:s.cost}));
+}
+
+function _mbGetShopEntry(id){
+  if(!_mbShopConfig) return null;
+  return _mbShopConfig.find(s=>s.id===id)||null;
+}
+
+function _renderMbShopConfig(){
+  const el = document.getElementById('mbShopConfigList');
+  if(!el) return;
+
+  const hasLines = _mbLines.length > 0;
+  const isCustom = true; // always true in map builder
+
+  // Initialize _mbShopConfig from defaults if not set
+  if(!_mbShopConfig){
+    _mbShopConfig = MB_SHOP_DEFAULTS.map(def=>({
+      id:def.id,
+      enabled: def.alwaysShow ? true : false,
+      cost: def.defaultCost
+    }));
+  }
+
+  el.innerHTML = '';
+  MB_SHOP_DEFAULTS.forEach(def=>{
+    const entry = _mbShopConfig.find(s=>s.id===def.id);
+    if(!entry) return;
+
+    // Hide line-based items if map has no lines
+    const needsLine = def.id==='Transit Cost'||def.id==='Line Lockdown';
+    if(needsLine && !hasLines) return;
+
+    // Hide DC-region item for all maps (deprecated for custom maps)
+    if(def.id==='Interstate Travellers') return;
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);';
+
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = entry.enabled;
+    toggle.style.cssText = 'width:18px;height:18px;flex-shrink:0;cursor:pointer;';
+    toggle.addEventListener('change', ()=>{
+      entry.enabled = toggle.checked;
+      costInput.disabled = !entry.enabled;
+      costInput.style.opacity = entry.enabled ? '1' : '0.4';
+    });
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;';
+    info.innerHTML = '<div style="font-size:13px;font-weight:700;">'+def.label+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:1px;">'+esc(def.desc)+'</div>';
+
+    const costWrap = document.createElement('div');
+    costWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;';
+
+    const isWager = def.id==='Zone Challenge';
+
+    if(isWager){
+      const wageLbl = document.createElement('div');
+      wageLbl.style.cssText = 'font-size:11px;color:var(--muted);font-style:italic;';
+      wageLbl.textContent = 'wager';
+      costWrap.appendChild(wageLbl);
+    } else {
+      const costLabel = document.createElement('div');
+      costLabel.style.cssText = 'font-size:10px;color:var(--muted);margin-bottom:2px;';
+      costLabel.textContent = 'Cost (coins)';
+      const costInput = document.createElement('input');
+      costInput.type = 'number';
+      costInput.min = '1';
+      costInput.max = '99';
+      costInput.value = entry.cost;
+      costInput.disabled = !entry.enabled;
+      costInput.style.cssText = 'width:60px;text-align:center;font-size:13px;padding:4px 6px;margin:0;opacity:'+(entry.enabled?'1':'0.4')+';';
+      costInput.addEventListener('input', ()=>{ entry.cost = parseInt(costInput.value)||def.defaultCost; });
+      // Store ref for toggle to use
+      const costInputRef = costInput;
+      toggle.addEventListener('change', ()=>{
+        costInputRef.disabled = !toggle.checked;
+        costInputRef.style.opacity = toggle.checked ? '1' : '0.4';
+      });
+      costWrap.appendChild(costLabel);
+      costWrap.appendChild(costInput);
+    }
+
+    // Hack: fix the toggle's costInput reference before appending
+    // We need the costInput in scope for the toggle listener — rebuild cleanly
+    row.appendChild(toggle);
+    row.appendChild(info);
+    row.appendChild(costWrap);
+    el.appendChild(row);
+  });
+
+  // Add reset link
+  const reset = document.createElement('div');
+  reset.style.cssText = 'text-align:center;margin-top:12px;';
+  reset.innerHTML = '<span style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;" onclick="_mbShopConfig=null;_renderMbShopConfig();">Reset to defaults</span>';
+  el.appendChild(reset);
+}
 
 // ── pointInPolyLL (used by builder for zone-line intersection) ────
 function pointInPolyLL(lat,lng,poly){
