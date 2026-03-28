@@ -344,7 +344,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <!-- COMMUNITY MAP BROWSER -->
     <div id="cfgMapCommunitySection" style="margin-bottom:10px;">
       <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()">
+        <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()" onfocus="if(!_allMaps.length)loadCommunityMaps()">
         <button class="btn btn-g btn-sm" onclick="loadCommunityMaps()">Browse</button>
       </div>
       <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
@@ -1071,7 +1071,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.80';
+const APP_VERSION='1.81';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // ── Variables hoisted to prevent TDZ errors ─────────────────────
@@ -4899,16 +4899,20 @@ async function loadCommunityMaps(){
   res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading maps\u2026</div>';
   try{
     const r = await fetch(MAPS_FB_PATH + '.json?orderBy="playCount"&limitToLast=50');
-    const data = r.ok ? await r.json() : null;
-    if(!data){
-      res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps yet. <b>Create the first one!</b></div>';
-      _allMaps = [];
-      return;
+    if(!r.ok){
+      res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Firebase error '+r.status+'. Check /maps/ read rules.</div>';
+      _allMaps=[]; return;
+    }
+    const data = await r.json();
+    if(!data||typeof data!=='object'||Array.isArray(data)){
+      res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps published yet. Create the first one!</div>';
+      _allMaps=[]; return;
     }
     _allMaps = Object.values(data).sort((a,b)=>(b.playCount||0)-(a.playCount||0));
     _renderMapResults(_allMaps);
   }catch(e){
-    res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Could not load maps. Check your connection.</div>';
+    console.error('loadCommunityMaps error:', e);
+    res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Could not load maps: '+e.message+'</div>';
   }
 }
 
