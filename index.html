@@ -16,7 +16,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 
-
 <style>
 :root{
   --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f7;--border:#dde1ec;
@@ -243,6 +242,12 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="join-logo">Transit <span>Tournament</span></div>
     <div class="join-sub">The city strategy game — played in real life</div>
   </div>
+  <div style="text-align:center;margin-bottom:12px;">
+    <div id="authPill" style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;min-height:36px;">
+      <button onclick="signInWithGoogle()" style="background:none;border:none;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;">Sign in with Google &#x2192;</button>
+    </div>
+  </div>
+  <div id="activeGamesSection" style="display:none;margin:0 auto 12px;max-width:380px;padding:0 16px;"></div>
   <div class="join-card" style="margin:0 auto;">
     <h2>Join a Game</h2>
     <label>Your Name</label>
@@ -1083,9 +1088,11 @@ input:focus,select:focus{border-color:var(--accent);}
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.96';
+const APP_VERSION='1.97';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2132,6 +2139,7 @@ function onMapPresetChange(){
 }
 
 async function createGame(){
+  _requireAuth(async()=>{
   const hn=document.getElementById('hostName').value.trim();
   if(!hn){showToast('Enter your name.','warn');return;}
   LS.fbUrl=FB_URL;LS.isHost=true;LS.playerName=hn;LS.playerId='host_'+Date.now();LS.mode='host';
@@ -2159,6 +2167,8 @@ async function createGame(){
   const ok=await pushState();
   if(!ok){showToast('Could not connect to Firebase. Check your internet connection.','error',6000);return;}
   saveL();document.getElementById('lobbyCode').textContent=code;renderLobby();showScreen('screenLobby');startPoll();
+  if(_authUser) _writeUserGame(_authUser.uid,code,'host',LS.playerId,-1);
+  }); // end _requireAuth
 }
 
 // JOIN
@@ -2235,9 +2245,10 @@ async function joinGame(){
     showNotif(`Welcome back, ${name}!`);
   } else {
     LS.playerId='p_'+Date.now();
-    G.players[LS.playerId]={name,teamIdx:-1,isHost:false};
+    G.players[LS.playerId]={name,teamIdx:-1,isHost:false,uid:_authUser?_authUser.uid:null};
   }
   await pushState();saveL();showScreen('screenWaiting');startPoll();
+  if(_authUser) _writeUserGame(_authUser.uid,code,'player',LS.playerId,LS.myTeamIdx);
   if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 }
 
@@ -4357,6 +4368,176 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 // MAP MARKETPLACE — Firebase /maps/{mapId}
 
+
+// ── GOOGLE SIGN-IN ────────────────────────────────────────────────
+const _fbApp = firebase.initializeApp({
+  apiKey:'AIzaSyCIp5rBGSbOxde1zlJ9FPfHw9MRmNFFD4A',
+  authDomain:'battle-for-washington.firebaseapp.com',
+  projectId:'battle-for-washington',
+  storageBucket:'battle-for-washington.firebasestorage.app',
+  messagingSenderId:'882137363658',
+  appId:'1:882137363658:web:448d0675d34adca5fdf033'
+});
+const _fbAuth = firebase.auth();
+let _authUser = null;
+
+_fbAuth.onAuthStateChanged(user=>{
+  _authUser=user;
+  _renderAuthUI();
+  if(user) _onSignIn(user);
+});
+
+function signInWithGoogle(){
+  const p=new firebase.auth.GoogleAuthProvider();
+  _fbAuth.signInWithPopup(p).catch(e=>{
+    if(e.code!=='auth/popup-closed-by-user')
+      showToast('Sign-in failed: '+e.message,'error');
+  });
+}
+function signOut(){_fbAuth.signOut().then(()=>showToast('Signed out.','ok'));}
+
+function _requireAuth(cb){
+  if(_authUser){cb();return;}
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--surface);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center;';
+  box.innerHTML='<div style="font-size:32px;margin-bottom:12px;">&#x1F510;</div>'+
+    '<div style="font-weight:700;font-size:16px;margin-bottom:8px;">Sign in required</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;">Hosting games and publishing maps requires a Google account.</div>'+
+    '<button id="_authSignInBtn" class="btn btn-p" style="width:100%;margin-bottom:10px;">Sign in with Google</button>'+
+    '<button id="_authCancelBtn" class="btn btn-g" style="width:100%;">Cancel</button>';
+  ov.appendChild(box);document.body.appendChild(ov);
+  document.getElementById('_authSignInBtn').addEventListener('click',()=>{
+    ov.remove();
+    const p=new firebase.auth.GoogleAuthProvider();
+    _fbAuth.signInWithPopup(p).then(()=>cb()).catch(e=>{
+      if(e.code!=='auth/popup-closed-by-user')
+        showToast('Sign-in failed: '+e.message,'error');
+    });
+  });
+  document.getElementById('_authCancelBtn').addEventListener('click',()=>ov.remove());
+}
+
+function _renderAuthUI(){
+  const el=document.getElementById('authPill');if(!el)return;
+  if(_authUser){
+    const photo=_authUser.photoURL?'<img src="'+_authUser.photoURL+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px;" onload="" onerror="this.remove()">':'';
+    el.innerHTML=photo+'<span style="font-size:12px;font-weight:600;color:var(--text);">'+esc(_authUser.displayName||_authUser.email||'Signed in')+'</span>'+
+      '<button onclick="signOut()" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;margin-left:8px;">Sign out</button>';
+    el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;background:var(--surface2);border:1px solid var(--border);';
+  } else {
+    el.innerHTML='<button onclick="signInWithGoogle()" style="background:none;border:none;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;">Sign in with Google &#x2192;</button>';
+    el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;';
+  }
+}
+
+async function _onSignIn(user){
+  if(user.displayName){
+    const first=user.displayName.split(' ')[0];
+    ['joinName','hostName'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=first;});
+    const cr=document.getElementById('mbCreator');if(cr&&!cr.value)cr.value=user.displayName;
+  }
+  const oldId=localStorage.getItem('tt_creator_id');
+  if(oldId&&oldId!==user.uid) await _claimOldMaps(oldId,user.uid);
+  try{localStorage.setItem('tt_creator_id',user.uid);}catch(e){}
+  _loadActiveGames(user.uid);
+}
+
+async function _claimOldMaps(oldId,newUid){
+  try{
+    const r=await fetch(MAPS_FB_PATH+'.json');if(!r.ok)return;
+    const data=await r.json();if(!data)return;
+    const old=Object.values(data).filter(m=>m.creatorId===oldId);
+    if(!old.length)return;
+    if(!confirm('Found '+old.length+' map(s) from this device ('+old.map(m=>m.name).join(', ')+'). Claim them under your Google account?'))return;
+    for(const m of old){
+      await fetch(MAPS_FB_PATH+'/'+m.id+'/creatorId.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(newUid)});
+    }
+    showToast(old.length+' map(s) claimed under your account!','ok');
+  }catch(e){}
+}
+
+async function _loadActiveGames(uid){
+  const el=document.getElementById('activeGamesSection');if(!el)return;
+  try{
+    const r=await fetch(FB_URL+'/userGames/'+uid+'.json');
+    if(!r.ok){el.style.display='none';return;}
+    const data=await r.json();
+    if(!data){el.style.display='none';return;}
+    const entries=Object.values(data).filter(g=>g&&g.gameCode&&!g.ended);
+    if(!entries.length){el.style.display='none';return;}
+    const active=[];
+    for(const g of entries.slice(0,5)){
+      try{const s=await fetchState(FB_URL,g.gameCode);if(s&&!s.ended)active.push({...g,state:s});}catch(e){}
+    }
+    if(!active.length){el.style.display='none';return;}
+    el.style.display='block';
+    el.innerHTML='';
+    const title=document.createElement('div');
+    title.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;';
+    title.textContent='Your Active Games';
+    el.appendChild(title);
+    active.forEach(g=>{
+      const isHost=g.role==='host';
+      const teamName=g.state.teams&&g.state.teams[g.teamIdx]?g.state.teams[g.teamIdx].name:'';
+      const row=document.createElement('div');
+      row.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;';
+      const info=document.createElement('div');
+      const codeEl=document.createElement('div');
+      codeEl.style.cssText='font-size:20px;letter-spacing:2px;font-weight:700;';
+      codeEl.textContent=g.gameCode;
+      const roleEl=document.createElement('div');
+      roleEl.style.cssText='font-size:11px;color:var(--muted);';
+      roleEl.textContent=isHost?'Host':(teamName?'Team: '+teamName:'Player');
+      info.appendChild(codeEl);info.appendChild(roleEl);
+      const btn=document.createElement('button');
+      btn.className='btn btn-p btn-sm';
+      btn.textContent='Rejoin →';
+      btn.addEventListener('click',()=>_rejoinFromAuth(g.gameCode,g.playerId||''));
+      row.appendChild(info);row.appendChild(btn);
+      el.appendChild(row);
+    });
+  }catch(e){el.style.display='none';}
+}
+
+async function _rejoinFromAuth(gameCode,playerId){
+  const state=await fetchState(FB_URL,gameCode);
+  if(!state){showToast('Game not found.','error');return;}
+  const uid=_authUser?_authUser.uid:null;
+  let foundPid=null,foundPlayer=null;
+  Object.entries(state.players||{}).forEach(([pid,p])=>{
+    if(pid===playerId||(uid&&p.uid===uid)){foundPid=pid;foundPlayer=p;}
+  });
+  if(!foundPid){showToast('Player not found in that game.','error');return;}
+  G={...state};if(!G.gpsLocs)G.gpsLocs={};if(!G.detours)G.detours={};if(!G.claimedTasks)G.claimedTasks={};
+  LS.fbUrl=FB_URL;LS.gameCode=gameCode;LS.playerName=foundPlayer.name;
+  LS.playerId=foundPid;LS.isHost=!!foundPlayer.isHost;
+  LS.mode=foundPlayer.isHost?'host':'player';
+  LS.myTeamIdx=foundPlayer.teamIdx>=0?foundPlayer.teamIdx:-1;
+  saveL();startPoll();
+  if(G.started){
+    const cfg3=G.config||{};
+    const[sh3,sm3]=(cfg3.start||'00:00').split(':').map(Number);
+    const now3=new Date(),st3=new Date(now3);st3.setHours(sh3,sm3,0,0);
+    if(st3>now3){showPreGame();}else{enterApp();}
+  } else {
+    if(foundPlayer.isHost){document.getElementById('lobbyCode').textContent=gameCode;renderLobby();showScreen('screenLobby');}
+    else showPreGame();
+  }
+}
+
+async function _writeUserGame(uid,gameCode,role,playerId,teamIdx){
+  if(!uid) return;
+  try{
+    await fetch(FB_URL+'/userGames/'+uid+'/'+gameCode+'.json',{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gameCode,role,playerId:playerId||'',teamIdx:teamIdx||0,joinedAt:Date.now(),ended:false})
+    });
+  }catch(e){}
+}
+
+
 // Map schema:
 // /maps/{id}: {id, name, cityName, cityTag, desc, creator, createdAt,
 //              playCount, config: {cityCenter, transitMode, transitTypes,
@@ -4484,11 +4665,12 @@ function _polyAreaSqMi(poly){
 
 // ── Creator identity (persists across sessions) ───────────────────
 function _mbGetCreatorId(){
+  if(_authUser) return _authUser.uid;
   try{
-    let id = localStorage.getItem('tt_creator_id');
-    if(!id){ id = 'cr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7); localStorage.setItem('tt_creator_id',id); }
+    let id=localStorage.getItem('tt_creator_id');
+    if(!id){id='cr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);localStorage.setItem('tt_creator_id',id);}
     return id;
-  }catch(e){ return 'cr_anon'; }
+  }catch(e){return 'cr_anon';}
 }
 
 // ── Draft persistence ─────────────────────────────────────────────
@@ -5398,6 +5580,7 @@ function _renderMbReview(){
 }
 
 async function publishMap(){
+  if(!_authUser){_requireAuth(()=>publishMap());return;}
   const name=(document.getElementById('mbName')?.value.trim())||'';
   const creator=(document.getElementById('mbCreator')?.value.trim())||'Anonymous';
   const desc=(document.getElementById('mbDesc')?.value.trim())||'';
