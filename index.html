@@ -19,8 +19,8 @@
 <style>
 :root{
   --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f7;--border:#dde1ec;
-  --text:#1a1d2e;--muted:#8890b0;--accent:#e63946;--blue:#2563eb;
-  --green:#059669;--gold:#d97706;
+  --text:#1a1d2e;--muted:#8890b0;--accent:#0d9488;--blue:#2563eb;
+  --green:#059669;--gold:#d97706;--orange:#f97316;--teal-lt:#ccfbf1;
   --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
   --shadow-lg:0 4px 24px rgba(0,0,0,.10);
   --rl:#e63946;--bl:#2563eb;--ol:#d97706;--gl:#059669;--sl:#8890b0;--yl:#f4a636;
@@ -43,7 +43,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:10px;width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
 .code-input:focus{border-color:var(--accent);}
 .hbtn{width:100%;padding:13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;}
-.hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(230,57,70,.3);}
+.hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(13,148,136,.3);}
 .hbtn.s{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
 .hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
 
@@ -230,16 +230,193 @@ input:focus,select:focus{border-color:var(--accent);}
 .notif-banner.show{transform:translateY(0);}
 
 @media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
+
+/* ── HOME SCREEN ─────────────────────────────────────────── */
+#screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;}
+.home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
+.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
+.home-title{font-family:'Bebas Neue',sans-serif;font-size:58px;letter-spacing:.06em;color:var(--accent);line-height:1;}
+.home-tagline{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.01em;}
+.home-auth-wrap{padding:0 20px 4px;}
+.home-auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);}
+.home-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-bottom:16px;}
+.hben{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);font-weight:500;}
+.hben .hbicon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
+.hben.unlocked .hbicon{background:var(--teal-lt);}
+.hben.locked .hbicon{background:var(--surface2);}
+.hben.locked{color:var(--muted);}
+.hbadge{margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);background:var(--teal-lt);border-radius:4px;padding:1px 6px;white-space:nowrap;}
+.home-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
+.home-google-btn:hover{background:var(--surface2);}
+.home-google-btn svg{width:20px;height:20px;}
+.home-signed-in-pill{display:inline-flex;align-items:center;gap:10px;background:var(--accent);border-radius:999px;padding:7px 16px 7px 7px;color:white;font-size:13px;font-weight:600;}
+.home-signed-in-pill .hpavatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;}
+.home-signed-in-pill .hpavatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif;}
+.home-section-label{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.15em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
+.home-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 20px;}
+@media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:44px;}}
+.hgcard{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column;box-shadow:var(--shadow);}
+.hgcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);}
+.hgcard.coming{cursor:default;}
+.hgcard.coming:hover{transform:none;box-shadow:var(--shadow);}
+.hgcard-anim{width:100%;aspect-ratio:3/2;background:#dde8d8;overflow:hidden;}
+.hgcard-anim svg{width:100%;height:100%;display:block;}
+.hgcard-body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;gap:5px;}
+.hgcard-titlerow{display:flex;align-items:center;justify-content:space-between;}
+.hgcard-title{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:.05em;}
+.hgcard.zone-mode .hgcard-title{color:var(--accent);}
+.hgcard.c4-mode   .hgcard-title{color:var(--orange);}
+.hgcard-badge{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#ffedd5;color:#c2410c;border-radius:5px;padding:3px 7px;}
+.hgcard-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.hgcard-cta{margin-top:8px;padding:8px 0;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;}
+.hgcard.zone-mode .hgcard-cta{background:var(--accent);}
+.hgcard.zone-mode .hgcard-cta:hover{background:#0f766e;}
+.hgcard.c4-mode   .hgcard-cta{background:var(--surface2);color:var(--muted);cursor:default;}
+/* Zone path / C4 zone SVG styles */
+.hz{fill:#c2d4bb;stroke:#b8cdb1;stroke-width:1.5;stroke-linejoin:round;transition:fill .42s ease;}
+.hc{fill:#c2d4bb;stroke:#b8cdb1;stroke-width:1.5;stroke-linejoin:round;transition:fill .45s ease;}
 </style>
 </head>
 <body>
 
 <div class="notif-banner" id="notifBanner"></div>
 
+<!-- HOME -->
+<div class="screen active" id="screenHome">
+  <div class="home-inner">
+
+    <!-- Hero -->
+    <div class="home-hero">
+      <svg class="home-hero-logomark" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2"  y="2"  width="25" height="25" rx="4" fill="#0d9488"/>
+        <rect x="33" y="2"  width="25" height="25" rx="4" fill="#0d9488" opacity=".38"/>
+        <rect x="2"  y="33" width="25" height="25" rx="4" fill="#0d9488" opacity=".38"/>
+        <rect x="33" y="33" width="25" height="25" rx="4" fill="#f97316"/>
+      </svg>
+      <div class="home-title">Transit Tournament</div>
+      <div class="home-tagline">Capture the city. Outwit your crew.</div>
+    </div>
+
+    <!-- Auth -->
+    <div class="home-auth-wrap">
+      <div id="homeAuthCard" class="home-auth-card">
+        <!-- benefits + sign in (signed-out state, default) -->
+        <div id="homeAuthOut">
+          <div class="home-benefits">
+            <div class="hben unlocked"><div class="hbicon">🎮</div>Join any game</div>
+            <div class="hben unlocked"><div class="hbicon">📍</div>Track your zones</div>
+            <div class="hben locked"><div class="hbicon">🏠</div>Host a game<span class="hbadge">🔒 Sign in</span></div>
+            <div class="hben locked"><div class="hbicon">🗺️</div>Build &amp; publish maps<span class="hbadge">🔒 Sign in</span></div>
+            <div class="hben locked"><div class="hbicon">🔄</div>Rejoin in-progress games<span class="hbadge">🔒 Sign in</span></div>
+            <div class="hben locked"><div class="hbicon">📁</div>Your map library<span class="hbadge">🔒 Sign in</span></div>
+          </div>
+          <hr class="home-divider">
+          <button class="home-google-btn" onclick="signInWithGoogle()">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+        </div>
+        <!-- signed-in state (hidden until auth fires) -->
+        <div id="homeAuthIn" style="display:none;">
+          <div class="home-signed-in-pill" id="homeSignedInPill">
+            <div class="hpavatar" id="homeAvatar"></div>
+            <span id="homeDisplayName"></span>
+            <button onclick="signOut()">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game mode cards -->
+    <div class="home-section-label">Choose a Game Mode</div>
+    <div class="home-cards">
+
+      <!-- Zone Capture -->
+      <div class="hgcard zone-mode" onclick="showScreen('screenJoin')">
+        <div class="hgcard-anim">
+          <svg id="hzc-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="hfg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect width="240" height="160" fill="#dde8d8"/>
+            <!-- zones above river -->
+            <polygon id="hz0" class="hz" points="4,4 48,4 82,4 76,28 58,42 35,50 18,46 4,38"/>
+            <polygon id="hz1" class="hz" points="82,4 122,4 162,4 155,28 135,40 112,48 76,28"/>
+            <polygon id="hz2" class="hz" points="162,4 205,4 236,4 236,38 236,56 195,58 168,44 155,28"/>
+            <!-- zones below river -->
+            <polygon id="hz3" class="hz" points="4,82 22,78 40,84 50,88 44,112 30,120 12,126 4,120"/>
+            <polygon id="hz4" class="hz" points="22,78 58,74 82,76 92,80 100,112 82,120 65,126 44,112 50,88 40,84"/>
+            <polygon id="hz5" class="hz" points="82,76 125,72 158,76 168,80 162,112 148,120 125,122 108,124 100,112"/>
+            <polygon id="hz6" class="hz" points="158,76 200,72 222,78 236,84 236,112 236,130 188,122 162,112 168,80"/>
+            <polygon id="hz7" class="hz" points="4,120 12,126 30,120 44,112 65,126 82,120 108,124 125,122 148,120 162,112 188,122 236,130 236,156 4,156"/>
+            <!-- river -->
+            <path d="M 4,62 C 28,50 52,72 82,64 C 112,56 138,80 168,68 C 192,58 215,78 236,70" fill="none" stroke="#bfdbfe" stroke-width="20" stroke-linecap="round" opacity=".9"/>
+            <path d="M 4,62 C 28,50 52,72 82,64 C 112,56 138,80 168,68 C 192,58 215,78 236,70" fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" opacity=".7"/>
+            <path d="M 4,59 C 28,47 52,69 82,61 C 112,53 138,77 168,65 C 192,55 215,75 236,67" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".38"/>
+          </svg>
+        </div>
+        <div class="hgcard-body">
+          <div class="hgcard-titlerow"><div class="hgcard-title">Zone Capture</div></div>
+          <div class="hgcard-desc">Capture more territory than your opponents before time runs out.</div>
+          <button class="hgcard-cta">Play</button>
+        </div>
+      </div>
+
+      <!-- Connect 4 -->
+      <div class="hgcard c4-mode coming">
+        <div class="hgcard-anim">
+          <svg id="hc4-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="hfg2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect width="240" height="160" fill="#dde8d8"/>
+            <!-- top 4 zones -->
+            <polygon id="hc0" class="hc" points="4,4 58,4 60,28 56,52 38,62 4,68"/>
+            <polygon id="hc1" class="hc" points="58,4 120,4 118,30 108,52 82,60 56,52 60,28"/>
+            <polygon id="hc2" class="hc" points="120,4 185,4 188,32 180,56 155,62 132,58 108,52 118,30"/>
+            <polygon id="hc3" class="hc" points="185,4 236,4 236,58 205,62 188,32"/>
+            <!-- bottom 4 zones -->
+            <polygon id="hc4" class="hc" points="4,86 38,80 60,82 58,116 40,128 4,135"/>
+            <polygon id="hc5" class="hc" points="38,80 95,76 115,80 110,122 85,132 58,116 60,82"/>
+            <polygon id="hc6" class="hc" points="95,76 162,74 180,80 175,118 148,128 115,122 110,122 115,80"/>
+            <polygon id="hc7" class="hc" points="162,74 220,78 236,85 236,130 178,134 175,118 180,80"/>
+            <!-- bottom fringe -->
+            <polygon class="hc" points="4,135 40,128 58,116 85,132 110,122 115,122 148,128 175,118 178,134 236,130 236,156 4,156" style="fill:#c2d4bb;stroke:#b8cdb1;transition:none;"/>
+            <!-- river -->
+            <path d="M 4,76 C 28,62 52,86 85,74 C 118,62 145,86 178,74 C 205,64 222,82 236,76" fill="none" stroke="#bfdbfe" stroke-width="18" stroke-linecap="round" opacity=".9"/>
+            <path d="M 4,76 C 28,62 52,86 85,74 C 118,62 145,86 178,74 C 205,64 222,82 236,76" fill="none" stroke="#60a5fa" stroke-width="7" stroke-linecap="round" opacity=".7"/>
+            <path d="M 4,73 C 28,59 52,83 85,71 C 118,59 145,83 178,71 C 205,61 222,79 236,73" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".38"/>
+            <!-- win line -->
+            <line id="hc4-win" x1="30" y1="108" x2="208" y2="104" stroke="white" stroke-width="5" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" opacity="0" filter="url(#hfg2)"/>
+          </svg>
+        </div>
+        <div class="hgcard-body">
+          <div class="hgcard-titlerow">
+            <div class="hgcard-title">Connect 4</div>
+            <span class="hgcard-badge">Coming Soon</span>
+          </div>
+          <div class="hgcard-desc">Capture four connected zones in a straight line to win.</div>
+          <button class="hgcard-cta" disabled>Coming Soon</button>
+        </div>
+      </div>
+
+    </div><!-- /home-cards -->
+  </div><!-- /home-inner -->
+</div>
+
 <!-- JOIN -->
-<div class="screen active" id="screenJoin">
-  <div style="text-align:center;margin-bottom:4px;padding-top:40px;">
-    <div class="join-logo">Transit <span>Tournament</span></div>
+<div class="screen" id="screenJoin">
+  <div style="text-align:center;margin-bottom:4px;padding-top:32px;">
+    <div style="margin-bottom:8px;"><span onclick="showScreen('screenHome')" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;">← Back to Home</span></div>
+    <div class="join-logo">Zone <span>Capture</span></div>
     <div class="join-sub">The city strategy game — played in real life</div>
   </div>
   <div style="text-align:center;margin-bottom:12px;">
@@ -383,7 +560,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <button class="btn btn-g btn-sm" onclick="addTeam()" style="margin-bottom:16px;">+ Add Team</button>
     <div class="divider"></div>
     <div style="display:flex;gap:8px;">
-      <button class="btn btn-g" onclick="showScreen('screenJoin')">← Back</button>
+      <button class="btn btn-g" onclick="showScreen('screenHome')">← Back</button>
       <button class="btn btn-p" style="flex:1" onclick="createGame()">Generate Game Code →</button>
     </div>
   </div>
@@ -482,7 +659,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- MAIN APP -->
 <div class="screen" id="screenApp">
   <header>
-    <div class="logo">Battle for <span>Washington</span></div>
+    <div class="logo">Transit <span>Tournament</span></div>
     <div class="hright">
       <div id="myTeamBadge" class="myteam-badge" style="display:none;"></div>
       <div class="gpill" id="gspill">Lobby</div>
@@ -2088,6 +2265,8 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='screenMapBuilder') _mbInit();
+  if(id==='screenHome') _homeAnimStart();
+  else _homeAnimStop();
 }
 function openMapBuilder(){ showScreen('screenMapBuilder'); }
 
@@ -4420,15 +4599,37 @@ function _requireAuth(cb){
 }
 
 function _renderAuthUI(){
-  const el=document.getElementById('authPill');if(!el)return;
-  if(_authUser){
-    const photo=_authUser.photoURL?'<img src="'+_authUser.photoURL+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px;" onload="" onerror="this.remove()">':'';
-    el.innerHTML=photo+'<span style="font-size:12px;font-weight:600;color:var(--text);">'+esc(_authUser.displayName||_authUser.email||'Signed in')+'</span>'+
-      '<button onclick="signOut()" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;margin-left:8px;">Sign out</button>';
-    el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;background:var(--surface2);border:1px solid var(--border);';
-  } else {
-    el.innerHTML='<button onclick="signInWithGoogle()" style="background:none;border:none;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;">Sign in with Google &#x2192;</button>';
-    el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;';
+  // Join screen auth pill
+  const el=document.getElementById('authPill');
+  if(el){
+    if(_authUser){
+      const photo=_authUser.photoURL?'<img src="'+_authUser.photoURL+'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px;" onerror="this.remove()">':'';
+      el.innerHTML=photo+'<span style="font-size:12px;font-weight:600;color:var(--text);">'+esc(_authUser.displayName||_authUser.email||'Signed in')+'</span>'+
+        '<button onclick="signOut()" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;margin-left:8px;">Sign out</button>';
+      el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;background:var(--surface2);border:1px solid var(--border);';
+    } else {
+      el.innerHTML='<button onclick="signInWithGoogle()" style="background:none;border:none;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;">Sign in with Google &#x2192;</button>';
+      el.style.cssText='display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;';
+    }
+  }
+  // Home screen auth
+  const hOut=document.getElementById('homeAuthOut');
+  const hIn=document.getElementById('homeAuthIn');
+  if(hOut&&hIn){
+    if(_authUser){
+      hOut.style.display='none';
+      hIn.style.display='block';
+      const nameEl=document.getElementById('homeDisplayName');
+      if(nameEl) nameEl.textContent=_authUser.displayName||_authUser.email||'Signed in';
+      const av=document.getElementById('homeAvatar');
+      if(av){
+        if(_authUser.photoURL) av.innerHTML='<img src="'+_authUser.photoURL+'" onerror="this.parentElement.textContent=\''+esc(((_authUser.displayName||'?')[0]).toUpperCase())+'\';">';
+        else av.textContent=(_authUser.displayName||'?')[0].toUpperCase();
+      }
+    } else {
+      hOut.style.display='block';
+      hIn.style.display='none';
+    }
   }
 }
 
@@ -5824,6 +6025,84 @@ function showVersionBanner(){
   const b=document.getElementById('versionBanner');
   if(b)b.style.display='flex';
 }
+
+// ── HOME SCREEN ANIMATIONS ───────────────────────────────────────────────────
+const _H_COLORS={teal:'#0d9488',orange:'#f97316',purple:'#8b5cf6',emerald:'#10b981',neutral:'#c2d4bb',winDark:'#c2410c'};
+
+// Zone Capture animation
+const _HZC_TEAMS=['teal','orange','purple','emerald','orange','teal','purple','teal'];
+let _hzcIdx=0,_hzcTimer=null;
+
+function _hzcTick(){
+  const zones=Array.from({length:8},(_,i)=>document.getElementById('hz'+i));
+  if(!zones[0]) return;
+  if(_hzcIdx<zones.length){
+    zones[_hzcIdx].style.fill=_H_COLORS[_HZC_TEAMS[_hzcIdx]];
+    _hzcIdx++;
+    _hzcTimer=setTimeout(_hzcTick,510);
+  } else {
+    _hzcTimer=setTimeout(_hzcReset,2400);
+  }
+}
+function _hzcReset(){
+  Array.from({length:8},(_,i)=>document.getElementById('hz'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  _hzcIdx=0;
+  _hzcTimer=setTimeout(_hzcTick,900);
+}
+
+// Connect 4 animation
+const _HC4_SEQ=[[0,'teal'],[5,'orange'],[2,'purple'],[4,'orange'],[3,'teal'],[6,'orange'],[1,'purple'],[7,'orange']];
+let _hc4Step=0,_hc4Timer=null;
+
+function _hc4Tick(){
+  if(_hc4Step>=_HC4_SEQ.length) return;
+  const [zi,team]=_HC4_SEQ[_hc4Step];
+  const z=document.getElementById('hc'+zi);
+  if(z) z.style.fill=_H_COLORS[team];
+  _hc4Step++;
+  if(_hc4Step===_HC4_SEQ.length){
+    _hc4Timer=setTimeout(_hc4Win,420);
+  } else {
+    _hc4Timer=setTimeout(_hc4Tick,560);
+  }
+}
+function _hc4Win(){
+  const wl=document.getElementById('hc4-win');
+  if(!wl) return;
+  wl.style.opacity='1';
+  wl.style.transition='none';
+  wl.setAttribute('stroke-dashoffset','200');
+  void wl.getBoundingClientRect();
+  wl.style.transition='stroke-dashoffset .8s cubic-bezier(.35,0,.2,1)';
+  wl.setAttribute('stroke-dashoffset','0');
+  setTimeout(()=>{[4,5,6,7].forEach(i=>{const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.winDark;});},450);
+  _hc4Timer=setTimeout(_hc4Reset,2800);
+}
+function _hc4Reset(){
+  const wl=document.getElementById('hc4-win');
+  if(wl){wl.style.transition='opacity .28s';wl.style.opacity='0';setTimeout(()=>{wl.setAttribute('stroke-dashoffset','200');},310);}
+  Array.from({length:8},(_,i)=>document.getElementById('hc'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  _hc4Step=0;
+  _hc4Timer=setTimeout(_hc4Tick,1050);
+}
+
+function _homeAnimStart(){
+  clearTimeout(_hzcTimer); clearTimeout(_hc4Timer);
+  // Reset zone fills before starting
+  Array.from({length:8},(_,i)=>document.getElementById('hz'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  Array.from({length:8},(_,i)=>document.getElementById('hc'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  const wl=document.getElementById('hc4-win');if(wl){wl.style.opacity='0';wl.setAttribute('stroke-dashoffset','200');}
+  _hzcIdx=0; _hc4Step=0;
+  _hzcTimer=setTimeout(_hzcTick,600);
+  _hc4Timer=setTimeout(_hc4Tick,1200);
+}
+function _homeAnimStop(){
+  clearTimeout(_hzcTimer); clearTimeout(_hc4Timer);
+}
+
+// Start animations immediately on page load (home is the initial active screen)
+_homeAnimStart();
+
 </script>
 
 
