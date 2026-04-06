@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="BFW">
+<meta name="apple-mobile-web-app-title" content="Transit Tournament">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
@@ -1209,6 +1209,7 @@ input:focus,select:focus{border-color:var(--accent);}
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
           <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
           <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
+          <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
           <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
         </div>
       </div>
@@ -1229,9 +1230,12 @@ input:focus,select:focus{border-color:var(--accent);}
     <!-- Step 6: Review & Publish -->
     <div id="mbPanel-review" style="display:none;padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
       <div id="mbReviewContent"></div>
+      <div id="mbReviewMapWrap" style="width:100%;height:220px;border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px;">
+        <div id="mbReviewMapEl" style="width:100%;height:100%;"></div>
+      </div>
       <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
       <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
-      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenJoin')">Save Draft &amp; Exit</button>
+      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenHome')">Save Draft &amp; Exit</button>
     </div>
   </div>
 </div>
@@ -5217,7 +5221,7 @@ function _mbMakeMap(elId, existingZones){
       }
     });
   }
-  setTimeout(()=>m&&m.invalidateSize(),150);
+  setTimeout(()=>m&&m.invalidateSize(),300);
   return m;
 }
 
@@ -5559,10 +5563,12 @@ function mbDeleteLandmark(){
 
 // ── Transit lines ─────────────────────────────────────────────────
 function mbStartLine(){
+  if(!_mbMapTransit){showToast('Map not ready yet — wait a moment and try again.','warn');return;}
   _mbDrawingLine=true; _mbCurrentLineStops=[];
   if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
   document.getElementById('mbNewLineBtn').style.display='none';
   document.getElementById('mbFinishLineBtn').style.display='inline-block';
+  document.getElementById('mbUndoStopBtn').style.display='inline-block';
   showToast('Tap stops along the route. Click Done when finished.','info',4000);
 }
 
@@ -5640,6 +5646,7 @@ function mbFinishLine(){
   _mbDrawingLine=false;
   document.getElementById('mbNewLineBtn').style.display='inline-block';
   document.getElementById('mbFinishLineBtn').style.display='none';
+  document.getElementById('mbUndoStopBtn').style.display='none';
 
   // Extending an existing line
   if(window._mbExtendingLineIdx!=null){
@@ -5686,6 +5693,23 @@ function mbCancelLine(){
   _mbDrawingLine=false;
   document.getElementById('mbNewLineBtn').style.display='inline-block';
   document.getElementById('mbFinishLineBtn').style.display='none';
+  document.getElementById('mbUndoStopBtn').style.display='none';
+}
+
+function mbUndoStop(){
+  if(!_mbCurrentLineStops.length){showToast('No stops to undo.','warn');return;}
+  _mbCurrentLineStops.pop();
+  // Remove the last stop marker
+  const mkrs=window._mbCurrentStopMarkers||[];
+  if(mkrs.length){mkrs[mkrs.length-1].remove();mkrs.pop();}
+  // Redraw preview polyline
+  if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;}
+  if(_mbCurrentLineStops.length>1){
+    const smooth=document.getElementById('mbLineSmooth')?.checked||false;
+    const pts=_mbSmoothLine(_mbCurrentLineStops,smooth);
+    _mbCurrentLineLayer=L.polyline(pts,{color:'#1d4ed8',weight:3,dashArray:'6,4',opacity:.8}).addTo(_mbMapTransit);
+  }
+  showToast('Stop removed.','ok',1500);
 }
 
 function mbConfirmLine(){
@@ -5732,23 +5756,31 @@ function mbConfirmLine(){
 function _mbRenderLineList(){
   const el=document.getElementById('mbLineList'); if(!el) return;
   el.innerHTML='';
+  const TYPE_ICON={'streetcar':'🚃','subway':'🚇','bus':'🚌','commuter':'🚆','ferry':'⛴️','light_rail':'🚊'};
   _mbLines.forEach((ln,i)=>{
     const wrap=document.createElement('div');
-    wrap.style.cssText='flex-shrink:0;display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:20px;background:'+ln.color+'22;border:1px solid '+ln.color+';';
+    wrap.style.cssText='flex-shrink:0;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:'+ln.color+'22;border:1px solid '+ln.color+';';
+    const icon=document.createElement('span');
+    icon.style.cssText='font-size:11px;';
+    icon.textContent=(TYPE_ICON[ln.type]||'🚌');
     const label=document.createElement('span');
-    label.style.cssText='font-size:10px;color:'+ln.color+';cursor:pointer;';
+    label.style.cssText='font-size:10px;font-weight:600;color:'+ln.color+';cursor:pointer;';
     label.textContent=ln.name;
+    label.title='Edit line';
     label.addEventListener('click',()=>_mbEditLine(i));
+    const dot=document.createElement('span');
+    dot.style.cssText='width:8px;height:8px;border-radius:50%;background:'+ln.color+';display:inline-block;flex-shrink:0;';
     const addBtn=document.createElement('button');
-    addBtn.style.cssText='background:none;border:none;font-size:10px;color:'+ln.color+';cursor:pointer;padding:0 2px;';
+    addBtn.style.cssText='background:none;border:none;font-size:11px;color:'+ln.color+';cursor:pointer;padding:0 1px;line-height:1;';
     addBtn.textContent='+';
     addBtn.title='Add stops to this line';
     addBtn.addEventListener('click',()=>_mbExtendLine(i));
     const delBtn=document.createElement('button');
-    delBtn.style.cssText='background:none;border:none;font-size:10px;color:var(--accent);cursor:pointer;padding:0 2px;';
+    delBtn.style.cssText='background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;padding:0 1px;line-height:1;';
     delBtn.textContent='✕';
+    delBtn.title='Delete line';
     delBtn.addEventListener('click',()=>mbDeleteLine(i));
-    wrap.appendChild(label); wrap.appendChild(addBtn); wrap.appendChild(delBtn);
+    wrap.appendChild(icon); wrap.appendChild(label); wrap.appendChild(addBtn); wrap.appendChild(delBtn);
     el.appendChild(wrap);
   });
 }
@@ -5804,8 +5836,42 @@ function _renderMbReview(){
   el.innerHTML='<div class="card" style="margin-bottom:10px;font-size:13px;line-height:1.8;">'+
     '<b>'+esc(name)+'</b><br>City: '+esc(city)+'<br>By: '+esc(creator)+
     (desc?'<br><span style="color:var(--muted);font-style:italic;">'+esc(desc)+'</span>':'')+
-    '</div><div class="card" style="font-size:12px;line-height:1.7;">'+
+    '</div><div class="card" style="font-size:12px;line-height:1.7;margin-bottom:12px;">'+
     _mbZones.length+' zones &nbsp;&middot;&nbsp; '+_mbLandmarks.length+' landmarks &nbsp;&middot;&nbsp; '+_mbLines.length+' transit lines</div>';
+
+  // Build preview map
+  if(window._mbReviewMap){try{window._mbReviewMap.remove();}catch(e){} window._mbReviewMap=null;}
+  setTimeout(()=>{
+    const mapEl=document.getElementById('mbReviewMapEl');
+    if(!mapEl) return;
+    const cd=_mbCityData;
+    const center=cd?[cd.lat,cd.lng]:[39.0,-94.6];
+    window._mbReviewMap=L.map('mbReviewMapEl',{center,zoom:12,zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(window._mbReviewMap);
+    const allLatLngs=[];
+    _mbZones.forEach(z=>{
+      if(z.poly&&z.poly.length>2){
+        L.polygon(z.poly,{fillColor:'#0d9488',fillOpacity:.15,color:'#0d9488',weight:2,interactive:false}).addTo(window._mbReviewMap);
+        const c=_centroid(z.poly);
+        L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:9px;font-weight:700;color:#0f766e;pointer-events:none;white-space:nowrap;">'+esc(z.name)+'</div>',iconAnchor:[20,6]}),interactive:false}).addTo(window._mbReviewMap);
+        z.poly.forEach(pt=>allLatLngs.push(pt));
+      }
+    });
+    _mbLines.forEach(ln=>{
+      if(ln.stops&&ln.stops.length>1){
+        const pts=_mbSmoothLine(ln.stops,ln.smooth);
+        L.polyline(pts,{color:ln.color,weight:3,opacity:.85,interactive:false}).addTo(window._mbReviewMap);
+      }
+    });
+    _mbLandmarks.forEach(lm=>{
+      const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:#f97316;border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+      L.marker([lm.lat,lm.lng],{icon,interactive:false}).addTo(window._mbReviewMap);
+    });
+    if(allLatLngs.length>0){
+      window._mbReviewMap.fitBounds(L.latLngBounds(allLatLngs),{padding:[16,16],maxZoom:14});
+    }
+    setTimeout(()=>window._mbReviewMap&&window._mbReviewMap.invalidateSize(),300);
+  },0);
 }
 
 async function publishMap(){
