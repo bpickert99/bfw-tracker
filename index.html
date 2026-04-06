@@ -347,20 +347,34 @@ input:focus,select:focus{border-color:var(--accent);}
               <filter id="hfg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
             <rect width="240" height="160" fill="#dde8d8"/>
-            <!-- zones above river -->
-            <polygon id="hz0" class="hz" points="4,4 48,4 82,4 76,28 58,42 35,50 18,46 4,38"/>
-            <polygon id="hz1" class="hz" points="82,4 122,4 162,4 155,28 135,40 112,48 76,28"/>
-            <polygon id="hz2" class="hz" points="162,4 205,4 236,4 236,38 236,56 195,58 168,44 155,28"/>
-            <!-- zones below river -->
-            <polygon id="hz3" class="hz" points="4,82 22,78 40,84 50,88 44,112 30,120 12,126 4,120"/>
-            <polygon id="hz4" class="hz" points="22,78 58,74 82,76 92,80 100,112 82,120 65,126 44,112 50,88 40,84"/>
-            <polygon id="hz5" class="hz" points="82,76 125,72 158,76 168,80 162,112 148,120 125,122 108,124 100,112"/>
-            <polygon id="hz6" class="hz" points="158,76 200,72 222,78 236,84 236,112 236,130 188,122 162,112 168,80"/>
-            <polygon id="hz7" class="hz" points="4,120 12,126 30,120 44,112 65,126 82,120 108,124 125,122 148,120 162,112 188,122 236,130 236,156 4,156"/>
-            <!-- river -->
-            <path d="M 4,62 C 28,50 52,72 82,64 C 112,56 138,80 168,68 C 192,58 215,78 236,70" fill="none" stroke="#bfdbfe" stroke-width="20" stroke-linecap="round" opacity=".9"/>
-            <path d="M 4,62 C 28,50 52,72 82,64 C 112,56 138,80 168,68 C 192,58 215,78 236,70" fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" opacity=".7"/>
-            <path d="M 4,59 C 28,47 52,69 82,61 C 112,53 138,77 168,65 C 192,55 215,75 236,67" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".38"/>
+            <!--
+              8 zones, 4-col × 2-row grid. All zone edges share exact vertex lists
+              so zones tessellate with zero gaps. Vertical spines use rectilinear
+              right-angle jogs (like street/county lines). River runs horizontally
+              at y≈68 and is drawn on top to cover the seam.
+
+              Spine 1 (between col 0/1): 58,0→58,22→62,22→62,45→56,45→56,68
+                                        56,68→56,88→62,88→62,115→58,115→58,160
+              Spine 2 (between col 1/2): 120,0→120,25→116,25→116,48→124,48→124,68
+                                        124,68→124,90→118,90→118,118→122,118→122,160
+              Spine 3 (between col 2/3): 178,0→178,20→182,20→182,44→176,44→176,66
+                                        176,66→176,88→180,88→180,112→174,112→174,160
+              River seam: 0,70 — 56,68 — 124,68 — 176,66 — 240,70
+            -->
+            <!-- Top row -->
+            <polygon id="hz0" class="hz" points="0,0 58,0 58,22 62,22 62,45 56,45 56,68 0,70"/>
+            <polygon id="hz1" class="hz" points="58,0 120,0 120,25 116,25 116,48 124,48 124,68 56,68 56,45 62,45 62,22 58,22"/>
+            <polygon id="hz2" class="hz" points="120,0 178,0 178,20 182,20 182,44 176,44 176,66 124,68 124,48 116,48 116,25 120,25"/>
+            <polygon id="hz3" class="hz" points="178,0 240,0 240,70 176,66 176,44 182,44 182,20 178,20"/>
+            <!-- Bottom row -->
+            <polygon id="hz4" class="hz" points="0,70 56,68 56,88 62,88 62,115 58,115 58,160 0,160"/>
+            <polygon id="hz5" class="hz" points="56,68 124,68 124,90 118,90 118,118 122,118 122,160 58,160 58,115 62,115 62,88 56,88"/>
+            <polygon id="hz6" class="hz" points="124,68 176,66 176,88 180,88 180,112 174,112 174,160 122,160 122,118 118,118 118,90 124,90"/>
+            <polygon id="hz7" class="hz" points="176,66 240,70 240,160 174,160 174,112 180,112 180,88 176,88"/>
+            <!-- River — horizontal band following the seam at y≈68, drawn on top -->
+            <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#bfdbfe" stroke-width="22" stroke-linecap="round" opacity=".9"/>
+            <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#60a5fa" stroke-width="9" stroke-linecap="round" opacity=".75"/>
+            <path d="M 0,67 C 20,61 38,69 56,65 C 80,61 100,69 124,65 C 148,61 162,65 176,63 C 200,60 220,67 240,67" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
           </svg>
         </div>
         <div class="hgcard-body">
@@ -378,24 +392,38 @@ input:focus,select:focus{border-color:var(--accent);}
               <filter id="hfg2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
             <rect width="240" height="160" fill="#dde8d8"/>
-            <!-- top 4 zones -->
-            <polygon id="hc0" class="hc" points="4,4 58,4 60,28 56,52 38,62 4,68"/>
-            <polygon id="hc1" class="hc" points="58,4 120,4 118,30 108,52 82,60 56,52 60,28"/>
-            <polygon id="hc2" class="hc" points="120,4 185,4 188,32 180,56 155,62 132,58 108,52 118,30"/>
-            <polygon id="hc3" class="hc" points="185,4 236,4 236,58 205,62 188,32"/>
-            <!-- bottom 4 zones -->
-            <polygon id="hc4" class="hc" points="4,86 38,80 60,82 58,116 40,128 4,135"/>
-            <polygon id="hc5" class="hc" points="38,80 95,76 115,80 110,122 85,132 58,116 60,82"/>
-            <polygon id="hc6" class="hc" points="95,76 162,74 180,80 175,118 148,128 115,122 110,122 115,80"/>
-            <polygon id="hc7" class="hc" points="162,74 220,78 236,85 236,130 178,134 175,118 180,80"/>
-            <!-- bottom fringe -->
-            <polygon class="hc" points="4,135 40,128 58,116 85,132 110,122 115,122 148,128 175,118 178,134 236,130 236,156 4,156" style="fill:#c2d4bb;stroke:#b8cdb1;transition:none;"/>
-            <!-- river -->
-            <path d="M 4,76 C 28,62 52,86 85,74 C 118,62 145,86 178,74 C 205,64 222,82 236,76" fill="none" stroke="#bfdbfe" stroke-width="18" stroke-linecap="round" opacity=".9"/>
-            <path d="M 4,76 C 28,62 52,86 85,74 C 118,62 145,86 178,74 C 205,64 222,82 236,76" fill="none" stroke="#60a5fa" stroke-width="7" stroke-linecap="round" opacity=".7"/>
-            <path d="M 4,73 C 28,59 52,83 85,71 C 118,59 145,83 178,71 C 205,61 222,79 236,73" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".38"/>
-            <!-- win line -->
-            <line id="hc4-win" x1="30" y1="108" x2="208" y2="104" stroke="white" stroke-width="5" stroke-linecap="round" stroke-dasharray="200" stroke-dashoffset="200" opacity="0" filter="url(#hfg2)"/>
+            <!--
+              Same rectilinear spine system, but river runs higher at y≈52,
+              leaving a large bottom row for orange's winning 4-zone horizontal.
+
+              Spine 1: 58,0→58,20→62,20→62,42→56,42→56,52
+                      56,52→56,75→62,75→62,104→58,104→58,160
+              Spine 2: 118,0→118,22→122,22→122,45→116,45→116,52
+                      116,52→116,78→122,78→122,108→118,108→118,160
+              Spine 3: 178,0→178,18→182,18→182,42→176,42→176,50
+                      176,50→176,74→180,74→180,104→174,104→174,160
+              River seam: 0,54 — 56,52 — 116,52 — 176,50 — 240,54
+            -->
+            <!-- Top row (narrow — above river) -->
+            <polygon id="hc0" class="hc" points="0,0 58,0 58,20 62,20 62,42 56,42 56,52 0,54"/>
+            <polygon id="hc1" class="hc" points="58,0 118,0 118,22 122,22 122,45 116,45 116,52 56,52 56,42 62,42 62,20 58,20"/>
+            <polygon id="hc2" class="hc" points="118,0 178,0 178,18 182,18 182,42 176,42 176,50 116,52 116,45 122,45 122,22 118,22"/>
+            <polygon id="hc3" class="hc" points="178,0 240,0 240,54 176,50 176,42 182,42 182,18 178,18"/>
+            <!-- Bottom row (wide — orange captures all 4 for the win) -->
+            <polygon id="hc4" class="hc" points="0,54 56,52 56,75 62,75 62,104 58,104 58,160 0,160"/>
+            <polygon id="hc5" class="hc" points="56,52 116,52 116,78 122,78 122,108 118,108 118,160 58,160 58,104 62,104 62,75 56,75"/>
+            <polygon id="hc6" class="hc" points="116,52 176,50 176,74 180,74 180,104 174,104 174,160 118,160 118,108 122,108 122,78 116,78"/>
+            <polygon id="hc7" class="hc" points="176,50 240,54 240,160 174,160 174,104 180,104 180,74 176,74"/>
+            <!-- River — horizontal band at y≈52 following the seam -->
+            <path d="M 0,54 C 18,48 38,56 56,52 C 80,48 98,56 116,52 C 140,48 158,54 176,50 C 198,46 220,54 240,52" fill="none" stroke="#bfdbfe" stroke-width="20" stroke-linecap="round" opacity=".9"/>
+            <path d="M 0,54 C 18,48 38,56 56,52 C 80,48 98,56 116,52 C 140,48 158,54 176,50 C 198,46 220,54 240,52" fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" opacity=".75"/>
+            <path d="M 0,51 C 18,45 38,53 56,49 C 80,45 98,53 116,49 C 140,45 158,51 176,47 C 198,43 220,51 240,49" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
+            <!-- Win line through bottom row centers (~y=106), drawn on 4-in-a-row -->
+            <line id="hc4-win"
+                  x1="16" y1="106" x2="222" y2="104"
+                  stroke="white" stroke-width="5" stroke-linecap="round"
+                  stroke-dasharray="208" stroke-dashoffset="208"
+                  opacity="0" filter="url(#hfg2)"/>
           </svg>
         </div>
         <div class="hgcard-body">
@@ -6029,29 +6057,37 @@ function showVersionBanner(){
 // ── HOME SCREEN ANIMATIONS ───────────────────────────────────────────────────
 const _H_COLORS={teal:'#0d9488',orange:'#f97316',purple:'#8b5cf6',emerald:'#10b981',neutral:'#c2d4bb',winDark:'#c2410c'};
 
-// Zone Capture animation
+// ── Zone Capture: 8 zones, 4 teams progressively claim territory ──
+// Zones 0-3 = top row; 4-7 = bottom row
 const _HZC_TEAMS=['teal','orange','purple','emerald','orange','teal','purple','teal'];
 let _hzcIdx=0,_hzcTimer=null;
 
 function _hzcTick(){
-  const zones=Array.from({length:8},(_,i)=>document.getElementById('hz'+i));
-  if(!zones[0]) return;
-  if(_hzcIdx<zones.length){
-    zones[_hzcIdx].style.fill=_H_COLORS[_HZC_TEAMS[_hzcIdx]];
-    _hzcIdx++;
-    _hzcTimer=setTimeout(_hzcTick,510);
-  } else {
-    _hzcTimer=setTimeout(_hzcReset,2400);
-  }
+  const z=document.getElementById('hz'+_hzcIdx);
+  if(!z) return;
+  z.style.fill=_H_COLORS[_HZC_TEAMS[_hzcIdx]];
+  _hzcIdx++;
+  if(_hzcIdx<8) _hzcTimer=setTimeout(_hzcTick,510);
+  else _hzcTimer=setTimeout(_hzcReset,2400);
 }
 function _hzcReset(){
-  Array.from({length:8},(_,i)=>document.getElementById('hz'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  for(let i=0;i<8;i++){const z=document.getElementById('hz'+i);if(z)z.style.fill=_H_COLORS.neutral;}
   _hzcIdx=0;
   _hzcTimer=setTimeout(_hzcTick,900);
 }
 
-// Connect 4 animation
-const _HC4_SEQ=[[0,'teal'],[5,'orange'],[2,'purple'],[4,'orange'],[3,'teal'],[6,'orange'],[1,'purple'],[7,'orange']];
+// ── Connect 4: teal/purple contest top row while orange quietly builds bottom row ──
+// Win condition: orange captures bottom row hc4→hc5→hc6→hc7
+const _HC4_SEQ=[
+  [0,'teal'],    // teal opens top-left
+  [4,'orange'],  // orange starts bottom-left  ← 1 in a row
+  [2,'purple'],  // purple takes top-center-right
+  [5,'orange'],  // orange bottom-center-left  ← 2 in a row
+  [3,'teal'],    // teal grabs top-right
+  [6,'orange'],  // orange bottom-center-right ← 3 in a row
+  [1,'purple'],  // purple top-center (looks like blocking)
+  [7,'orange'],  // orange bottom-right        ← 4 IN A ROW — WIN!
+];
 let _hc4Step=0,_hc4Timer=null;
 
 function _hc4Tick(){
@@ -6060,38 +6096,38 @@ function _hc4Tick(){
   const z=document.getElementById('hc'+zi);
   if(z) z.style.fill=_H_COLORS[team];
   _hc4Step++;
-  if(_hc4Step===_HC4_SEQ.length){
-    _hc4Timer=setTimeout(_hc4Win,420);
-  } else {
-    _hc4Timer=setTimeout(_hc4Tick,560);
-  }
+  if(_hc4Step===_HC4_SEQ.length) _hc4Timer=setTimeout(_hc4Win,420);
+  else _hc4Timer=setTimeout(_hc4Tick,560);
 }
 function _hc4Win(){
   const wl=document.getElementById('hc4-win');
   if(!wl) return;
   wl.style.opacity='1';
   wl.style.transition='none';
-  wl.setAttribute('stroke-dashoffset','200');
+  wl.setAttribute('stroke-dashoffset','208');
   void wl.getBoundingClientRect();
-  wl.style.transition='stroke-dashoffset .8s cubic-bezier(.35,0,.2,1)';
+  wl.style.transition='stroke-dashoffset .85s cubic-bezier(.35,0,.2,1)';
   wl.setAttribute('stroke-dashoffset','0');
-  setTimeout(()=>{[4,5,6,7].forEach(i=>{const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.winDark;});},450);
+  // Darken the 4 winning zones as the line completes
+  setTimeout(()=>{[4,5,6,7].forEach(i=>{const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.winDark;});},480);
   _hc4Timer=setTimeout(_hc4Reset,2800);
 }
 function _hc4Reset(){
   const wl=document.getElementById('hc4-win');
-  if(wl){wl.style.transition='opacity .28s';wl.style.opacity='0';setTimeout(()=>{wl.setAttribute('stroke-dashoffset','200');},310);}
-  Array.from({length:8},(_,i)=>document.getElementById('hc'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
+  if(wl){wl.style.transition='opacity .28s';wl.style.opacity='0';setTimeout(()=>{wl.setAttribute('stroke-dashoffset','208');},310);}
+  for(let i=0;i<8;i++){const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.neutral;}
   _hc4Step=0;
   _hc4Timer=setTimeout(_hc4Tick,1050);
 }
 
 function _homeAnimStart(){
   clearTimeout(_hzcTimer); clearTimeout(_hc4Timer);
-  // Reset zone fills before starting
-  Array.from({length:8},(_,i)=>document.getElementById('hz'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
-  Array.from({length:8},(_,i)=>document.getElementById('hc'+i)).forEach(z=>{if(z)z.style.fill=_H_COLORS.neutral;});
-  const wl=document.getElementById('hc4-win');if(wl){wl.style.opacity='0';wl.setAttribute('stroke-dashoffset','200');}
+  for(let i=0;i<8;i++){
+    const a=document.getElementById('hz'+i); if(a) a.style.fill=_H_COLORS.neutral;
+    const b=document.getElementById('hc'+i); if(b) b.style.fill=_H_COLORS.neutral;
+  }
+  const wl=document.getElementById('hc4-win');
+  if(wl){wl.style.opacity='0';wl.setAttribute('stroke-dashoffset','208');}
   _hzcIdx=0; _hc4Step=0;
   _hzcTimer=setTimeout(_hzcTick,600);
   _hc4Timer=setTimeout(_hc4Tick,1200);
