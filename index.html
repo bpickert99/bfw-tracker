@@ -8,50 +8,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#003d7a">
+<meta name="theme-color" content="#0B2C61">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Transit Tournament">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 
 <style>
 :root{
-  --bg:#f0f4f8;--surface:#ffffff;--surface2:#e8eef5;--border:#d0d9e6;
-  --text:#1a2332;--muted:#6b7a94;--accent:#0066cc;--accent-dark:#0055a5;--blue:#0066cc;
-  --green:#059669;--gold:#d97706;--orange:#f97316;--teal-lt:#dbeafe;
-  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
-  --shadow-lg:0 4px 24px rgba(0,0,0,.10);
-  --rl:#e63946;--bl:#2563eb;--ol:#d97706;--gl:#059669;--sl:#8890b0;--yl:#f4a636;
-  --header-bg:linear-gradient(135deg,#003366,#005baa);--tab-bg:#003d7a;
+  --bg:#EEF2F7;--surface:#FFFFFF;--surface2:#E8EEF5;--border:#DCE3EC;
+  --text:#15233B;--muted:#5B6B82;--faint:#8FA0B5;--accent:#1A6DD4;--accent-press:#1257AE;
+  --green:#00B86B;--orange:#F0801A;--gold:#F0801A;
+  --shadow:0 2px 10px rgba(11,44,97,.06);
+  --shadow-lg:0 4px 14px rgba(11,44,97,.10);
+  --rl:#E23B3B;--bl:#2563EB;--ol:#EA8A1E;--gl:#15A34A;--sl:#94A3B4;--yl:#F4B400;
+  --header-bg:#0B2C61;--tab-bg:#0B2C61;
+  --r-card:20px;--r-feat:24px;--r-btn:16px;--r-input:14px;--r-chip:999px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
 .screen{display:none;}
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
 /* JOIN */
 #screenJoin{align-items:center;justify-content:flex-start;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));background:var(--surface);overflow-y:auto;}
-.join-logo{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--text);line-height:1;margin-bottom:4px;text-align:center;}
+.join-logo{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:44px;letter-spacing:3px;color:var(--text);line-height:1;margin-bottom:4px;text-align:center;}
 .join-logo span{color:#0066cc;}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.5px;text-transform:uppercase;}
-.join-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
-.join-card h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--muted);margin-bottom:16px;}
+.join-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.join-card h2{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;color:var(--muted);margin-bottom:16px;}
 .join-divider{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;position:relative;}
 .join-divider::before,.join-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
 .join-divider::before{left:0;}.join-divider::after{right:0;}
 .code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:10px;width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
 .code-input:focus{border-color:var(--accent);}
-.hbtn{width:100%;padding:13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;}
+.hbtn{width:100%;padding:13px;border-radius:10px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;}
 .hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(0,102,204,.3);}
 .hbtn.s{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
 .hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
 
 /* HOST SETUP */
 #screenHostSetup{padding:20px;overflow-y:auto;background:var(--bg);}
-.setup-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);}
-.setup-form h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:18px;}
+.setup-form{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);}
+.setup-form h2{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:18px;}
 .team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 12px;margin-bottom:7px;}
 .tcd{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .cpp{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;z-index:800;box-shadow:var(--shadow-lg);}
@@ -66,7 +67,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .lobby-code-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
 .lobby-body{padding:16px;flex:1;overflow-y:auto;}
 .lsec{margin-bottom:20px;}
-.lsec h3{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+.lsec h3{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:14px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
 .player-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
 .player-name{font-weight:700;font-size:14px;}
 .team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
@@ -79,14 +80,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* MAIN APP */
 #screenApp{background:var(--bg);}
-header{background:var(--header-bg);border-bottom:none;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;box-shadow:0 2px 12px rgba(0,51,102,.25);}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;color:white;}
-.logo span{color:#4dd0e1;}
+header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
+.logo{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;color:white;}
+.logo span{color:var(--green);}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
-.clock{font-family:'DM Mono',monospace;font-size:12px;color:#ffd54f;letter-spacing:1.5px;}
+.clock{font-family:'DM Mono',monospace;font-size:12px;color:#ffd54f;letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
 .clock.lunch{color:var(--green);}.clock.ended{color:var(--muted);}
 .gpill{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);}
-.gpill.live{background:rgba(5,150,105,.3);color:#6ee7b7;border-color:rgba(110,231,183,.3);}
+@keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.gpill.live{background:rgba(0,184,107,.2);color:var(--green);border-color:rgba(0,184,107,.3);}
+.gpill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:livepulse 1.5s ease-in-out infinite;}
 .gpill.lunch{background:rgba(217,119,6,.3);color:#fcd34d;border-color:rgba(252,211,77,.3);}
 .gpill.ended{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
 .myteam-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;color:white;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
@@ -94,8 +97,8 @@ header{background:var(--header-bg);border-bottom:none;padding:10px 16px;display:
 /* TABS */
 .tabs{display:flex;background:var(--tab-bg);border-bottom:none;overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-2px;}
-.tab.active{color:white;border-bottom-color:#4dd0e1;}
+.tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-2px;}
+.tab.active{color:white;border-bottom:3px solid var(--accent);}
 
 /* PANELS */
 .panel{display:none;padding:14px 16px;}
@@ -106,18 +109,18 @@ header{background:var(--header-bg);border-bottom:none;padding:10px 16px;display:
 /* MAP */
 #mapWrap{position:absolute;top:90px;left:0;right:0;bottom:0;}
 #mapEl{position:absolute;inset:0;width:100%;height:100%;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
+.card{background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow);}
 label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .15s;}
+input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .15s;}
 input:focus,select:focus{border-color:var(--accent);}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;min-height:48px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:12px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;min-height:48px;}
 .btn:hover{opacity:.85;transform:translateY(-1px);}.btn:active{transform:scale(.97);}
 .btn-p{background:linear-gradient(135deg,#0066cc,#0055a5);color:white;box-shadow:0 4px 12px rgba(0,102,204,.3);}.btn-b{background:var(--blue);color:white;}
 .btn-g{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
 .btn-gr{background:var(--green);color:white;}
 .btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;min-height:36px;}.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;}
-.stitle{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;margin-top:16px;}
+.stitle{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:15px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;margin-top:16px;}
 .stitle:first-child{margin-top:0;}
 .divider{height:1px;background:var(--border);margin:14px 0;}
 .empty{text-align:center;color:var(--muted);padding:32px 0;font-size:13px;}
@@ -129,7 +132,7 @@ input:focus,select:focus{border-color:var(--accent);}
 .tsn{font-weight:700;font-size:13px;margin-bottom:4px;}
 .tsl2{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
 .lname{color:var(--text);font-weight:500;}
-.tss{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.tss{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
 .tst{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
 .pd{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:ping 2s infinite;}
 .sdd{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
@@ -140,8 +143,8 @@ input:focus,select:focus{border-color:var(--accent);}
 .tscc{background:var(--surface);border:none;border-radius:14px;padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-lg);}
 .tsrk{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--muted);}
 .tsn2{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;}
-.bsc{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:-1px;line-height:1;margin-bottom:2px;}
-.brkd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.bsc{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:56px;letter-spacing:-1px;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;}
+.brkd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;}
 .btbl{width:100%;border-collapse:collapse;font-size:12px;}
 .btbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);}
 .btbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -152,18 +155,18 @@ input:focus,select:focus{border-color:var(--accent);}
 .leaflet-interactive:focus{outline:none !important;}
 .leaflet-tile-pane{filter:saturate(0.8) brightness(0.95);}
 #zonePopup{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow-lg);min-width:200px;max-width:260px;pointer-events:auto;}
-#zonePopup h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:4px;}
+#zonePopup h4{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1px;margin-bottom:4px;}
 #zonePopup .zp-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
 #zonePopup .zp-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--surface2);}
 #zonePopup .zp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 #zonePopup .zp-close{position:absolute;top:8px;right:10px;font-size:16px;cursor:pointer;color:var(--muted);}
-.zt{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:5px 9px;box-shadow:var(--shadow);}
+.zt{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 9px;box-shadow:var(--shadow);}
 .mleg{position:absolute;bottom:14px;left:14px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11px;box-shadow:var(--shadow);pointer-events:none;}
-.mleg h4{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+.mleg h4{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
 .lr{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
 .ll{width:18px;height:3px;border-radius:2px;}
 .mzl{position:absolute;top:8px;right:8px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:10px;padding:10px;max-height:calc(100% - 40px);overflow-y:auto;width:165px;box-shadow:var(--shadow);}
-.mzl h4{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;}
+.mzl h4{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;}
 .mzr{display:flex;align-items:center;gap:5px;padding:4px 5px;font-size:11px;cursor:pointer;border-radius:5px;transition:background .1s;}
 .mzr:hover{background:var(--surface2);}
 .mzd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -173,9 +176,9 @@ input:focus,select:focus{border-color:var(--accent);}
 @keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
 
 /* ZONES */
-.zone-region-header{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;}
+.zone-region-header{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;letter-spacing:1.5px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;}
 .zone-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
-.zone-card{background:var(--surface);border:none;border-radius:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
+.zone-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:16px 20px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
 .zone-card:hover{box-shadow:var(--shadow-lg);}
 .zone-card.controlled{border-left:5px solid;}
 .zone-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
@@ -193,11 +196,11 @@ input:focus,select:focus{border-color:var(--accent);}
 .cc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
 .cc h4{font-weight:700;font-size:13px;margin-bottom:2px;}
 .cc p{font-size:12px;color:var(--muted);line-height:1.4;}
-.ctmr{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap;font-weight:700;flex-shrink:0;}
+.ctmr{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap;font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums;}
 .ctmr.exp{color:var(--muted);}
 .cdism{font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
 .addf{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;}
-.addf h3{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:14px;color:var(--muted);margin-bottom:12px;}
+.addf h3{font-family:'Hanken Grotesk',sans-serif;font-weight:800;letter-spacing:1px;font-size:14px;color:var(--muted);margin-bottom:12px;}
 .loc-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.6;}
 .loc-banner b{color:var(--accent);}
 
@@ -209,7 +212,7 @@ input:focus,select:focus{border-color:var(--accent);}
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);}
 .mo.open{display:flex;}
 .md{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
-.md h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:4px;}
+.md h2{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:1.5px;margin-bottom:4px;}
 .mdm{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
 .dr{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
 .drl{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px;}
@@ -239,7 +242,7 @@ input:focus,select:focus{border-color:var(--accent);}
 .home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
 .home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;background:linear-gradient(135deg,#003366,#005baa);border-radius:0 0 24px 24px;}
 .home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
-.home-title{font-family:'Bebas Neue',sans-serif;font-size:58px;letter-spacing:.06em;color:white;line-height:1;}
+.home-title{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:58px;letter-spacing:.06em;color:white;line-height:1;}
 .home-tagline{font-size:14px;color:rgba(255,255,255,.7);font-weight:500;letter-spacing:.01em;}
 .home-auth-wrap{padding:0 20px 4px;}
 .home-auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);}
@@ -251,14 +254,14 @@ input:focus,select:focus{border-color:var(--accent);}
 .hben.locked{color:var(--muted);}
 .hbadge{margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);background:var(--teal-lt);border-radius:4px;padding:1px 6px;white-space:nowrap;}
 .home-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
-.home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
+.home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
 .home-google-btn:hover{background:var(--surface2);}
 .home-google-btn svg{width:20px;height:20px;}
 .home-signed-in-pill{display:inline-flex;align-items:center;gap:10px;background:var(--accent);border-radius:999px;padding:7px 16px 7px 7px;color:white;font-size:13px;font-weight:600;}
 .home-signed-in-pill .hpavatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;}
 .home-signed-in-pill .hpavatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif;}
-.home-section-label{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.15em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
+.home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:'Hanken Grotesk',sans-serif;}
+.home-section-label{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:14px;letter-spacing:.15em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
 .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 20px;}
 @media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:44px;}}
 .hgcard{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column;box-shadow:var(--shadow);}
@@ -269,12 +272,12 @@ input:focus,select:focus{border-color:var(--accent);}
 .hgcard-anim svg{width:100%;height:100%;display:block;}
 .hgcard-body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;gap:5px;}
 .hgcard-titlerow{display:flex;align-items:center;justify-content:space-between;}
-.hgcard-title{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:.05em;}
+.hgcard-title{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:21px;letter-spacing:.05em;}
 .hgcard.zone-mode .hgcard-title{color:var(--accent);}
 .hgcard.c4-mode   .hgcard-title{color:var(--orange);}
 .hgcard-badge{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#ffedd5;color:#c2410c;border-radius:5px;padding:3px 7px;}
 .hgcard-desc{font-size:12px;color:var(--muted);line-height:1.5;}
-.hgcard-cta{margin-top:8px;padding:8px 0;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;}
+.hgcard-cta{margin-top:8px;padding:8px 0;border:none;border-radius:8px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;}
 .hgcard.zone-mode .hgcard-cta{background:var(--accent);}
 .hgcard.zone-mode .hgcard-cta:hover{background:var(--accent-dark);}
 .hgcard.c4-mode   .hgcard-cta{background:var(--surface2);color:var(--muted);cursor:default;}
@@ -626,7 +629,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <div class="screen" id="screenWaiting" style="flex-direction:column;background:var(--bg);overflow:hidden;">
   <!-- Header -->
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--text);">Transit <span style="color:var(--accent);">Tournament</span></div>
+    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">Transit <span style="color:var(--accent);">Tournament</span></div>
     <div id="preGameTeamBadge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:white;"></div>
   </div>
   <!-- Tabs -->
@@ -641,8 +644,8 @@ input:focus,select:focus{border-color:var(--accent);}
     <!-- Info panel -->
     <div id="prePanel-info" style="padding:20px;">
       <div style="text-align:center;margin-bottom:20px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;" id="preGameStatus">GAME STARTS IN</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
+        <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;" id="preGameStatus">GAME STARTS IN</div>
+        <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="preGameStartTime"></div>
       </div>
       <div id="preTeamCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:none;">
@@ -715,7 +718,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div>
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Game Code</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span id="statusGameCode" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--text);">—</span>
+          <span id="statusGameCode" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">—</span>
           <button class="btn btn-g btn-sm" style="padding:2px 8px;font-size:11px;" onclick="copyStatusCode()">Copy</button>
         </div>
       </div>
@@ -782,7 +785,7 @@ input:focus,select:focus{border-color:var(--accent);}
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Your coins</div>
-        <div id="myCoinBadge" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);">0</div>
+        <div id="myCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0</div>
       </div>
     </div>
     <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.5;">
@@ -795,8 +798,8 @@ input:focus,select:focus{border-color:var(--accent);}
   <!-- VOTE MODAL (full screen) -->
   <div id="voteScreen" style="display:none;position:fixed;inset:0;z-index:900;background:var(--surface);flex-direction:column;">
     <div style="background:var(--text);color:white;padding:16px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;">TEAM VOTE REQUIRED</div>
-      <div id="voteCoins" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);"></div>
+      <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;">TEAM VOTE REQUIRED</div>
+      <div id="voteCoins" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:24px;color:var(--gold);"></div>
     </div>
     <div style="padding:16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:13px;font-weight:600;" id="voteChallenge"></div>
@@ -806,7 +809,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div id="voteStatus" style="font-size:12px;color:var(--muted);text-align:center;padding:8px;"></div>
       <div id="voteRejectReason" style="display:none;margin-bottom:8px;">
         <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Reason for rejection (optional — shown in the log)</label>
-        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin-top:4px;margin-bottom:0;"></textarea>
+        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;margin-top:4px;margin-bottom:0;"></textarea>
       </div>
       <div id="voteButtons" style="display:flex;gap:10px;">
         <button class="btn" style="flex:1;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:16px;padding:16px;" onclick="castVote(true)">✓ Yes, accomplished</button>
@@ -864,7 +867,7 @@ input:focus,select:focus{border-color:var(--accent);}
     </div>
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px;text-align:center;">
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Available coins</div>
-      <div id="dmCoinBalance" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold);">0 🪙</div>
+      <div id="dmCoinBalance" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;color:var(--gold);">0 🪙</div>
     </div>
     <label>Coins to deposit</label>
     <input type="number" id="dmCoinAmount" min="1" max="999" placeholder="Enter amount" style="font-size:18px;text-align:center;" oninput="updateDepSummary()">
@@ -907,14 +910,14 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- ZONE CHALLENGE OVERLAY -->
 <div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;overflow-y:auto;color:white;text-align:center;padding:24px;">
   <div style="font-size:48px;margin-bottom:8px;">⚔️</div>
-  <div id="challengeTitle" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
+  <div id="challengeTitle" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
   <div id="challengeSubtitle" style="font-size:13px;opacity:.7;margin-bottom:16px;"></div>
   <!-- Pending phase: challenger waiting / defender accept-decline -->
   <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chPendingChallenger" style="display:none;">
       <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:12px;">
         <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
-        <div id="chPendingTimer" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
+        <div id="chPendingTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
       </div>
       <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
@@ -922,7 +925,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px;margin-bottom:12px;">
         <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
         <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
-        <div id="chDefenderTimer" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
+        <div id="chDefenderTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
         <div style="display:flex;gap:10px;">
           <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
           <button class="btn" style="flex:1;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
@@ -935,7 +938,7 @@ input:focus,select:focus{border-color:var(--accent);}
     <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
     <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:12px;">
       <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
-      <div id="chActiveTimer" style="font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
+      <div id="chActiveTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
     <div id="chActiveSubmitSection">
       <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
@@ -948,7 +951,7 @@ input:focus,select:focus{border-color:var(--accent);}
   </div>
   <!-- Voting phase -->
   <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
+    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
     <div id="chVoteContent" style="margin-bottom:12px;">
       <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;background:rgba(255,255,255,.08);margin-bottom:10px;">
       <div id="chVoteNoPhoto" style="display:none;background:rgba(255,255,255,.08);border-radius:10px;padding:20px;margin-bottom:10px;font-size:13px;opacity:.7;">No photo submitted by opponent.</div>
@@ -967,7 +970,7 @@ input:focus,select:focus{border-color:var(--accent);}
   <!-- Result phase -->
   <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
-    <div id="chResultTitle" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
+    <div id="chResultTitle" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
     <div id="chResultDetail" style="font-size:13px;opacity:.8;margin-bottom:20px;line-height:1.6;"></div>
     <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
   </div>
@@ -977,11 +980,11 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- LUNCH OVERLAY -->
 <div id="lunchOverlay" style="display:none;position:fixed;inset:0;z-index:950;background:linear-gradient(135deg,#1a1d2e 0%,#2d3561 100%);flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:32px;">
   <div style="font-size:56px;margin-bottom:16px;">🍽️</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;margin-bottom:8px;">LUNCH BREAK</div>
+  <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:8px;">LUNCH BREAK</div>
   <div style="font-size:14px;opacity:.7;margin-bottom:24px;">All game activity is paused. Enjoy your break!</div>
   <div style="background:rgba(255,255,255,.1);border-radius:16px;padding:20px 32px;margin-bottom:24px;">
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Resuming in</div>
-    <div id="lunchCountdown" style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;">00:00</div>
+    <div id="lunchCountdown" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:52px;letter-spacing:4px;">00:00</div>
   </div>
   <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Current Standings</div>
@@ -999,8 +1002,8 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- LUNCH CHAT PANEL (slides over lunch overlay) -->
 <div id="lunchChatPanel" style="display:none;position:fixed;inset:0;z-index:955;background:var(--surface);flex-direction:column;">
   <div style="background:var(--text);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
-    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">← Back to Lunch</button>
+    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
+    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;cursor:pointer;">← Back to Lunch</button>
   </div>
   <div id="lunchChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;"></div>
   <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
@@ -1034,7 +1037,7 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="panel" id="panel-shop">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);">
       <div style="font-size:13px;font-weight:600;color:var(--text);">Your coins</div>
-      <div id="shopCoinBadge" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);">0 🪙</div>
+      <div id="shopCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0 🪙</div>
     </div>
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#92400e;line-height:1.5;">
       ⚠️ <b>Shop items are permanent and affect other teams.</b> Use them wisely — coins spent cannot be recovered.
@@ -1112,10 +1115,10 @@ input:focus,select:focus{border-color:var(--accent);}
 <!-- CURSE ALERT (full-screen takeover) -->
 <div id="curseAlertScreen" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(230,57,70,.97);color:white;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
   <div style="font-size:64px;margin-bottom:16px;" id="curseAlertIcon">⚠️</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
+  <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
   <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="curseAlertItem"></div>
   <div style="font-size:15px;opacity:.85;margin-bottom:40px;line-height:1.6;max-width:320px;" id="curseAlertBody"></div>
-  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:12px;padding:16px 40px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.2);">I UNDERSTAND — DISMISS</button>
+  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:12px;padding:16px 40px;font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.2);">I UNDERSTAND — DISMISS</button>
 </div>
 
 <!-- END GAME CONFIRM -->
@@ -1153,7 +1156,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <div class="screen" id="screenMapBuilder" style="background:var(--bg);">
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
     <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
+    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
     <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
   </div>
 
@@ -1729,11 +1732,11 @@ function renderLandmark(container){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
         <div>
           <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">🗺️ Featured Landmark</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
+          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px;">${esc(lm.hint)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
+          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
           <div style="font-size:10px;color:var(--gold);">coins</div>
         </div>
       </div>
@@ -3196,7 +3199,7 @@ function renderStatus(){
           <div style="font-weight:700;font-size:16px;color:${mt.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(mt.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);line-height:1;">${myCoins} 🪙</div>
+          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:26px;color:var(--gold);line-height:1;">${myCoins} 🪙</div>
           <div style="font-size:10px;color:var(--muted);">${sc2.zones+sc2.bonuses} pts</div>
         </div>
       </div>`;
