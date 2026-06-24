@@ -1312,9 +1312,9 @@ const TABS=['rules','scores','map','zones','flop','shop','log','status'];
 const SHOP_ITEMS_DATA=[
   {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'🔍'},
   {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'📡',dur:30},
-  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour',icon:'🚗',dur:60,needsRegion:true},
+  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen metro line for 1 hour',icon:'🚗',dur:60,needsLine:true},
   {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'🚇'},
-  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line',icon:'🎫',dur:120,needsLine:true},
+  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line (14 coins if target leads in zones)',icon:'🎫',dur:120,needsLine:true,dynamicCost:true},
   {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
   {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
 ];
@@ -1588,6 +1588,13 @@ function regenerateFlop(announce){
 
 function replaceFlopItem(flopId){
   if(!G.flop)return;
+  // Check if all 4 flop items are claimed — if so, full regenerate
+  const allClaimed=G.flop.every(f=>{const c=G.flopClaims&&G.flopClaims[f.id];return c&&c.status==='won';});
+  if(allClaimed){
+    regenerateFlop(true);
+    logEv('🔄 All challenges claimed! The Flop has been refreshed.');
+    return;
+  }
   const idx=G.flop.findIndex(f=>f.id===flopId);
   if(idx===-1)return;
   const current=G.flop.map(f=>f.text);
@@ -1928,9 +1935,13 @@ async function castVote(yes){
       logEv('✅ <b>'+esc(tn)+'</b> cleared Forced Detour — confirmed at '+esc(claim.station||'the station')+'!');
     } else if(claim.type==='landmark'){
       if(!G.coins)G.coins={};
-      const earned=claim.coins||7;
+      if(!G.landmarkClaims)G.landmarkClaims={};
+      const prevClaims=G.landmarkClaims[claim.teamIdx]||0;
+      const base=claim.coins||7;
+      const earned=Math.max(4,base-prevClaims);
+      G.landmarkClaims[claim.teamIdx]=prevClaims+1;
       G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
-      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!');
+      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!'+(prevClaims>0?' (diminishing returns: -'+prevClaims+')':''));
       pickNewLandmark(true);
     } else {
       if(!G.coins)G.coins={};
@@ -2013,7 +2024,11 @@ function checkVoteTimeouts(){
         logEv('⏱️ <b>'+esc(tn)+'</b> Forced Detour auto-cleared (vote timed out).');
       } else if(claim.type==='landmark'){
         if(!G.coins)G.coins={};
-        const earned=claim.coins||7;
+        if(!G.landmarkClaims)G.landmarkClaims={};
+        const prevClaims2=G.landmarkClaims[claim.teamIdx]||0;
+        const base2=claim.coins||7;
+        const earned=Math.max(4,base2-prevClaims2);
+        G.landmarkClaims[claim.teamIdx]=prevClaims2+1;
         G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
         logEv('⏱️ <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b> — auto-accepted!');
         pickNewLandmark(true);
@@ -2281,7 +2296,7 @@ const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--
 const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
 
 // STATE
-let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
+let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
 let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
 let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
 let setupTeams=[{name:'Team 1',color:PAL[0]},{name:'Team 2',color:PAL[1]},{name:'Team 3',color:PAL[2]}];
@@ -2543,6 +2558,15 @@ async function poll(){
       sendPN('Transit Tournament','The game has started! Get moving.');
     }
     if(G.ended&&document.getElementById('finalScoresMo')&&!document.getElementById('finalScoresMo').classList.contains('open')){showFinalScores();}
+    // Capture zone snapshot 2hrs before scoring for momentum bonus
+    if(G.started&&!G.zoneSnapshots){
+      const st=_parseTimeToMs(G.config?.score||'18:00');
+      if(Date.now()>=st-2*3600000){
+        G.zoneSnapshots={};
+        const zones2=getZones();
+        G.teams.forEach((_,i)=>{G.zoneSnapshots[i]=zones2.filter(z=>getL(G.zones&&G.zones[z.code]||{})===i).length;});
+      }
+    }
     // Show curse alert ONLY to the targeted team
     if(G.curses&&prevStarted){
       G.curses.forEach(c=>{
@@ -2621,7 +2645,7 @@ async function pushGps(lat,lng){if(!LS.gameCode)return;fetch(`${FB_URL}/gpsLocs/
 function backToSetup(){
   if(!confirm('Go back to setup? The game code will be cancelled and players will need to rejoin.'))return;
   if(pollIv){clearInterval(pollIv);pollIv=null;}
-  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
+  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   saveL();
   renderTeamSetup();
@@ -3176,13 +3200,45 @@ async function submitLoc(){if(locTI===null)return;const zone=document.getElement
 // SCORES
 function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
 let _scoreCache=null,_scoreCacheTs=0;
+function _parseTimeToMs(t){if(!t)return 0;const[h,m]=(t||'18:00').split(':');const d=new Date();d.setHours(+h,+m,0,0);return d.getTime();}
+
+function _getLineStreakBonuses(){
+  const zones=getZones();
+  const lines=isCustomMap()&&G.config?.map?.lines?G.config.map.lines:Object.entries(MLINES).map(([id,v])=>({id,zonesServed:zones.filter(z=>z.lines.includes(id)).map(z=>z.code)}));
+  const bonuses=[];
+  lines.forEach(ln=>{
+    const served=ln.zonesServed||zones.filter(z=>z.lines.includes(ln.id)).map(z=>z.code);
+    if(served.length<3)return;
+    for(let i=0;i<=served.length-3;i++){
+      const trio=served.slice(i,i+3);
+      const leaders=trio.map(zc=>getL(G.zones&&G.zones[zc]||{}));
+      if(leaders[0]>=0&&leaders[0]===leaders[1]&&leaders[1]===leaders[2]){
+        if(!bonuses.find(b=>b.team===leaders[0]&&b.lineId===ln.id))
+          bonuses.push({team:leaders[0],lineId:ln.id,lineName:ln.name||ln.id,zones:trio});
+      }
+    }
+  });
+  return bonuses;
+}
+
 function computeScores(){
   const now=Date.now();
   if(_scoreCache&&now-_scoreCacheTs<500)return _scoreCache;
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
   getZones().forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=(z.area||0);}});
-  let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=2;
-  getLineBonuses().forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
+  // Momentum Bonus: 1pt for most net new zones in final 2 hours
+  const scoreTime=_parseTimeToMs(G.config?.score||'18:00');
+  const twoHrBefore=scoreTime-2*3600000;
+  if(Date.now()>=twoHrBefore&&G.zoneSnapshots){
+    const snap=G.zoneSnapshots;
+    let bestGain=0,mw=-1;
+    sc.forEach((_,i)=>{const gain=sc[i].zones-(snap[i]||0);if(gain>bestGain){bestGain=gain;mw=i;}});
+    if(mw>=0&&bestGain>0)sc[mw].bonuses+=1;
+  } else {
+    let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=1;
+  }
+  // Line Bonus: 3 consecutive zones on same line
+  _getLineStreakBonuses().forEach(lb=>{sc[lb.team].bonuses++;});
   _scoreCache=sc;_scoreCacheTs=now;
   return sc;
 }
@@ -3191,11 +3247,23 @@ function renderScores(){
   const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
   G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:10px 10px 0 0"></div><div class="tsrk">#${ro[i]}</div><div class="tsn2">${esc(team.name)}</div><div class="bsc" style="color:${team.color}">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div>`;g.appendChild(card);});
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
-  const as=G.teams.map((_,i)=>{let a=0;ZONES.forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
-  const aw2=as.indexOf(Math.max(...as,0));
-  const _lb=getLineBonuses();
-  tbody.innerHTML=`<tr><td><b>Area Bonus</b></td><td>2 pts</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area</td></tr>`+
-  (_lb.length?_lb.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join(''):'');
+  // Momentum bonus display
+  const scoreTime2=_parseTimeToMs(G.config?.score||'18:00');
+  const inFinal2=Date.now()>=scoreTime2-2*3600000;
+  let momentumHtml;
+  if(inFinal2&&G.zoneSnapshots){
+    let bestGain2=0,mw2=-1;
+    sc.forEach((s,i)=>{const gain=s.zones-(G.zoneSnapshots[i]||0);if(gain>bestGain2){bestGain2=gain;mw2=i;}});
+    momentumHtml=`<tr><td><b>Momentum</b></td><td>1 pt</td><td>${mw2>=0&&G.teams[mw2]?`<span style="color:${G.teams[mw2].color};font-weight:700">${esc(G.teams[mw2].name)}</span> <span style="color:var(--muted);font-size:10px">+${bestGain2} zones</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Most net new zones (final 2hr)</td></tr>`;
+  } else {
+    const as=G.teams.map((_,i)=>{let a=0;getZones().forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
+    const aw2=as.indexOf(Math.max(...as,0));
+    momentumHtml=`<tr><td><b>Area Bonus</b></td><td>1 pt</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area (switches to momentum in final 2hr)</td></tr>`;
+  }
+  // Line streak bonuses
+  const _lsb=_getLineStreakBonuses();
+  tbody.innerHTML=momentumHtml+
+  (_lsb.length?_lsb.map(lb=>{return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><b>${esc(lb.lineName)}</b></span></td><td>1 pt</td><td>${G.teams[lb.team]?`<span style="color:${G.teams[lb.team].color};font-weight:700">${esc(G.teams[lb.team].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">3 consecutive zones</td></tr>`;}).join(''):'');
 }
 
 // MAP
@@ -3443,7 +3511,7 @@ function getDepositBlockReason(){
   const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
   if(itCurse){
     const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-    return '🚗 Interstate Travellers active! You cannot deposit in '+itCurse.notes+' zones for '+rem+' more minute'+(rem===1?'':'s')+'.';
+    return '🚗 Interstate Travellers active! You cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.';
   }
   return null; // no block
 }
@@ -3609,17 +3677,26 @@ async function submitDep(){
   const teamSel=document.getElementById('dmTeamSel');
   const teamIdx=LS.myTeamIdx;
   const myCoins=(G.coins&&G.coins[teamIdx])||0;
-  if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();return;}
 
-  // Check Interstate Travellers
-  const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
-  if(itCurse){
-    const blockedRegion=itCurse.notes; // VA, DC, or MD
-    if(z.region===blockedRegion){
-      const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-      showToast('🚗 Interstate Travellers — you cannot deposit in '+blockedRegion+' for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
-      return;
+  // Emergency deposit: free 1-coin deposit when broke, once per zone per hour
+  let isEmergencyDep=false;
+  if(myCoins===0&&amount===1){
+    if(!G.emergencyDeps)G.emergencyDeps={};
+    const key=teamIdx+'_'+curZone;
+    const last=G.emergencyDeps[key]||0;
+    if(Date.now()-last<3600000){
+      const mins=Math.ceil((3600000-(Date.now()-last))/60000);
+      showToast('Emergency deposit already used in '+curZone+'. Available again in '+mins+'m.','warn');closeDep();return;
     }
+    isEmergencyDep=true;
+  } else if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();return;}
+
+  // Check Interstate Travellers (blocks a metro line)
+  const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
+  if(itCurse&&z.lines.some(l=>itCurse.notes.toLowerCase().includes(l))){
+    const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
+    showToast('🚗 Interstate Travellers — you cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
+    return;
   }
   // Check Line Lockdown
   const lockCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Line Lockdown'&&c.expiresAt&&c.expiresAt>Date.now());
@@ -3632,8 +3709,13 @@ async function submitDep(){
   if(!G.zones)G.zones={};if(!G.zones[curZone])G.zones[curZone]={};
   if(!G.coins)G.coins={};
 
-  // Deduct coins
-  G.coins[teamIdx]=Math.max(0,(G.coins[teamIdx]||0)-amount);
+  // Deduct coins (skip for emergency deposit)
+  if(isEmergencyDep){
+    if(!G.emergencyDeps)G.emergencyDeps={};
+    G.emergencyDeps[teamIdx+'_'+curZone]=Date.now();
+  } else {
+    G.coins[teamIdx]=Math.max(0,(G.coins[teamIdx]||0)-amount);
+  }
 
   // Add to zone
   G.zones[curZone][teamIdx]=(parseInt(G.zones[curZone][teamIdx])||0)+amount;
@@ -4044,7 +4126,14 @@ async function confirmPurchase(){
   // Check and deduct coins BEFORE creating curse
   const shopCfg3 = G.config&&G.config.map&&G.config.map.shopConfig;
   const shopEntry2 = shopCfg3 ? shopCfg3.find(s=>s.id===item.name) : null;
-  const coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
+  let coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
+  // Transit Cost anti-kingmaking: 14 coins if target leads in zone count
+  if(item.dynamicCost&&target!==null){
+    const sc=computeScores();
+    const targetZones=sc[target]?.zones||0;
+    const isLeader=sc.every((s,i)=>i===target||s.zones<=targetZones)&&targetZones>0;
+    if(isLeader)coinCost=14;
+  }
   if(coinCost>0){
     if(!G.coins)G.coins={};
     const cur=G.coins[caster]||0;
@@ -4060,8 +4149,9 @@ async function confirmPurchase(){
     if(!isCustomMap()){
       let pool=METRO_STATIONS;
       if(tGps&&tGps.lat){
-        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=3219);
+        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=2400);
         if(nearby.length>0)pool=nearby;
+        else{const mid=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=4000);if(mid.length>0)pool=mid;}
       }
       const s=pool[Math.floor(Math.random()*pool.length)];
       destName=s.name;
@@ -4070,7 +4160,7 @@ async function confirmPurchase(){
       if(lmPool.length){
         let pool=lmPool;
         if(tGps&&tGps.lat){
-          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=4828);// 3 miles
+          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=2400);
           if(nearby.length>0)pool=nearby;
         }
         destName=pool[Math.floor(Math.random()*pool.length)].name;
@@ -4131,7 +4221,7 @@ async function hostAwardCoins(){
 const CURSE_DESCRIPTIONS={
   'Spy':'Your coin total has been revealed to the purchasing team.',
   'Locate':'Your GPS is being tracked for 30 minutes. You cannot hide!',
-  'Interstate Travellers':'You cannot deposit coins in the blocked region for the next hour!',
+  'Interstate Travellers':'You cannot deposit coins on the blocked metro line for the next hour!',
   'Forced Detour':'You MUST travel to the specified destination and submit a photo before you can deposit coins.',
   'Transit Cost':'You will lose 3 coins on every deposit into a zone served by the chosen line for 2 hours!',
   'Line Lockdown':'No team can deposit into zones served by the chosen line for 2 hours.',
@@ -4428,10 +4518,10 @@ function renderRules(){
   schedHtml+='Scores locked at <b>'+score+'</b>.<br><br>';
   schedHtml+='<b>Starting coins:</b> Each team begins with <b>'+startCoinsCount+' coins</b>.<br>';
   schedHtml+='<b>Zones:</b> 1 pt each for any zone your team leads at scoring time.<br>';
-  schedHtml+='<b>Area Bonus:</b> 2 pts for the team controlling the largest total area.<br>';
+  schedHtml+='<b>Momentum Bonus:</b> 1 pt for the team gaining the most net new zones in the final 2 hours (before that: largest area).<br>';
   const hasLines=isCustomMap()?Object.keys(getTransitLines()).length>0:true;
   if(hasLines){
-    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls both terminal zones.';
+    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls 3 consecutive zones.';
   }
   addTitle('Schedule',true);
   addCard(schedHtml);
@@ -4455,8 +4545,9 @@ function renderRules(){
   addTitle('Landmarks');
   const cityName=isCustomMap()&&G.config.map?.cityName?G.config.map.cityName:'the play area';
   addCard(
-    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 6–10 coins depending on distance from the city center. '
+    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 8–12 coins depending on distance from the city center. '
     +'Race there, take a photo with your team, and submit for a vote. '
+    +'<b>Diminishing returns:</b> each successive landmark claim by the same team earns 1 fewer coin (minimum 4). '
     +'Once claimed, a new landmark is immediately assigned. '
     +'If unclaimed, the landmark rotates every <b>30 minutes</b>.'
   );
@@ -4498,9 +4589,9 @@ function renderRules(){
     [
       ['Spy','3 🪙','Instantly reveals the target team\'s current coin total'],
       ['Locate','3 🪙','Tracks target team GPS on the map for 30 minutes'],
-      ['Interstate Travellers','6 🪙','Target cannot deposit in one chosen region for 1 hour'],
+      ['Interstate Travellers','6 🪙','Target cannot deposit in zones on a chosen metro line for 1 hour'],
       ['Forced Detour','6 🪙',isCustomMap()?'Target must reach a specific landmark and photo-verify before depositing':'Target must reach a specific metro stop and photo-verify before depositing'],
-      ['Transit Cost','10 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours'],
+      ['Transit Cost','10–14 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours (14 coins if target leads in zones)'],
       ['Line Lockdown','10 🪙','No team can deposit into zones on a chosen line for 2 hours'],
       ['Zone Challenge','your wager','Head-to-head counting contest — win: both wagers deposited in zone (2× return); lose: defender keeps both'],
     ]
@@ -5951,7 +6042,7 @@ const MB_SHOP_DEFAULTS = [
   {id:'Locate',     label:'📡 Locate',           defaultCost:3,  alwaysShow:true,  desc:'Track target team GPS for 30 min'},
   {id:'Forced Detour', label:'🚇 Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a nearby landmark'},
   {id:'Zone Challenge',label:'⚔️ Zone Challenge',defaultCost:0,  alwaysShow:true,  desc:'Wager-based zone contest (cost = wager)'},
-  {id:'Interstate Travellers',label:'🚗 Region Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing in a region (DC only)'},
+  {id:'Interstate Travellers',label:'🚗 Line Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing on a metro line'},
   {id:'Transit Cost',label:'🎫 Transit Cost',    defaultCost:10, alwaysShow:false, desc:'Target loses coins on deposits near a line'},
   {id:'Line Lockdown',label:'🔒 Line Lockdown',  defaultCost:10, alwaysShow:false, desc:'No deposits on a transit line for 2 hours'},
 ];
