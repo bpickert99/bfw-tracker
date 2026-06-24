@@ -8,9 +8,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#003d7a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Transit Tournament">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,12 +18,13 @@
 
 <style>
 :root{
-  --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f7;--border:#dde1ec;
-  --text:#1a1d2e;--muted:#8890b0;--accent:#0d9488;--blue:#2563eb;
-  --green:#059669;--gold:#d97706;--orange:#f97316;--teal-lt:#ccfbf1;
-  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#e8eef5;--border:#d0d9e6;
+  --text:#1a2332;--muted:#6b7a94;--accent:#0066cc;--accent-dark:#0055a5;--blue:#0066cc;
+  --green:#059669;--gold:#d97706;--orange:#f97316;--teal-lt:#dbeafe;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
   --shadow-lg:0 4px 24px rgba(0,0,0,.10);
   --rl:#e63946;--bl:#2563eb;--ol:#d97706;--gl:#059669;--sl:#8890b0;--yl:#f4a636;
+  --header-bg:linear-gradient(135deg,#003366,#005baa);--tab-bg:#003d7a;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
@@ -31,9 +32,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
 /* JOIN */
-#screenJoin{align-items:center;justify-content:flex-start;padding:24px;background:var(--surface);overflow-y:auto;}
+#screenJoin{align-items:center;justify-content:flex-start;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));background:var(--surface);overflow-y:auto;}
 .join-logo{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--text);line-height:1;margin-bottom:4px;text-align:center;}
-.join-logo span{color:var(--accent);}
+.join-logo span{color:#0066cc;}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.5px;text-transform:uppercase;}
 .join-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
 .join-card h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--muted);margin-bottom:16px;}
@@ -43,7 +44,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:10px;width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
 .code-input:focus{border-color:var(--accent);}
 .hbtn{width:100%;padding:13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;}
-.hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(13,148,136,.3);}
+.hbtn.p{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(0,102,204,.3);}
 .hbtn.s{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
 .hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
 
@@ -70,29 +71,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .player-name{font-weight:700;font-size:14px;}
 .team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes contested-pulse{0%,100%{opacity:.3}50%{opacity:.7}}
+.contested-zone{animation:contested-pulse 2s ease-in-out infinite;}
 
 /* WAITING */
 #screenWaiting{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
 
 /* MAIN APP */
 #screenApp{background:var(--bg);}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;box-shadow:var(--shadow);}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;color:var(--text);}
-.logo span{color:var(--accent);}
+header{background:var(--header-bg);border-bottom:none;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;box-shadow:0 2px 12px rgba(0,51,102,.25);}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;color:white;}
+.logo span{color:#4dd0e1;}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
-.clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:1.5px;}
+.clock{font-family:'DM Mono',monospace;font-size:12px;color:#ffd54f;letter-spacing:1.5px;}
 .clock.lunch{color:var(--green);}.clock.ended{color:var(--muted);}
-.gpill{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
-.gpill.live{background:#dcfce7;color:var(--green);border-color:#bbf7d0;}
-.gpill.lunch{background:#fef3c7;color:var(--gold);border-color:#fde68a;}
-.gpill.ended{background:var(--surface2);color:var(--muted);}
+.gpill{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);}
+.gpill.live{background:rgba(5,150,105,.3);color:#6ee7b7;border-color:rgba(110,231,183,.3);}
+.gpill.lunch{background:rgba(217,119,6,.3);color:#fcd34d;border-color:rgba(252,211,77,.3);}
+.gpill.ended{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
 .myteam-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;color:white;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
 
 /* TABS */
-.tabs{display:flex;background:var(--surface);border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
+.tabs{display:flex;background:var(--tab-bg);border-bottom:none;overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-2px;}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab{padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-2px;}
+.tab.active{color:white;border-bottom-color:#4dd0e1;}
 
 /* PANELS */
 .panel{display:none;padding:14px 16px;}
@@ -103,17 +106,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* MAP */
 #mapWrap{position:absolute;top:90px;left:0;right:0;bottom:0;}
 #mapEl{position:absolute;inset:0;width:100%;height:100%;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
 label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
 input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .15s;}
 input:focus,select:focus{border-color:var(--accent);}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;min-height:48px;}
 .btn:hover{opacity:.85;transform:translateY(-1px);}.btn:active{transform:scale(.97);}
-.btn-p{background:var(--accent);color:white;}.btn-b{background:var(--blue);color:white;}
+.btn-p{background:linear-gradient(135deg,#0066cc,#0055a5);color:white;box-shadow:0 4px 12px rgba(0,102,204,.3);}.btn-b{background:var(--blue);color:white;}
 .btn-g{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
 .btn-gr{background:var(--green);color:white;}
-.btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;}.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;min-height:36px;}.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px;}
 .stitle{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;margin-top:16px;}
 .stitle:first-child{margin-top:0;}
 .divider{height:1px;background:var(--border);margin:14px 0;}
@@ -121,7 +124,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 /* STATUS */
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px;}
-.tsc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);min-width:0;}
+.tsc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);min-width:0;}
 .tsc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
 .tsn{font-weight:700;font-size:13px;margin-bottom:4px;}
 .tsl2{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
@@ -134,10 +137,10 @@ input:focus,select:focus{border-color:var(--accent);}
 
 /* SCORES */
 .scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
-.tscc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.tscc{background:var(--surface);border:none;border-radius:14px;padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-lg);}
 .tsrk{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--muted);}
 .tsn2{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;}
-.bsc{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1;margin-bottom:2px;}
+.bsc{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:-1px;line-height:1;margin-bottom:2px;}
 .brkd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
 .btbl{width:100%;border-collapse:collapse;font-size:12px;}
 .btbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);}
@@ -145,8 +148,9 @@ input:focus,select:focus{border-color:var(--accent);}
 .btbl tr:last-child td{border-bottom:none;}
 
 /* MAP overlays */
-.leaflet-container{background:#f0f4f8 !important;}
+.leaflet-container{background:#1a2332 !important;}
 .leaflet-interactive:focus{outline:none !important;}
+.leaflet-tile-pane{filter:saturate(0.8) brightness(0.95);}
 #zonePopup{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow-lg);min-width:200px;max-width:260px;pointer-events:auto;}
 #zonePopup h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:4px;}
 #zonePopup .zp-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
@@ -171,11 +175,11 @@ input:focus,select:focus{border-color:var(--accent);}
 /* ZONES */
 .zone-region-header{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;}
 .zone-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
-.zone-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
+.zone-card{background:var(--surface);border:none;border-radius:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
 .zone-card:hover{box-shadow:var(--shadow-lg);}
-.zone-card.controlled{border-left:4px solid;}
+.zone-card.controlled{border-left:5px solid;}
 .zone-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
-.zone-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.zone-code{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
 .zone-name-t{font-weight:700;font-size:13px;flex:1;}
 .zone-area{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
 .zone-chips{display:flex;gap:5px;flex-wrap:wrap;}
@@ -218,7 +222,7 @@ input:focus,select:focus{border-color:var(--accent);}
 
 /* TOAST */
 #toastContainer{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1100;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
-.toast{background:var(--text);color:var(--surface);padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;text-align:center;line-height:1.5;pointer-events:auto;width:100%;}
+.toast{background:var(--text);color:var(--surface);padding:12px 24px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);backdrop-filter:blur(10px);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;text-align:center;line-height:1.5;pointer-events:auto;width:100%;}
 .toast.show{opacity:1;transform:translateY(0);}
 .toast.error{background:#991b1b;color:white;}
 .toast.warn{background:#92400e;color:white;}
@@ -228,14 +232,15 @@ input:focus,select:focus{border-color:var(--accent);}
 .notif-banner.show{transform:translateY(0);}
 
 @media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
+@media(max-width:480px){.mo{align-items:flex-end;}.md{border-radius:20px 20px 0 0;max-height:85vh;margin:0;width:100%;max-width:100%;}}
 
 /* ── HOME SCREEN ─────────────────────────────────────────── */
 #screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;}
 .home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
-.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;background:linear-gradient(135deg,#003366,#005baa);border-radius:0 0 24px 24px;}
 .home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
-.home-title{font-family:'Bebas Neue',sans-serif;font-size:58px;letter-spacing:.06em;color:var(--accent);line-height:1;}
-.home-tagline{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.01em;}
+.home-title{font-family:'Bebas Neue',sans-serif;font-size:58px;letter-spacing:.06em;color:white;line-height:1;}
+.home-tagline{font-size:14px;color:rgba(255,255,255,.7);font-weight:500;letter-spacing:.01em;}
 .home-auth-wrap{padding:0 20px 4px;}
 .home-auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);}
 .home-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-bottom:16px;}
@@ -271,7 +276,7 @@ input:focus,select:focus{border-color:var(--accent);}
 .hgcard-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 .hgcard-cta{margin-top:8px;padding:8px 0;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;}
 .hgcard.zone-mode .hgcard-cta{background:var(--accent);}
-.hgcard.zone-mode .hgcard-cta:hover{background:#0f766e;}
+.hgcard.zone-mode .hgcard-cta:hover{background:var(--accent-dark);}
 .hgcard.c4-mode   .hgcard-cta{background:var(--surface2);color:var(--muted);cursor:default;}
 /* Zone path / C4 zone SVG styles */
 .hz{fill:#c2d4bb;stroke:#b8cdb1;stroke-width:1.5;stroke-linejoin:round;transition:fill .42s ease;}
@@ -289,9 +294,9 @@ input:focus,select:focus{border-color:var(--accent);}
     <!-- Hero -->
     <div class="home-hero">
       <svg class="home-hero-logomark" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2"  y="2"  width="25" height="25" rx="4" fill="#0d9488"/>
-        <rect x="33" y="2"  width="25" height="25" rx="4" fill="#0d9488" opacity=".38"/>
-        <rect x="2"  y="33" width="25" height="25" rx="4" fill="#0d9488" opacity=".38"/>
+        <rect x="2"  y="2"  width="25" height="25" rx="4" fill="#0066cc"/>
+        <rect x="33" y="2"  width="25" height="25" rx="4" fill="#0066cc" opacity=".38"/>
+        <rect x="2"  y="33" width="25" height="25" rx="4" fill="#0066cc" opacity=".38"/>
         <rect x="33" y="33" width="25" height="25" rx="4" fill="#f97316"/>
       </svg>
       <div class="home-title">Transit Tournament</div>
@@ -759,6 +764,9 @@ input:focus,select:focus{border-color:var(--accent);}
       <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Your GPS determines which zone you're in. Move into a zone, tap Deposit, and spend coins to take control. The team with the most coins deposited in a zone controls it.</div>
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">💰 Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+      <div id="zoneChallengeBtn" style="display:none;margin-top:10px;">
+        <button class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:12px;" onclick="initiateZoneChallenge()">⚔️ Zone Challenge<div id="zoneChallengeSub" style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;"></div></button>
+      </div>
     </div>
     <div class="stitle" style="margin-top:0">Zone Status</div>
     <div id="zoneContainer"></div>
@@ -897,43 +905,71 @@ input:focus,select:focus{border-color:var(--accent);}
 
 
 <!-- ZONE CHALLENGE OVERLAY -->
-<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:24px;">
-  <div style="font-size:48px;margin-bottom:12px;">⚔️</div>
-  <div id="challengeTitle" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;margin-bottom:8px;">ZONE CHALLENGE</div>
-  <div id="challengeSubtitle" style="font-size:14px;opacity:.7;margin-bottom:20px;"></div>
-  <!-- Setup phase -->
-  <div id="challengeSetupPhase" style="width:100%;max-width:380px;">
-    <div style="background:rgba(255,255,255,.08);border-radius:16px;padding:20px 24px;margin-bottom:16px;">
-      <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Get Ready — Challenge Starts In</div>
-      <div id="challengeSetupCountdown" style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:4px;color:#f59e0b;">05:00</div>
+<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;overflow-y:auto;color:white;text-align:center;padding:24px;">
+  <div style="font-size:48px;margin-bottom:8px;">⚔️</div>
+  <div id="challengeTitle" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
+  <div id="challengeSubtitle" style="font-size:13px;opacity:.7;margin-bottom:16px;"></div>
+  <!-- Pending phase: challenger waiting / defender accept-decline -->
+  <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div id="chPendingChallenger" style="display:none;">
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
+        <div id="chPendingTimer" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
+      </div>
+      <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
-    <div id="challengeSetupTask" style="display:none;background:rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.5;"></div>
-    <div style="font-size:13px;opacity:.7;">The challenge will be revealed when the timer reaches zero.<br>Get to your position!</div>
+    <div id="chPendingDefender" style="display:none;">
+      <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
+        <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
+        <div id="chDefenderTimer" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
+          <button class="btn" style="flex:1;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <!-- Active phase -->
-  <div id="challengeActivePhase" style="display:none;width:100%;max-width:380px;">
-    <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:15px;font-weight:700;line-height:1.5;" id="challengeTask"></div>
-    <div style="background:rgba(255,255,255,.08);border-radius:16px;padding:16px 24px;margin-bottom:16px;">
-      <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
-      <div id="challengeActiveCountdown" style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;color:#f59e0b;">05:00</div>
+  <!-- Active phase: challenge text, timer, photo upload -->
+  <div id="chPhaseActive" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
+    <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
+      <div id="chActiveTimer" style="font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
-    <div id="challengeSubmitSection" style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;">
-      <div style="font-size:12px;opacity:.6;margin-bottom:8px;">YOUR COUNT</div>
-      <input type="number" id="challengeCount" min="0" placeholder="0" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;font-size:24px;text-align:center;border-radius:8px;padding:8px;width:100%;margin-bottom:8px;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:8px;">Optional: add a photo</div>
-      <input type="file" id="challengePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleChallengePhoto(this)">
-      <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;margin-bottom:8px;" onclick="document.getElementById('challengePhoto').click()">📷 Add Photo</button>
-      <div id="challengePhotoStatus" style="font-size:11px;opacity:.6;margin-bottom:8px;"></div>
-      <button id="challengeSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:16px;padding:14px;" onclick="submitChallengeScore()">Submit My Score</button>
-      <div id="challengeSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Score submitted — waiting for opponent…</div>
+    <div id="chActiveSubmitSection">
+      <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
+      <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;margin-bottom:8px;padding:12px;font-size:14px;" onclick="document.getElementById('chActivePhoto').click()">📷 Take Photo</button>
+      <div id="chActivePhotoStatus" style="font-size:11px;opacity:.6;margin-bottom:8px;"></div>
+      <button id="chActiveSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:15px;padding:14px;" onclick="submitZoneChallengePhoto()" disabled>Submit Photo</button>
     </div>
+    <div id="chActiveSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Photo submitted — waiting for opponent…</div>
+    <div id="chActiveStatus" style="margin-top:10px;font-size:12px;opacity:.7;"></div>
+  </div>
+  <!-- Voting phase -->
+  <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
+    <div id="chVoteContent" style="margin-bottom:12px;">
+      <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;background:rgba(255,255,255,.08);margin-bottom:10px;">
+      <div id="chVoteNoPhoto" style="display:none;background:rgba(255,255,255,.08);border-radius:10px;padding:20px;margin-bottom:10px;font-size:13px;opacity:.7;">No photo submitted by opponent.</div>
+    </div>
+    <div id="chVoteButtons" style="display:flex;gap:10px;margin-bottom:10px;">
+      <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="voteOnZoneChallenge(true)">✅ Approve</button>
+      <button class="btn" style="flex:1;background:#dc2626;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="showZoneChallengeRejectForm()">❌ Reject</button>
+    </div>
+    <div id="chVoteRejectForm" style="display:none;margin-bottom:10px;">
+      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
+      <button class="btn" style="background:#dc2626;color:white;border:none;width:100%;padding:10px;" onclick="voteOnZoneChallenge(false)">Confirm Rejection</button>
+    </div>
+    <div id="chVoteWaiting" style="display:none;font-size:13px;color:#4ade80;">✓ Vote submitted — waiting for opponent's vote…</div>
+    <div id="chVoteAutoTimer" style="font-size:11px;opacity:.5;margin-top:8px;"></div>
   </div>
   <!-- Result phase -->
-  <div id="challengeResultPhase" style="display:none;width:100%;max-width:380px;">
-    <div id="challengeResultIcon" style="font-size:64px;margin-bottom:12px;"></div>
-    <div id="challengeResultTitle" style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;margin-bottom:8px;"></div>
-    <div id="challengeResultDetail" style="font-size:14px;opacity:.8;margin-bottom:24px;line-height:1.6;"></div>
-    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;" onclick="dismissChallenge()">Continue Game</button>
+  <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
+    <div id="chResultTitle" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
+    <div id="chResultDetail" style="font-size:13px;opacity:.8;margin-bottom:20px;line-height:1.6;"></div>
+    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
   </div>
 </div>
 
@@ -1312,11 +1348,10 @@ const TABS=['rules','scores','map','zones','flop','shop','log','status'];
 const SHOP_ITEMS_DATA=[
   {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'🔍'},
   {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'📡',dur:30},
-  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in one chosen region (VA, DC, or MD) for 1 hour',icon:'🚗',dur:60,needsRegion:true},
+  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen metro line for 1 hour',icon:'🚗',dur:60,needsLine:true},
   {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'🚇'},
-  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line',icon:'🎫',dur:120,needsLine:true},
+  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line (14 coins if target leads in zones)',icon:'🎫',dur:120,needsLine:true,dynamicCost:true},
   {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
-  {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
 ];
 
 
@@ -1588,6 +1623,13 @@ function regenerateFlop(announce){
 
 function replaceFlopItem(flopId){
   if(!G.flop)return;
+  // Check if all 4 flop items are claimed — if so, full regenerate
+  const allClaimed=G.flop.every(f=>{const c=G.flopClaims&&G.flopClaims[f.id];return c&&c.status==='won';});
+  if(allClaimed){
+    regenerateFlop(true);
+    logEv('🔄 All challenges claimed! The Flop has been refreshed.');
+    return;
+  }
   const idx=G.flop.findIndex(f=>f.id===flopId);
   if(idx===-1)return;
   const current=G.flop.map(f=>f.text);
@@ -1928,9 +1970,13 @@ async function castVote(yes){
       logEv('✅ <b>'+esc(tn)+'</b> cleared Forced Detour — confirmed at '+esc(claim.station||'the station')+'!');
     } else if(claim.type==='landmark'){
       if(!G.coins)G.coins={};
-      const earned=claim.coins||7;
+      if(!G.landmarkClaims)G.landmarkClaims={};
+      const prevClaims=G.landmarkClaims[claim.teamIdx]||0;
+      const base=claim.coins||7;
+      const earned=Math.max(4,base-prevClaims);
+      G.landmarkClaims[claim.teamIdx]=prevClaims+1;
       G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
-      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!');
+      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!'+(prevClaims>0?' (diminishing returns: -'+prevClaims+')':''));
       pickNewLandmark(true);
     } else {
       if(!G.coins)G.coins={};
@@ -2013,7 +2059,11 @@ function checkVoteTimeouts(){
         logEv('⏱️ <b>'+esc(tn)+'</b> Forced Detour auto-cleared (vote timed out).');
       } else if(claim.type==='landmark'){
         if(!G.coins)G.coins={};
-        const earned=claim.coins||7;
+        if(!G.landmarkClaims)G.landmarkClaims={};
+        const prevClaims2=G.landmarkClaims[claim.teamIdx]||0;
+        const base2=claim.coins||7;
+        const earned=Math.max(4,base2-prevClaims2);
+        G.landmarkClaims[claim.teamIdx]=prevClaims2+1;
         G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
         logEv('⏱️ <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b> — auto-accepted!');
         pickNewLandmark(true);
@@ -2281,7 +2331,7 @@ const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--
 const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
 
 // STATE
-let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
+let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
 let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
 let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
 let setupTeams=[{name:'Team 1',color:PAL[0]},{name:'Team 2',color:PAL[1]},{name:'Team 3',color:PAL[2]}];
@@ -2481,7 +2531,7 @@ function needsFastPoll(){
   }
   // Active zone challenge involving me
   const ch=G.activeChallenge;
-  if(ch&&!ch.resolved&&(ch.casterIdx===LS.myTeamIdx||ch.targetIdx===LS.myTeamIdx))return true;
+  if(ch&&ch.result===null&&(ch.challengerIdx===LS.myTeamIdx||ch.defenderIdx===LS.myTeamIdx))return true;
   // Active locate curse on my team (need to push GPS often)
   if(G.curses&&G.curses.some(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now()))return true;
   // I am being tracked (pushing GPS)
@@ -2543,6 +2593,15 @@ async function poll(){
       sendPN('Transit Tournament','The game has started! Get moving.');
     }
     if(G.ended&&document.getElementById('finalScoresMo')&&!document.getElementById('finalScoresMo').classList.contains('open')){showFinalScores();}
+    // Capture zone snapshot 2hrs before scoring for momentum bonus
+    if(G.started&&!G.zoneSnapshots){
+      const st=_parseTimeToMs(G.config?.score||'18:00');
+      if(Date.now()>=st-2*3600000){
+        G.zoneSnapshots={};
+        const zones2=getZones();
+        G.teams.forEach((_,i)=>{G.zoneSnapshots[i]=zones2.filter(z=>getL(G.zones&&G.zones[z.code]||{})===i).length;});
+      }
+    }
     // Show curse alert ONLY to the targeted team
     if(G.curses&&prevStarted){
       G.curses.forEach(c=>{
@@ -2587,7 +2646,7 @@ async function poll(){
       const lcp=document.getElementById('lunchChatPanel');if(lcp&&lcp.style.display==='flex')renderLunchChat();
     }
     checkForPendingVotes();
-    checkForActiveChallenge();
+    checkForActiveChallenge();checkContestedZoneExpiry();
     // Landmark auto-refresh: host checks 30-min timeout
     if(LS.isHost&&G.landmark&&!G.landmark.claimedBy){
       const pending=G.flopClaims&&G.flopClaims['landmark']&&G.flopClaims['landmark'].status==='pending';
@@ -2621,7 +2680,7 @@ async function pushGps(lat,lng){if(!LS.gameCode)return;fetch(`${FB_URL}/gpsLocs/
 function backToSetup(){
   if(!confirm('Go back to setup? The game code will be cancelled and players will need to rejoin.'))return;
   if(pollIv){clearInterval(pollIv);pollIv=null;}
-  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:''};
+  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   saveL();
   renderTeamSetup();
@@ -2950,7 +3009,7 @@ function renderLunchChat(){
     return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'
       +'<div style="font-size:10px;color:var(--muted);margin-bottom:2px;'+(isMe?'text-align:right':'')+'"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> · '+esc(m.playerName||'')+' · '+m.time+'</div>'
       +'<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:'+(m.img?'6px':'7px 11px')+';border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'
-      +(m.img?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:8px;display:block;">':esc(m.text||''))
+      +(m.img?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:12px;display:block;">':esc(m.text||''))
       +'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -3153,7 +3212,7 @@ function renderStatus(){
     const isMine=LS.myTeamIdx===i,sc2=sc[i];
     const card=document.createElement('div');card.className='tsc';
     card.onclick=()=>{if(LS.isHost||isMine)openLocMo(i);};
-    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:10px 10px 0 0"></div>
+    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:14px 14px 0 0"></div>
       <div class="tsn" style="color:${team.color}">${esc(team.name)}</div>
       <div class="tsl2"><div class="${stale?'sdd':'pd'}"></div>${zone?`<span class="lname">${zone.code} — ${zone.name}</span>`:'<span style="color:var(--muted)">Unknown</span>'}</div>
       ${loc&&loc.notes?`<div style="font-size:11px;color:var(--muted);margin-bottom:3px">${esc(loc.notes)}</div>`:''}
@@ -3176,26 +3235,70 @@ async function submitLoc(){if(locTI===null)return;const zone=document.getElement
 // SCORES
 function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
 let _scoreCache=null,_scoreCacheTs=0;
+function _parseTimeToMs(t){if(!t)return 0;const[h,m]=(t||'18:00').split(':');const d=new Date();d.setHours(+h,+m,0,0);return d.getTime();}
+
+function _getLineStreakBonuses(){
+  const zones=getZones();
+  const lines=isCustomMap()&&G.config?.map?.lines?G.config.map.lines:Object.entries(MLINES).map(([id,v])=>({id,zonesServed:zones.filter(z=>z.lines.includes(id)).map(z=>z.code)}));
+  const bonuses=[];
+  lines.forEach(ln=>{
+    const served=ln.zonesServed||zones.filter(z=>z.lines.includes(ln.id)).map(z=>z.code);
+    if(served.length<3)return;
+    for(let i=0;i<=served.length-3;i++){
+      const trio=served.slice(i,i+3);
+      const leaders=trio.map(zc=>getL(G.zones&&G.zones[zc]||{}));
+      if(leaders[0]>=0&&leaders[0]===leaders[1]&&leaders[1]===leaders[2]){
+        if(!bonuses.find(b=>b.team===leaders[0]&&b.lineId===ln.id))
+          bonuses.push({team:leaders[0],lineId:ln.id,lineName:ln.name||ln.id,zones:trio});
+      }
+    }
+  });
+  return bonuses;
+}
+
 function computeScores(){
   const now=Date.now();
   if(_scoreCache&&now-_scoreCacheTs<500)return _scoreCache;
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
   getZones().forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=(z.area||0);}});
-  let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=2;
-  getLineBonuses().forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
+  // Momentum Bonus: 1pt for most net new zones in final 2 hours
+  const scoreTime=_parseTimeToMs(G.config?.score||'18:00');
+  const twoHrBefore=scoreTime-2*3600000;
+  if(Date.now()>=twoHrBefore&&G.zoneSnapshots){
+    const snap=G.zoneSnapshots;
+    let bestGain=0,mw=-1;
+    sc.forEach((_,i)=>{const gain=sc[i].zones-(snap[i]||0);if(gain>bestGain){bestGain=gain;mw=i;}});
+    if(mw>=0&&bestGain>0)sc[mw].bonuses+=1;
+  } else {
+    let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=1;
+  }
+  // Line Bonus: 3 consecutive zones on same line
+  _getLineStreakBonuses().forEach(lb=>{sc[lb.team].bonuses++;});
   _scoreCache=sc;_scoreCacheTs=now;
   return sc;
 }
 function renderScores(){
   const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses),rk=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t),ro={};rk.forEach((r,p)=>ro[r.i]=p+1);
   const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
-  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:10px 10px 0 0"></div><div class="tsrk">#${ro[i]}</div><div class="tsn2">${esc(team.name)}</div><div class="bsc" style="color:${team.color}">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div>`;g.appendChild(card);});
+  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${team.color};border-radius:14px 14px 0 0"></div><div class="tsrk">#${ro[i]}</div><div class="tsn2">${esc(team.name)}</div><div class="bsc" style="color:${team.color}">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div>`;g.appendChild(card);});
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
-  const as=G.teams.map((_,i)=>{let a=0;ZONES.forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
-  const aw2=as.indexOf(Math.max(...as,0));
-  const _lb=getLineBonuses();
-  tbody.innerHTML=`<tr><td><b>Area Bonus</b></td><td>2 pts</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area</td></tr>`+
-  (_lb.length?_lb.map(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});const w=(l1>=0&&l1===l2)?l1:-1;return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:${lb.color};display:inline-block"></span><b>${lb.name}</b></span></td><td>1 pt</td><td>${w>=0?`<span style="color:${G.teams[w].color};font-weight:700">${esc(G.teams[w].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">${lb.label}</td></tr>`;}).join(''):'');
+  // Momentum bonus display
+  const scoreTime2=_parseTimeToMs(G.config?.score||'18:00');
+  const inFinal2=Date.now()>=scoreTime2-2*3600000;
+  let momentumHtml;
+  if(inFinal2&&G.zoneSnapshots){
+    let bestGain2=0,mw2=-1;
+    sc.forEach((s,i)=>{const gain=s.zones-(G.zoneSnapshots[i]||0);if(gain>bestGain2){bestGain2=gain;mw2=i;}});
+    momentumHtml=`<tr><td><b>Momentum</b></td><td>1 pt</td><td>${mw2>=0&&G.teams[mw2]?`<span style="color:${G.teams[mw2].color};font-weight:700">${esc(G.teams[mw2].name)}</span> <span style="color:var(--muted);font-size:10px">+${bestGain2} zones</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Most net new zones (final 2hr)</td></tr>`;
+  } else {
+    const as=G.teams.map((_,i)=>{let a=0;getZones().forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
+    const aw2=as.indexOf(Math.max(...as,0));
+    momentumHtml=`<tr><td><b>Area Bonus</b></td><td>1 pt</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area (switches to momentum in final 2hr)</td></tr>`;
+  }
+  // Line streak bonuses
+  const _lsb=_getLineStreakBonuses();
+  tbody.innerHTML=momentumHtml+
+  (_lsb.length?_lsb.map(lb=>{return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><b>${esc(lb.lineName)}</b></span></td><td>1 pt</td><td>${G.teams[lb.team]?`<span style="color:${G.teams[lb.team].color};font-weight:700">${esc(G.teams[lb.team].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">3 consecutive zones</td></tr>`;}).join(''):'');
 }
 
 // MAP
@@ -3336,7 +3439,7 @@ function initMap(){
 }
 function renderMapColors(){
   if(!mapReady)return;
-  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
+  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const contested=G.contestedZones&&G.contestedZones[z.code]&&G.contestedZones[z.code].until>Date.now();if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:contested?.45:.25,color:c,weight:contested?3:2,dashArray:contested?'8 4':null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});if(poly._path)poly._path.classList.toggle('contested-zone',!!contested);});
   renderMZL();updateLocateMarkers();
   const ml=document.getElementById('mapLegend');
   if(ml)ml.style.display=isCustomMap()?'none':'block';
@@ -3428,6 +3531,7 @@ function updateDepositHint(){
     hint.textContent='You are in: '+(zone?zoneName:'outside all zones')+' · '+Math.round(dist)+'m from nearest station';
     hint.style.color=zone?'var(--green)':'var(--muted)';
   }
+  updateZoneChallengeBtn();
 }
 
 let curZone=null;
@@ -3443,7 +3547,7 @@ function getDepositBlockReason(){
   const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
   if(itCurse){
     const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-    return '🚗 Interstate Travellers active! You cannot deposit in '+itCurse.notes+' zones for '+rem+' more minute'+(rem===1?'':'s')+'.';
+    return '🚗 Interstate Travellers active! You cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.';
   }
   return null; // no block
 }
@@ -3609,17 +3713,26 @@ async function submitDep(){
   const teamSel=document.getElementById('dmTeamSel');
   const teamIdx=LS.myTeamIdx;
   const myCoins=(G.coins&&G.coins[teamIdx])||0;
-  if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();return;}
 
-  // Check Interstate Travellers
-  const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
-  if(itCurse){
-    const blockedRegion=itCurse.notes; // VA, DC, or MD
-    if(z.region===blockedRegion){
-      const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-      showToast('🚗 Interstate Travellers — you cannot deposit in '+blockedRegion+' for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
-      return;
+  // Emergency deposit: free 1-coin deposit when broke, once per zone per hour
+  let isEmergencyDep=false;
+  if(myCoins===0&&amount===1){
+    if(!G.emergencyDeps)G.emergencyDeps={};
+    const key=teamIdx+'_'+curZone;
+    const last=G.emergencyDeps[key]||0;
+    if(Date.now()-last<3600000){
+      const mins=Math.ceil((3600000-(Date.now()-last))/60000);
+      showToast('Emergency deposit already used in '+curZone+'. Available again in '+mins+'m.','warn');closeDep();return;
     }
+    isEmergencyDep=true;
+  } else if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();return;}
+
+  // Check Interstate Travellers (blocks a metro line)
+  const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
+  if(itCurse&&z.lines.some(l=>itCurse.notes.toLowerCase().includes(l))){
+    const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
+    showToast('🚗 Interstate Travellers — you cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
+    return;
   }
   // Check Line Lockdown
   const lockCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Line Lockdown'&&c.expiresAt&&c.expiresAt>Date.now());
@@ -3632,8 +3745,13 @@ async function submitDep(){
   if(!G.zones)G.zones={};if(!G.zones[curZone])G.zones[curZone]={};
   if(!G.coins)G.coins={};
 
-  // Deduct coins
-  G.coins[teamIdx]=Math.max(0,(G.coins[teamIdx]||0)-amount);
+  // Deduct coins (skip for emergency deposit)
+  if(isEmergencyDep){
+    if(!G.emergencyDeps)G.emergencyDeps={};
+    G.emergencyDeps[teamIdx+'_'+curZone]=Date.now();
+  } else {
+    G.coins[teamIdx]=Math.max(0,(G.coins[teamIdx]||0)-amount);
+  }
 
   // Add to zone
   G.zones[curZone][teamIdx]=(parseInt(G.zones[curZone][teamIdx])||0)+amount;
@@ -3661,246 +3779,371 @@ async function submitDep(){
 
 
 // ZONE CHALLENGE
-const ZONE_CHALLENGE_TASKS = [
-  'Highest number found on a single licence plate — note the full plate number',
-  'Most national flags spotted from your current position',
-  'Most state flags spotted from your current position',
-  'Most pigeons counted in one continuous view',
-  'Most red cars spotted',
-  'Most people wearing hats spotted',
-  'Most dogs spotted',
-  'Most cyclists spotted',
-  'Most fire hydrants spotted',
-  'Most benches spotted',
-  'Most trees visible from one spot — count only trees, not bushes',
-  'Most streetlights visible from one spot',
-  'Most stop signs spotted',
-  'Highest house or building number spotted on any street',
-  'Most birds of any kind spotted — pigeons count',
-  'Most people spotted wearing sunglasses',
-  'Most parked bicycles spotted',
-];
+let _zcPhotoUrl=null;
+let _zcInterval=null;
 
-const CHALLENGE_SETUP_SECS = 300; // 5 min setup
-const CHALLENGE_ACTIVE_SECS = 300; // 5 min challenge
-
-let _challengePhotoUrl = null;
-let _challengeInterval = null;
-
-function showChallengeBlockedReason(reason){
-  if(reason)showToast('⚔️ Zone Challenge unavailable: '+reason,'warn',5000);
+function updateZoneChallengeBtn(){
+  const btn=document.getElementById('zoneChallengeBtn');
+  const sub=document.getElementById('zoneChallengeSub');
+  if(!btn)return;
+  btn.style.display='none';
+  if(!G.started||LS.myTeamIdx<0)return;
+  if(G.activeChallenge&&G.activeChallenge.result===null)return;
+  const lat=_freshLat,lng=_freshLng;
+  if(!lat)return;
+  const zone=getGpsZone();
+  if(!zone)return;
+  const deps=G.zones&&G.zones[zone]||{};
+  const leader=getL(deps);
+  if(leader<0||leader===LS.myTeamIdx)return;
+  const dist=distToNearestStation(lat,lng);
+  const minDist=getMinDistFromTransit();
+  if(dist<minDist)return;
+  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now())return;
+  const defName=G.teams[leader]?.name||'?';
+  btn.style.display='block';
+  if(sub)sub.textContent='Challenge '+defName+' for '+zone;
 }
 
-function openChallengeWager(itemIdx){
-  // Called from openPurchaseMo for Zone Challenge
-  const wRow = document.getElementById('purchaseWagerRow');
-  if(wRow) wRow.style.display = 'block';
+function initiateZoneChallenge(){
+  if(!G.started||LS.myTeamIdx<0){showToast('Game not started or no team.','warn');return;}
+  if(G.activeChallenge&&G.activeChallenge.result===null){showToast('A challenge is already active.','warn');return;}
+  const zone=getGpsZone();
+  if(!zone){showToast('GPS could not detect your zone.','warn');return;}
+  const deps=G.zones&&G.zones[zone]||{};
+  const leader=getL(deps);
+  if(leader<0){showToast('No team controls this zone.','warn');return;}
+  if(leader===LS.myTeamIdx){showToast('Your team controls this zone.','warn');return;}
+  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now()){showToast('This zone is contested — challenge blocked for 30 minutes.','warn');return;}
+  const lat=_freshLat,lng=_freshLng;
+  if(lat){const dist=distToNearestStation(lat,lng);const minDist=getMinDistFromTransit();if(dist<minDist){showToast('Too close to a metro station.','warn');return;}}
+  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
+  const defName=G.teams[leader]?.name||'?';
+  const html='<div style="text-align:center;padding:16px;"><div style="font-size:36px;margin-bottom:8px;">⚔️</div>'+
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Challenge <b>'+esc(defName)+'</b> for zone <b>'+zone+'</b></div>'+
+    '<div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Wager (coins)</label>'+
+    '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;text-align:center;"></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Defender must match your wager within 3 minutes or forfeit.</div>'+
+    '<div style="display:flex;gap:10px;">'+
+    '<button class="btn btn-g" style="flex:1;" onclick="closeZcModal()">Cancel</button>'+
+    '<button class="btn btn-p" style="flex:1;" onclick="confirmZoneChallenge(\''+zone+'\','+leader+')">Challenge!</button></div></div>';
+  const mo=document.createElement('div');
+  mo.id='zcModal';
+  mo.style.cssText='position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
+  mo.innerHTML='<div style="background:var(--surface);border-radius:14px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);">'+html+'</div>';
+  document.body.appendChild(mo);
 }
 
-function closeChallengeWager(){
-  const wRow = document.getElementById('purchaseWagerRow');
-  if(wRow) wRow.style.display = 'none';
-  const inp = document.getElementById('purchaseWager');
-  if(inp) inp.value = '';
-}
+function closeZcModal(){const m=document.getElementById('zcModal');if(m)m.remove();}
 
-async function startZoneChallenge(targetIdx, wager, casterIdx, contestedZone){
-  const now = Date.now();
-  const task = ZONE_CHALLENGE_TASKS[Math.floor(Math.random()*ZONE_CHALLENGE_TASKS.length)];
-  // Find a zone the target team controls
-  // contestedZone passed directly from confirmPurchase (current GPS zone)
-  G.activeChallenge = {
-    id: 'ch_'+now,
-    casterIdx,
-    targetIdx,
-    wager,
-    task,
-    contestedZone,
-    phase: 'setup', // setup → active → done
-    startedAt: now,
-    activeAt: now + CHALLENGE_SETUP_SECS*1000,
-    endsAt: now + CHALLENGE_SETUP_SECS*1000 + CHALLENGE_ACTIVE_SECS*1000,
-    scores: {}, // teamIdx: {count, photoUrl, submittedAt}
-    resolved: false,
+async function confirmZoneChallenge(zone,defenderIdx){
+  const inp=document.getElementById('zcWagerInput');
+  const wager=parseInt(inp?.value)||0;
+  if(wager<1){showToast('Enter a wager of at least 1 coin.','warn');return;}
+  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
+  if(wager>myCoins){showToast('Not enough coins.','error');return;}
+  closeZcModal();
+  if(!G.coins)G.coins={};
+  G.coins[LS.myTeamIdx]=Math.max(0,(G.coins[LS.myTeamIdx]||0)-wager);
+  const now=Date.now();
+  G.activeChallenge={
+    id:'ch_'+now,
+    challengerIdx:LS.myTeamIdx,
+    defenderIdx:defenderIdx,
+    contestedZone:zone,
+    wager:wager,
+    phase:'pending',
+    createdAt:now,
+    acceptDeadline:now+3*60000,
+    acceptedAt:null,
+    challenge:null,
+    activeAt:null,
+    endsAt:null,
+    submissions:{},
+    votes:{},
+    declined:false,
+    result:null
   };
-  const cn = G.teams[casterIdx]?.name||'?', tn = G.teams[targetIdx]?.name||'?';
-  logEv('⚔️ <b>'+esc(cn)+'</b> has challenged <b>'+esc(tn)+'</b> to a Zone Challenge! Wager: '+wager+' coins.');
+  const cn=G.teams[LS.myTeamIdx]?.name||'?',dn=G.teams[defenderIdx]?.name||'?';
+  logEv('⚔️ <b>'+esc(cn)+'</b> challenges <b>'+esc(dn)+'</b> for zone '+zone+'! Wager: '+wager+' coins.');
+  sendPN('⚔️ Zone Challenge!',cn+' challenges '+dn+' for '+zone+'!');
   await pushState();
   showChallengeOverlay();
 }
 
-function showChallengeOverlay(){
-  const ch = G.activeChallenge;
-  if(!ch||ch.resolved) return;
-  const myTeam = LS.myTeamIdx;
-  const involved = myTeam===ch.casterIdx||myTeam===ch.targetIdx||LS.isHost;
-  if(!involved) return;
-
-  const ov = document.getElementById('challengeOverlay');
-  if(!ov) return;
-  ov.style.display = 'flex';
-
-  const cn = G.teams[ch.casterIdx]?.name||'?', tn = G.teams[ch.targetIdx]?.name||'?';
-  document.getElementById('challengeTitle').textContent = 'ZONE CHALLENGE';
-  document.getElementById('challengeSubtitle').textContent = cn+' vs '+tn+' · '+ch.wager+' coin wager';
-
-  updateChallengeDisplay();
-  if(_challengeInterval) clearInterval(_challengeInterval);
-  _challengeInterval = setInterval(updateChallengeDisplay, 1000);
-}
-
-function updateChallengeDisplay(){
-  const ch = G.activeChallenge;
-  if(!ch) return;
-  const now = Date.now();
-
-  if(ch.phase==='setup'||now<ch.activeAt){
-    // Setup phase
-    document.getElementById('challengeSetupPhase').style.display='block';
-    document.getElementById('challengeActivePhase').style.display='none';
-    document.getElementById('challengeResultPhase').style.display='none';
-    const rem = Math.max(0, ch.activeAt-now);
-    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
-    document.getElementById('challengeSetupCountdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    // Team B (defender) can see the task during setup to prepare
-    // Team A (challenger) only sees it when active phase begins
-    const isChallenger = LS.myTeamIdx===ch.casterIdx;
-    const setupTaskEl = document.getElementById('challengeSetupTask');
-    if(setupTaskEl){
-      if(isChallenger){
-        setupTaskEl.style.display='none';
-      } else {
-        setupTaskEl.style.display='block';
-        setupTaskEl.textContent='Your challenge: '+ch.task;
-      }
-    }
-    // Transition to active
-    if(rem<=0 && ch.phase==='setup'){
-      ch.phase='active';
-      pushState();
-    }
-  } else if(ch.phase==='active'&&now<ch.endsAt){
-    // Active phase
-    document.getElementById('challengeSetupPhase').style.display='none';
-    document.getElementById('challengeActivePhase').style.display='block';
-    document.getElementById('challengeResultPhase').style.display='none';
-    document.getElementById('challengeTask').textContent = ch.task;
-    const rem = Math.max(0, ch.endsAt-now);
-    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
-    document.getElementById('challengeActiveCountdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    // Check if my team already submitted
-    const myScore = ch.scores&&ch.scores[LS.myTeamIdx];
-    if(myScore){
-      document.getElementById('challengeSubmitSection').style.display='none';
-      document.getElementById('challengeSubmitted').style.display='block';
-    }
-    // Auto-submit whatever is currently typed, then resolve
-    if(rem<=0){
-      const myScore=ch.scores&&ch.scores[LS.myTeamIdx];
-      if(!myScore){
-        // Auto-submit current value (even if 0)
-        const count=parseInt(document.getElementById('challengeCount')?.value)||0;
-        if(!G.activeChallenge.scores)G.activeChallenge.scores={};
-        G.activeChallenge.scores[LS.myTeamIdx]={count,photoUrl:_challengePhotoUrl||null,submittedAt:Date.now(),autoSubmitted:true};
-      }
-      resolveChallenge();
-    }
-  } else if(ch.phase==='done'||now>=ch.endsAt){
-    resolveChallenge();
+async function respondToChallenge(accept){
+  const ch=G.activeChallenge;
+  if(!ch||ch.phase!=='pending')return;
+  const dn=G.teams[ch.defenderIdx]?.name||'?',cn=G.teams[ch.challengerIdx]?.name||'?';
+  if(accept){
+    const defCoins=(G.coins&&G.coins[ch.defenderIdx])||0;
+    if(defCoins<ch.wager){showToast('Not enough coins to match the wager ('+ch.wager+').','error');return;}
+    if(!G.coins)G.coins={};
+    G.coins[ch.defenderIdx]=Math.max(0,(G.coins[ch.defenderIdx]||0)-ch.wager);
+    ch.acceptedAt=Date.now();
+    const pool=FLOP_CHALLENGES.filter(f=>f.coins<=2);
+    ch.challenge=pool[Math.floor(Math.random()*pool.length)]||{text:'Take a creative photo',coins:1};
+    ch.activeAt=Date.now();
+    ch.endsAt=Date.now()+8*60000;
+    ch.phase='active';
+    logEv('⚔️ <b>'+esc(dn)+'</b> accepted the Zone Challenge! Task: '+esc(ch.challenge.text));
+  } else {
+    ch.declined=true;
+    ch.phase='done';
+    ch.result='void';
+    if(!G.coins)G.coins={};
+    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+    if(!G.contestedZones)G.contestedZones={};
+    G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
+    logEv('⚔️ <b>'+esc(dn)+'</b> declined the Zone Challenge. Zone '+ch.contestedZone+' is contested for 30 minutes.');
   }
+  await pushState();
+  showChallengeOverlay();
+  renderAll();
 }
 
-function handleChallengePhoto(input){
-  const file=input.files[0]; if(!file)return;
-  const status=document.getElementById('challengePhotoStatus');
-  status.textContent='Uploading…';
+function handleZoneChallengePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const status=document.getElementById('chActivePhotoStatus');
+  if(status)status.textContent='Uploading…';
   uploadToCloudinary(file).then(url=>{
-    _challengePhotoUrl=url;
-    status.textContent='✓ Photo ready';
-  }).catch(()=>{status.textContent='Upload failed — submit without photo';});
+    _zcPhotoUrl=url;
+    if(status)status.textContent='✓ Photo ready';
+    const btn=document.getElementById('chActiveSubmitBtn');if(btn)btn.disabled=false;
+  }).catch(()=>{if(status)status.textContent='Upload failed';});
   input.value='';
 }
 
-async function submitChallengeScore(){
-  const ch=G.activeChallenge; if(!ch)return;
-  const count=parseInt(document.getElementById('challengeCount')?.value)||0;
-  if(!G.activeChallenge.scores)G.activeChallenge.scores={};
-  G.activeChallenge.scores[LS.myTeamIdx]={count, photoUrl:_challengePhotoUrl||null, submittedAt:Date.now()};
-  _challengePhotoUrl=null;
-  document.getElementById('challengeSubmitSection').style.display='none';
-  document.getElementById('challengeSubmitted').style.display='block';
-  // If both teams submitted, resolve immediately
-  const bothSubmitted = ch.scores[ch.casterIdx]!==undefined && ch.scores[ch.targetIdx]!==undefined;
-  if(bothSubmitted) resolveChallenge();
-  else await pushState();
+async function submitZoneChallengePhoto(){
+  const ch=G.activeChallenge;if(!ch||ch.phase!=='active')return;
+  if(!_zcPhotoUrl){showToast('Take a photo first.','warn');return;}
+  if(!ch.submissions)ch.submissions={};
+  ch.submissions[LS.myTeamIdx]={photoUrl:_zcPhotoUrl,submittedAt:Date.now()};
+  _zcPhotoUrl=null;
+  const both=ch.submissions[ch.challengerIdx]&&ch.submissions[ch.defenderIdx];
+  if(both){ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;}
+  await pushState();
+  showChallengeOverlay();
 }
 
-async function resolveChallenge(){
+function showZoneChallengeRejectForm(){
+  const f=document.getElementById('chVoteRejectForm');if(f)f.style.display='block';
+  const b=document.getElementById('chVoteButtons');if(b)b.style.display='none';
+}
+
+async function voteOnZoneChallenge(approved){
+  const ch=G.activeChallenge;if(!ch||ch.phase!=='voting')return;
+  if(!approved){
+    const reason=document.getElementById('chVoteRejectReason')?.value?.trim();
+    if(!reason){showToast('Please provide a reason for rejection.','warn');return;}
+    if(!ch.votes)ch.votes={};
+    ch.votes[LS.myTeamIdx]={approved:false,reason:reason,votedAt:Date.now()};
+  } else {
+    if(!ch.votes)ch.votes={};
+    ch.votes[LS.myTeamIdx]={approved:true,reason:'',votedAt:Date.now()};
+  }
+  const bothVoted=ch.votes[ch.challengerIdx]&&ch.votes[ch.defenderIdx];
+  if(bothVoted)resolveZoneChallenge();
+  await pushState();
+  showChallengeOverlay();
+}
+
+function resolveZoneChallenge(){
   const ch=G.activeChallenge;
-  if(!ch||ch.resolved)return;
-  ch.resolved=true;
-  ch.phase='done';
-  if(_challengeInterval){clearInterval(_challengeInterval);_challengeInterval=null;}
-
-  const casterScore=(ch.scores&&ch.scores[ch.casterIdx]?.count)||0;
-  const targetScore=(ch.scores&&ch.scores[ch.targetIdx]?.count)||0;
-  const cn=G.teams[ch.casterIdx]?.name||'?', tn=G.teams[ch.targetIdx]?.name||'?';
-  const casterWins = casterScore > targetScore || (ch.scores&&ch.scores[ch.casterIdx]&&!ch.scores[ch.targetIdx]);
-
+  if(!ch||ch.result!==null)return;
+  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
   if(!G.coins)G.coins={};
   if(!G.zones)G.zones={};
-
-  if(casterWins){
-    // Wager was already deducted — deposit it as zone coins (no refund, coins go into zone)
-    if(ch.contestedZone){
-      if(!G.zones[ch.contestedZone])G.zones[ch.contestedZone]={};
-      G.zones[ch.contestedZone][ch.casterIdx]=(parseInt(G.zones[ch.contestedZone][ch.casterIdx])||0)+ch.wager;
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  const cVote=ch.votes&&ch.votes[ch.defenderIdx];
+  const dVote=ch.votes&&ch.votes[ch.challengerIdx];
+  const cApproved=cVote&&cVote.approved;
+  const dApproved=dVote&&dVote.approved;
+  if(cApproved&&dApproved){
+    ch.result='challenger';
+    const zone=ch.contestedZone;
+    if(zone){
+      if(!G.zones[zone])G.zones[zone]={};
+      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
     }
-    logEv('⚔️ <b>'+esc(cn)+'</b> won the Zone Challenge! ('+casterScore+' vs '+targetScore+') — '+ch.wager+' coins deposited in '+(ch.contestedZone||'the zone')+'.');
-    showChallengeResult(true, casterScore, targetScore, ch.wager, ch.contestedZone, cn, tn);
+    logEv('⚔️ <b>'+esc(cn)+'</b> wins the Zone Challenge! '+ch.wager*2+' coins deposited in '+zone+'.');
+  } else if(cApproved&&!dApproved){
+    ch.result='challenger';
+    const zone=ch.contestedZone;
+    if(zone){
+      if(!G.zones[zone])G.zones[zone]={};
+      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
+    }
+    logEv('⚔️ <b>'+esc(cn)+'</b> wins the Zone Challenge (only approved submission)! '+ch.wager*2+' coins deposited in '+zone+'.');
+  } else if(!cApproved&&dApproved){
+    ch.result='defender';
+    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager*2;
+    logEv('⚔️ <b>'+esc(dn)+'</b> defends the zone! Both wagers ('+ch.wager*2+' coins) go to '+dn+'.');
   } else {
-    // Target team keeps the wager
-    G.coins[ch.targetIdx]=(G.coins[ch.targetIdx]||0)+ch.wager;
-    logEv('⚔️ <b>'+esc(tn)+'</b> defended their zone! ('+targetScore+' vs '+casterScore+') — '+cn+' loses '+ch.wager+' coins to '+tn+'.');
-    showChallengeResult(false, casterScore, targetScore, ch.wager, ch.contestedZone, cn, tn);
+    ch.result='draw';
+    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager;
+    logEv('⚔️ Zone Challenge draw — wagers returned.');
   }
-
-  await pushState();
+  ch.phase='done';
+  pushState();
   renderAll();
-  _updateHeaderVar();
 }
 
-function showChallengeResult(casterWon, casterScore, targetScore, wager, zone, cn, tn){
-  document.getElementById('challengeSetupPhase').style.display='none';
-  document.getElementById('challengeActivePhase').style.display='none';
-  document.getElementById('challengeResultPhase').style.display='block';
-  const iAmCaster=LS.myTeamIdx===G.activeChallenge?.casterIdx;
-  const iWon=(iAmCaster&&casterWon)||(!iAmCaster&&!casterWon);
-  document.getElementById('challengeResultIcon').textContent=iWon?'🏆':'😔';
-  document.getElementById('challengeResultTitle').textContent=iWon?'YOU WON!':'YOU LOST';
-  let detail='';
-  if(casterWon){
-    detail=cn+': '+casterScore+' vs '+tn+': '+targetScore+' · '+wager+' coins deposited into '+(zone||'the zone')+'!';
+function showChallengeOverlay(){
+  const ch=G.activeChallenge;
+  if(!ch)return;
+  const myTeam=LS.myTeamIdx;
+  const involved=myTeam===ch.challengerIdx||myTeam===ch.defenderIdx||LS.isHost;
+  if(!involved)return;
+  const ov=document.getElementById('challengeOverlay');
+  if(!ov)return;
+  ov.style.display='flex';
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  document.getElementById('challengeTitle').textContent='ZONE CHALLENGE';
+  document.getElementById('challengeSubtitle').textContent=cn+' vs '+dn+' · '+ch.wager+' coin wager · Zone '+ch.contestedZone;
+  ['chPhasePending','chPhaseActive','chPhaseVoting','chPhaseResult'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  if(ch.phase==='pending')showChPending(ch,myTeam);
+  else if(ch.phase==='active')showChActive(ch,myTeam);
+  else if(ch.phase==='voting')showChVoting(ch,myTeam);
+  else if(ch.phase==='done')showChResult(ch,myTeam);
+  if(_zcInterval)clearInterval(_zcInterval);
+  if(ch.result===null)_zcInterval=setInterval(()=>updateChallengeTimers(),1000);
+}
 
-  } else {
-    detail=tn+': '+targetScore+' vs '+cn+': '+casterScore+' | '+wager+' coins transferred to '+tn+'.';
+function showChPending(ch,myTeam){
+  document.getElementById('chPhasePending').style.display='block';
+  const isChallenger=myTeam===ch.challengerIdx;
+  document.getElementById('chPendingChallenger').style.display=isChallenger?'block':'none';
+  document.getElementById('chPendingDefender').style.display=isChallenger?'none':'block';
+  if(!isChallenger){
+    const cn=G.teams[ch.challengerIdx]?.name||'?';
+    document.getElementById('chDefenderPrompt').textContent=cn+' challenges you for zone '+ch.contestedZone+'! Wager: '+ch.wager+' coins.';
   }
-  document.getElementById('challengeResultDetail').textContent=detail;
+}
+
+function showChActive(ch,myTeam){
+  document.getElementById('chPhaseActive').style.display='block';
+  document.getElementById('chActiveTask').textContent=ch.challenge?ch.challenge.text:'Complete the challenge';
+  const mySub=ch.submissions&&ch.submissions[myTeam];
+  document.getElementById('chActiveSubmitSection').style.display=mySub?'none':'block';
+  document.getElementById('chActiveSubmitted').style.display=mySub?'block':'none';
+  let status='';
+  const cSub=ch.submissions&&ch.submissions[ch.challengerIdx];
+  const dSub=ch.submissions&&ch.submissions[ch.defenderIdx];
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  status+=cn+': '+(cSub?'✅ submitted':'⏳ pending')+' · '+dn+': '+(dSub?'✅ submitted':'⏳ pending');
+  document.getElementById('chActiveStatus').textContent=status;
+}
+
+function showChVoting(ch,myTeam){
+  document.getElementById('chPhaseVoting').style.display='block';
+  const myVote=ch.votes&&ch.votes[myTeam];
+  if(myVote){
+    document.getElementById('chVoteButtons').style.display='none';
+    document.getElementById('chVoteRejectForm').style.display='none';
+    document.getElementById('chVoteWaiting').style.display='block';
+  } else {
+    document.getElementById('chVoteButtons').style.display='flex';
+    document.getElementById('chVoteRejectForm').style.display='none';
+    document.getElementById('chVoteWaiting').style.display='none';
+  }
+  const opponentIdx=myTeam===ch.challengerIdx?ch.defenderIdx:ch.challengerIdx;
+  const opSub=ch.submissions&&ch.submissions[opponentIdx];
+  const img=document.getElementById('chVoteImg');
+  const noPhoto=document.getElementById('chVoteNoPhoto');
+  if(opSub&&opSub.photoUrl){img.src=opSub.photoUrl;img.style.display='block';if(noPhoto)noPhoto.style.display='none';}
+  else{img.style.display='none';if(noPhoto)noPhoto.style.display='block';}
+}
+
+function showChResult(ch,myTeam){
+  document.getElementById('chPhaseResult').style.display='block';
+  const isChallenger=myTeam===ch.challengerIdx;
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  let icon='',title='',detail='';
+  if(ch.result==='void'){
+    icon='🚫';title='CHALLENGE VOIDED';detail='The challenge was declined. Wager returned.';
+  } else if(ch.result==='draw'){
+    icon='🤝';title='DRAW';detail='Neither submission was approved. Wagers returned to both teams.';
+  } else if(ch.result==='challenger'){
+    icon=isChallenger?'🏆':'😔';
+    title=isChallenger?'YOU WON!':'YOU LOST';
+    detail=cn+' wins! '+ch.wager*2+' coins deposited into zone '+ch.contestedZone+'.';
+  } else if(ch.result==='defender'){
+    icon=isChallenger?'😔':'🏆';
+    title=isChallenger?'YOU LOST':'YOU WON!';
+    detail=dn+' defends! Both wagers ('+ch.wager*2+' coins) added to '+dn+'\'s coins.';
+  }
+  document.getElementById('chResultIcon').textContent=icon;
+  document.getElementById('chResultTitle').textContent=title;
+  document.getElementById('chResultDetail').textContent=detail;
+}
+
+function updateChallengeTimers(){
+  const ch=G.activeChallenge;if(!ch||ch.result!==null)return;
+  const now=Date.now();
+  if(ch.phase==='pending'){
+    const rem=Math.max(0,ch.acceptDeadline-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    const ts=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const t1=document.getElementById('chPendingTimer');if(t1)t1.textContent=ts;
+    const t2=document.getElementById('chDefenderTimer');if(t2)t2.textContent=ts;
+    if(rem<=0&&LS.isHost){
+      ch.declined=true;ch.phase='done';ch.result='void';
+      if(!G.coins)G.coins={};
+      G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+      if(!G.contestedZones)G.contestedZones={};
+      G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
+      logEv('⚔️ Zone Challenge timed out — '+G.teams[ch.defenderIdx]?.name+' did not respond. Wager returned.');
+      pushState();showChallengeOverlay();renderAll();
+    }
+  } else if(ch.phase==='active'){
+    const rem=Math.max(0,ch.endsAt-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    document.getElementById('chActiveTimer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(rem<=0&&LS.isHost){
+      ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;
+      pushState();showChallengeOverlay();
+    }
+  } else if(ch.phase==='voting'){
+    const deadline=ch.votingDeadline||Date.now()+5*60000;
+    const rem=Math.max(0,deadline-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    const ta=document.getElementById('chVoteAutoTimer');
+    if(ta)ta.textContent='Auto-accept in '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(rem<=0&&LS.isHost){
+      if(!ch.votes)ch.votes={};
+      if(!ch.votes[ch.challengerIdx])ch.votes[ch.challengerIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
+      if(!ch.votes[ch.defenderIdx])ch.votes[ch.defenderIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
+      resolveZoneChallenge();showChallengeOverlay();
+    }
+  }
 }
 
 function dismissChallenge(){
   document.getElementById('challengeOverlay').style.display='none';
-  if(_challengeInterval){clearInterval(_challengeInterval);_challengeInterval=null;}
+  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
 }
 
 function checkForActiveChallenge(){
   const ch=G.activeChallenge;
-  if(!ch||ch.resolved)return;
-  const involved=LS.myTeamIdx===ch.casterIdx||LS.myTeamIdx===ch.targetIdx;
-  if(!involved)return;
+  if(!ch||ch.result!==null)return;
+  const involved=LS.myTeamIdx===ch.challengerIdx||LS.myTeamIdx===ch.defenderIdx;
+  if(!involved&&!LS.isHost)return;
   const ov=document.getElementById('challengeOverlay');
   if(ov&&ov.style.display==='none')showChallengeOverlay();
-  updateChallengeDisplay();
+  else updateChallengeTimers();
+}
+
+function checkContestedZoneExpiry(){
+  if(!G.contestedZones)return;
+  const now=Date.now();
+  let changed=false;
+  for(const z of Object.keys(G.contestedZones)){
+    if(G.contestedZones[z].until<=now){delete G.contestedZones[z];changed=true;}
+  }
+  if(changed&&LS.isHost)pushState();
 }
 
 // ── SHOP LOGIC ─────────────────────────────────────────────────────────────
@@ -3913,21 +4156,6 @@ function renderShopItems(){
   // Update coin badge
   const coins=(G.coins&&G.coins[LS.myTeamIdx])||0;
   const sb=document.getElementById('shopCoinBadge');if(sb)sb.textContent=coins+' 🪙';
-  // Determine Zone Challenge state before rendering
-  let zoneChallengeState='ok'; // ok | own-zone | no-zone | no-team
-  if(LS.myTeamIdx<0){zoneChallengeState='no-team';}
-  else {
-    // Get current GPS zone
-    const myZone=getGpsZone();
-    if(!myZone){zoneChallengeState='no-zone';}
-    else {
-      const deps=G.zones&&G.zones[myZone]||{};
-      const leader=getL(deps);
-      if(leader<0){zoneChallengeState='uncontrolled';}
-      else if(leader===LS.myTeamIdx){zoneChallengeState='own-zone';}
-    }
-  }
-
   const _shopItems=getAvailableShopItems();
   grid.innerHTML=_shopItems.map((item)=>{
     const i=SHOP_ITEMS_DATA.indexOf(item);
@@ -3935,19 +4163,11 @@ function renderShopItems(){
     const shopCfg2 = G.config&&G.config.map&&G.config.map.shopConfig;
     const shopEntry = shopCfg2 ? shopCfg2.find(s=>s.id===item.name) : null;
     const cost = shopEntry ? (shopEntry.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
-    const costDisplay = item.needsWager ? 'your wager' : cost+' coins';
+    const costDisplay = cost+' coins';
     const canAfford=coins>=cost;
-    // Zone Challenge special rendering
-    let challengeBlocked=false, challengeReason='';
-    if(item.needsWager){
-      if(zoneChallengeState==='no-team'){challengeBlocked=true;challengeReason='You must be on a team.';}
-      else if(zoneChallengeState==='no-zone'){challengeBlocked=true;challengeReason='GPS not detected — cannot determine your zone.';}
-      else if(zoneChallengeState==='uncontrolled'){challengeBlocked=true;challengeReason='No team controls this zone. Move to a zone controlled by another team.';
-      } else if(zoneChallengeState==='own-zone'){challengeBlocked=true;challengeReason='Your team controls this zone. Move to a zone controlled by another team.';}
-    }
-    const blocked=!canAfford||challengeBlocked;
-    const clickFn=blocked?'showChallengeBlockedReason('+JSON.stringify(challengeReason)+')':'openPurchaseMo('+i+')';
-    return '<div onclick="'+clickFn+'" style="background:var(--surface);border:1px solid '+(blocked?'#e2e8f0':'var(--border)')+';border-radius:10px;padding:10px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';transition:border-color .15s;" '+(!blocked?'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"':'')+'>'+
+    const blocked=!canAfford;
+    const clickFn=blocked?'showToast("Not enough coins.","warn")':'openPurchaseMo('+i+')';
+    return '<div onclick="'+clickFn+'" style="background:var(--surface);border:1px solid '+(blocked?'#e2e8f0':'var(--border)')+';border-radius:14px;padding:10px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';transition:border-color .15s;" '+(!blocked?'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"':'')+'>'+
       '<div style="font-size:22px;margin-bottom:4px">'+item.icon+'</div>'+
       '<div style="font-weight:700;font-size:12px;margin-bottom:2px">'+item.name+'</div>'+
       '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px">'+costDisplay+'</div>'+
@@ -3974,17 +4194,7 @@ function openPurchaseMo(idx){
   const nInput=document.getElementById('purchaseNotes');
   nInput.value='';
   const wRow=document.getElementById('purchaseWagerRow');
-  if(wRow)wRow.style.display=item.needsWager?'block':'none';
-  if(item.needsWager){
-    const wi=document.getElementById('purchaseWager');if(wi)wi.value='';
-    // Show who we're challenging (auto-detected from current zone)
-    const myZone=getGpsZone();
-    const deps=myZone&&G.zones&&G.zones[myZone]||{};
-    const targetIdx=myZone?getL(deps):-1;
-    const targetName=targetIdx>=0?G.teams[targetIdx]?.name:'unknown';
-    document.getElementById('purchaseMeta').textContent=
-      (myZone?'Challenging '+targetName+' for zone '+myZone:'Zone auto-detected on confirm')+' · Win = coins deposited, Lose = they keep your coins';
-  }
+  if(wRow)wRow.style.display='none';
   if(item.needsRegion){
     nRow.style.display='block';
     document.getElementById('purchaseNotesLabel').textContent='Which region to block?';
@@ -4022,29 +4232,17 @@ async function confirmPurchase(){
   if(item.needsLine&&!notes){showToast('Please specify the metro line.','warn');return;}
   if(item.needsRegion&&!notes){showToast('Please choose a region.','warn');return;}
 
-  // Zone Challenge — auto-detect target from current GPS zone
-  if(item.needsWager){
-    const wager=parseInt(document.getElementById('purchaseWager')?.value)||0;
-    if(wager<1){showToast('Enter a wager of at least 1 coin.','warn');return;}
-    if((G.coins&&G.coins[caster]||0)<wager){showToast('Not enough coins for that wager.','error');return;}
-    // Detect zone and controlling team right now
-    const myZone=getGpsZone();
-    if(!myZone){showToast('GPS could not detect your zone. Try again in a moment.','warn');return;}
-    const deps=G.zones&&G.zones[myZone]||{};
-    const autoTarget=getL(deps);
-    if(autoTarget<0){showToast('No team controls that zone. Only controlled zones can be challenged.','warn');return;}
-    if(autoTarget===caster){showToast('Your team controls this zone. Move to a zone controlled by another team.','warn');return;}
-    // Deduct wager
-    if(!G.coins)G.coins={};
-    G.coins[caster]=Math.max(0,(G.coins[caster]||0)-wager);
-    closePurchaseMo();
-    await startZoneChallenge(autoTarget, wager, caster, myZone);
-    return;
-  }
   // Check and deduct coins BEFORE creating curse
   const shopCfg3 = G.config&&G.config.map&&G.config.map.shopConfig;
   const shopEntry2 = shopCfg3 ? shopCfg3.find(s=>s.id===item.name) : null;
-  const coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
+  let coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
+  // Transit Cost anti-kingmaking: 14 coins if target leads in zone count
+  if(item.dynamicCost&&target!==null){
+    const sc=computeScores();
+    const targetZones=sc[target]?.zones||0;
+    const isLeader=sc.every((s,i)=>i===target||s.zones<=targetZones)&&targetZones>0;
+    if(isLeader)coinCost=14;
+  }
   if(coinCost>0){
     if(!G.coins)G.coins={};
     const cur=G.coins[caster]||0;
@@ -4060,8 +4258,9 @@ async function confirmPurchase(){
     if(!isCustomMap()){
       let pool=METRO_STATIONS;
       if(tGps&&tGps.lat){
-        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=3219);
+        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=2400);
         if(nearby.length>0)pool=nearby;
+        else{const mid=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=4000);if(mid.length>0)pool=mid;}
       }
       const s=pool[Math.floor(Math.random()*pool.length)];
       destName=s.name;
@@ -4070,7 +4269,7 @@ async function confirmPurchase(){
       if(lmPool.length){
         let pool=lmPool;
         if(tGps&&tGps.lat){
-          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=4828);// 3 miles
+          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=2400);
           if(nearby.length>0)pool=nearby;
         }
         destName=pool[Math.floor(Math.random()*pool.length)].name;
@@ -4131,7 +4330,7 @@ async function hostAwardCoins(){
 const CURSE_DESCRIPTIONS={
   'Spy':'Your coin total has been revealed to the purchasing team.',
   'Locate':'Your GPS is being tracked for 30 minutes. You cannot hide!',
-  'Interstate Travellers':'You cannot deposit coins in the blocked region for the next hour!',
+  'Interstate Travellers':'You cannot deposit coins on the blocked metro line for the next hour!',
   'Forced Detour':'You MUST travel to the specified destination and submit a photo before you can deposit coins.',
   'Transit Cost':'You will lose 3 coins on every deposit into a zone served by the chosen line for 2 hours!',
   'Line Lockdown':'No team can deposit into zones served by the chosen line for 2 hours.',
@@ -4224,8 +4423,8 @@ async function downloadGamePhotos(){
   }
 
   // Zone challenge photos
-  if(G.activeChallenge&&G.activeChallenge.scores){
-    for(const [ti,s] of Object.entries(G.activeChallenge.scores)){
+  if(G.activeChallenge&&G.activeChallenge.submissions){
+    for(const [ti,s] of Object.entries(G.activeChallenge.submissions)){
       if(!s.photoUrl)continue;
       const team=G.teams[parseInt(ti)]?.name||'Team '+(parseInt(ti)+1);
       photos.push({url:s.photoUrl,label:team+' — Zone Challenge'});
@@ -4307,7 +4506,7 @@ function showFinalScores(){
   document.getElementById('finalScoresList').innerHTML=ranked.map((r,pos)=>{
     const team=G.teams[r.i],s=sc[r.i];
     const teamCoins=(G.coins&&G.coins[r.i])||0;
-    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+(pos===0?'#fef9c3':pos===1?'#f1f5f9':pos===2?'#fdf4ff':'var(--surface2)')+';border-radius:10px;margin-bottom:8px;border:1px solid var(--border);">'+
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+(pos===0?'#fef9c3':pos===1?'#f1f5f9':pos===2?'#fdf4ff':'var(--surface2)')+';border-radius:14px;margin-bottom:8px;border:1px solid var(--border);">'+
       '<div style="font-size:24px;width:32px;text-align:center">'+(medals[pos]||(pos+1))+'</div>'+
       '<div style="flex:1"><div style="font-weight:700;font-size:15px;color:'+team.color+'">'+esc(team.name)+'</div>'+
       '<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;">'+s.zones+' zones · '+s.bonuses+' bonus pts · '+teamCoins+' coins left</div></div>'+
@@ -4364,7 +4563,7 @@ function renderChat(){
     return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'+
       '<div style="font-size:10px;color:var(--muted);margin-bottom:2px;'+(isMe?'text-align:right':'')+'"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> · '+esc(m.playerName||'')+' · '+m.time+'</div>'+
       '<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:'+(hasImg?'6px':'7px 11px')+';border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'+
-      (hasImg?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:8px;display:block;" onerror="this.style.display=\'none\'">':esc(m.text||''))+
+      (hasImg?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:12px;display:block;" onerror="this.style.display=\'none\'">':esc(m.text||''))+
       '</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -4428,10 +4627,10 @@ function renderRules(){
   schedHtml+='Scores locked at <b>'+score+'</b>.<br><br>';
   schedHtml+='<b>Starting coins:</b> Each team begins with <b>'+startCoinsCount+' coins</b>.<br>';
   schedHtml+='<b>Zones:</b> 1 pt each for any zone your team leads at scoring time.<br>';
-  schedHtml+='<b>Area Bonus:</b> 2 pts for the team controlling the largest total area.<br>';
+  schedHtml+='<b>Momentum Bonus:</b> 1 pt for the team gaining the most net new zones in the final 2 hours (before that: largest area).<br>';
   const hasLines=isCustomMap()?Object.keys(getTransitLines()).length>0:true;
   if(hasLines){
-    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls both terminal zones.';
+    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls 3 consecutive zones.';
   }
   addTitle('Schedule',true);
   addCard(schedHtml);
@@ -4455,8 +4654,9 @@ function renderRules(){
   addTitle('Landmarks');
   const cityName=isCustomMap()&&G.config.map?.cityName?G.config.map.cityName:'the play area';
   addCard(
-    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 6–10 coins depending on distance from the city center. '
+    'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 8–12 coins depending on distance from the city center. '
     +'Race there, take a photo with your team, and submit for a vote. '
+    +'<b>Diminishing returns:</b> each successive landmark claim by the same team earns 1 fewer coin (minimum 4). '
     +'Once claimed, a new landmark is immediately assigned. '
     +'If unclaimed, the landmark rotates every <b>30 minutes</b>.'
   );
@@ -4473,11 +4673,11 @@ function renderRules(){
   // ── Zone Challenge ────────────────────────────────────────────
   addTitle('Zone Challenge');
   addCard(
-    'When your team is physically inside a zone controlled by another team, you can buy a <b>Zone Challenge</b> from The Shop. '
-    +'Both teams wager the same number of coins. '
-    +'<b>If the challenger wins:</b> both wagers are deposited into the zone, giving the challenger a 2× return. '
-    +'<b>If the challenger loses:</b> both wagers go to the defending team. '
-    +'Each team gets 5 minutes to prepare, then 5 minutes to complete a live counting challenge judged by the host.'
+    '<b>Zone Challenge</b> is a free action available on the Zones tab when your GPS places you inside an enemy-controlled zone (100+ ft from metro stations). '
+    +'You set a wager; the defending team has 3 minutes to accept and match the wager, or the challenge is voided and the zone becomes "contested" for 30 minutes. '
+    +'A challenge is drawn from the Flop (Tier 1–2) with an 8-minute countdown. Both teams submit a photo, then cross-team voting occurs (5-min auto-accept). '
+    +'<b>Winner logic:</b> Both approved → challenger wins. Only one approved → that team wins. Neither → draw, wagers returned. '
+    +'<b>Challenger wins:</b> both wagers deposited into the zone. <b>Defender wins:</b> both wagers added to defender\'s coins.'
   );
 
   // ── Flop tiers ────────────────────────────────────────────────
@@ -4498,11 +4698,10 @@ function renderRules(){
     [
       ['Spy','3 🪙','Instantly reveals the target team\'s current coin total'],
       ['Locate','3 🪙','Tracks target team GPS on the map for 30 minutes'],
-      ['Interstate Travellers','6 🪙','Target cannot deposit in one chosen region for 1 hour'],
+      ['Interstate Travellers','6 🪙','Target cannot deposit in zones on a chosen metro line for 1 hour'],
       ['Forced Detour','6 🪙',isCustomMap()?'Target must reach a specific landmark and photo-verify before depositing':'Target must reach a specific metro stop and photo-verify before depositing'],
-      ['Transit Cost','10 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours'],
+      ['Transit Cost','10–14 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours (14 coins if target leads in zones)'],
       ['Line Lockdown','10 🪙','No team can deposit into zones on a chosen line for 2 hours'],
-      ['Zone Challenge','your wager','Head-to-head counting contest — win: both wagers deposited in zone (2× return); lose: defender keeps both'],
     ]
   );
 }
@@ -4564,7 +4763,7 @@ function updateUI(){
     }
   }
 }
-function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();}
+function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();updateZoneChallengeBtn();}
 
 // ── COLOR PICKER ──────────────────────────────────────────────────────────────
 let cpTgt=null;
@@ -5950,8 +6149,7 @@ const MB_SHOP_DEFAULTS = [
   {id:'Spy',        label:'🔍 Spy',              defaultCost:3,  alwaysShow:true,  desc:'Reveals target team coin total'},
   {id:'Locate',     label:'📡 Locate',           defaultCost:3,  alwaysShow:true,  desc:'Track target team GPS for 30 min'},
   {id:'Forced Detour', label:'🚇 Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a nearby landmark'},
-  {id:'Zone Challenge',label:'⚔️ Zone Challenge',defaultCost:0,  alwaysShow:true,  desc:'Wager-based zone contest (cost = wager)'},
-  {id:'Interstate Travellers',label:'🚗 Region Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing in a region (DC only)'},
+  {id:'Interstate Travellers',label:'🚗 Line Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing on a metro line'},
   {id:'Transit Cost',label:'🎫 Transit Cost',    defaultCost:10, alwaysShow:false, desc:'Target loses coins on deposits near a line'},
   {id:'Line Lockdown',label:'🔒 Line Lockdown',  defaultCost:10, alwaysShow:false, desc:'No deposits on a transit line for 2 hours'},
 ];
@@ -6015,14 +6213,7 @@ function _renderMbShopConfig(){
     const costWrap = document.createElement('div');
     costWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;';
 
-    const isWager = def.id==='Zone Challenge';
-
-    if(isWager){
-      const wageLbl = document.createElement('div');
-      wageLbl.style.cssText = 'font-size:11px;color:var(--muted);font-style:italic;';
-      wageLbl.textContent = 'wager';
-      costWrap.appendChild(wageLbl);
-    } else {
+    {
       const costLabel = document.createElement('div');
       costLabel.style.cssText = 'font-size:10px;color:var(--muted);margin-bottom:2px;';
       costLabel.textContent = 'Cost (coins)';
