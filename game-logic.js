@@ -53,12 +53,12 @@ const ZONES=[
 ];
 
 const MLINES={
-  red:{color:"#e63946",w:3,paths:[MLINE_PATHS["red"]]]},
-  blue:{color:"#2563eb",w:3,paths:[MLINE_PATHS["blue"]]]},
-  orange:{color:"#f4a636",w:3,paths:[MLINE_PATHS["orange"]]]},
-  green:{color:"#059669",w:3,paths:[MLINE_PATHS["green"]]]},
-  yellow:{color:"#d97706",w:2.5,opacity:.9,paths:[MLINE_PATHS["yellow"]]]},
-  silver:{color:"#8890b0",w:2.5,opacity:.9,paths:[MLINE_PATHS["silver"]]]},
+  red:{color:"#e63946",w:3,paths:[MLINE_PATHS["red"]]},
+  blue:{color:"#2563eb",w:3,paths:[MLINE_PATHS["blue"]]},
+  orange:{color:"#f4a636",w:3,paths:[MLINE_PATHS["orange"]]},
+  green:{color:"#059669",w:3,paths:[MLINE_PATHS["green"]]},
+  yellow:{color:"#d97706",w:2.5,opacity:.9,paths:[MLINE_PATHS["yellow"]]},
+  silver:{color:"#8890b0",w:2.5,opacity:.9,paths:[MLINE_PATHS["silver"]]},
 };
 
 const LINE_BONUSES=[
@@ -150,6 +150,7 @@ async function fetchState(fu,code){
   try{const r=await fetch(`${fu}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return rest;}catch(e){return null;}
 }
 function startPoll(){if(pollIv)clearInterval(pollIv);pollIv=setInterval(poll,4000);}
+let _pollFailCount=0;
 async function poll(){
   if(!LS.fbUrl||!LS.gameCode)return;
   try{
@@ -163,9 +164,7 @@ async function poll(){
       if(ti>=0&&ti!==LS.myTeamIdx){
         LS.myTeamIdx=ti;saveL();
         const tn=G.teams[ti]?.name||'';
-        document.getElementById('waitingTeam').style.display='block';
-        document.getElementById('waitingTeamName').textContent=tn;
-        document.getElementById('waitingTeamName').style.color=G.teams[ti]?.color||'var(--accent)';
+        if(typeof _updatePreGameTeamCard==='function')_updatePreGameTeamCard();
         showNotif(`You're on ${tn}!`);
       }
     }
@@ -191,8 +190,12 @@ async function poll(){
       });
     }
     if(G.log&&G.log.length>prevLogLen&&prevStarted){const newest=G.log[0];if(newest)sendPN('BFW Update',newest.text.replace(/<[^>]+>/g,''));}
+    _pollFailCount=0;
     updateUI();
-  }catch(e){}
+  }catch(e){
+    _pollFailCount++;
+    if(_pollFailCount>=3)showNotif('No connection — retrying…',5000);
+  }
 }
 async function pushGps(lat,lng){if(!LS.fbUrl||!LS.gameCode)return;fetch(`${LS.fbUrl}/games/${LS.gameCode}/gpsLocs/${LS.playerId}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat,lng,t:Date.now(),teamIdx:LS.myTeamIdx})}).catch(()=>{});}
 
@@ -271,7 +274,7 @@ function sendPN(title,body){if('Notification' in window&&Notification.permission
 // ═══════════════════════════
 // GPS
 // ═══════════════════════════
-let gpsIv=null;
+let gpsIv=null,_gpsHighAccuracy=false;
 function startGpsWatch(){
   if(gpsIv)return;
   gpsIv=setInterval(()=>{
@@ -313,11 +316,15 @@ async function submitLoc(){if(locTI===null)return;const zone=document.getElement
 // SCORES
 // ═══════════════════════════
 function getL(deps){let l=-1,b=0;Object.entries(deps||{}).forEach(([ti,v])=>{if(+v>b){b=+v;l=parseInt(ti);}});return l;}
+let _scoreCache=null,_scoreCacheTs=0;
 function computeScores(){
+  const now=Date.now();
+  if(_scoreCache&&now-_scoreCacheTs<500)return _scoreCache;
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
   ZONES.forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=z.area;}});
   let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=2;
   LINE_BONUSES.forEach(lb=>{const l1=getL(G.zones&&G.zones[lb.terminals[0]]||{}),l2=getL(G.zones&&G.zones[lb.terminals[1]]||{});if(l1>=0&&l1===l2)sc[l1].bonuses++;});
+  _scoreCache=sc;_scoreCacheTs=now;
   return sc;
 }
 function renderScores(){
@@ -413,6 +420,8 @@ function openDep(code){
 function closeDep(){document.getElementById('depMo').classList.remove('open');curZone=null;}
 async function submitDep(){
   if(!curZone)return;const z=ZONES.find(z=>z.code===curZone);
+  const fresh=await fetchState(LS.fbUrl,LS.gameCode);
+  if(fresh){Object.assign(G,fresh);if(!G.gpsLocs)G.gpsLocs={};}
   if(!G.zones)G.zones={};if(!G.zones[curZone])G.zones[curZone]={};
   let any=false;const tis=LS.isHost?G.teams.map((_,i)=>i):[LS.myTeamIdx];
   tis.forEach(i=>{const inp=document.getElementById(`dep_${i}`);if(!inp)return;const v=parseInt(inp.value)||0;if(v>0){G.zones[curZone][i]=(parseInt(G.zones[curZone][i])||0)+v;const tot=G.zones[curZone][i],l=getL(G.zones[curZone]);if(!G.locs)G.locs={};G.locs[i]={zone:curZone,notes:'',time:Date.now()};logEv(`<b>${esc(G.teams[i]?.name)}</b> deposited <b>${v}</b> in <b>${z.code} ${z.name}</b> — total ${tot}${l===i?' 🏳️':''}`);any=true;}});
