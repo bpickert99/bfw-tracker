@@ -70,6 +70,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .player-name{font-weight:700;font-size:14px;}
 .team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes contested-pulse{0%,100%{opacity:.3}50%{opacity:.7}}
+.contested-zone{animation:contested-pulse 2s ease-in-out infinite;}
 
 /* WAITING */
 #screenWaiting{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
@@ -759,6 +761,9 @@ input:focus,select:focus{border-color:var(--accent);}
       <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Your GPS determines which zone you're in. Move into a zone, tap Deposit, and spend coins to take control. The team with the most coins deposited in a zone controls it.</div>
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">💰 Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+      <div id="zoneChallengeBtn" style="display:none;margin-top:10px;">
+        <button class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:10px;" onclick="initiateZoneChallenge()">⚔️ Zone Challenge<div id="zoneChallengeSub" style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;"></div></button>
+      </div>
     </div>
     <div class="stitle" style="margin-top:0">Zone Status</div>
     <div id="zoneContainer"></div>
@@ -897,43 +902,71 @@ input:focus,select:focus{border-color:var(--accent);}
 
 
 <!-- ZONE CHALLENGE OVERLAY -->
-<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:24px;">
-  <div style="font-size:48px;margin-bottom:12px;">⚔️</div>
-  <div id="challengeTitle" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;margin-bottom:8px;">ZONE CHALLENGE</div>
-  <div id="challengeSubtitle" style="font-size:14px;opacity:.7;margin-bottom:20px;"></div>
-  <!-- Setup phase -->
-  <div id="challengeSetupPhase" style="width:100%;max-width:380px;">
-    <div style="background:rgba(255,255,255,.08);border-radius:16px;padding:20px 24px;margin-bottom:16px;">
-      <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Get Ready — Challenge Starts In</div>
-      <div id="challengeSetupCountdown" style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:4px;color:#f59e0b;">05:00</div>
+<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;overflow-y:auto;color:white;text-align:center;padding:24px;">
+  <div style="font-size:48px;margin-bottom:8px;">⚔️</div>
+  <div id="challengeTitle" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
+  <div id="challengeSubtitle" style="font-size:13px;opacity:.7;margin-bottom:16px;"></div>
+  <!-- Pending phase: challenger waiting / defender accept-decline -->
+  <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div id="chPendingChallenger" style="display:none;">
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
+        <div id="chPendingTimer" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
+      </div>
+      <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
-    <div id="challengeSetupTask" style="display:none;background:rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.5;"></div>
-    <div style="font-size:13px;opacity:.7;">The challenge will be revealed when the timer reaches zero.<br>Get to your position!</div>
+    <div id="chPendingDefender" style="display:none;">
+      <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
+        <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
+        <div id="chDefenderTimer" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
+          <button class="btn" style="flex:1;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <!-- Active phase -->
-  <div id="challengeActivePhase" style="display:none;width:100%;max-width:380px;">
-    <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:15px;font-weight:700;line-height:1.5;" id="challengeTask"></div>
-    <div style="background:rgba(255,255,255,.08);border-radius:16px;padding:16px 24px;margin-bottom:16px;">
-      <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
-      <div id="challengeActiveCountdown" style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:4px;color:#f59e0b;">05:00</div>
+  <!-- Active phase: challenge text, timer, photo upload -->
+  <div id="chPhaseActive" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
+    <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
+      <div id="chActiveTimer" style="font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
-    <div id="challengeSubmitSection" style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;">
-      <div style="font-size:12px;opacity:.6;margin-bottom:8px;">YOUR COUNT</div>
-      <input type="number" id="challengeCount" min="0" placeholder="0" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;font-size:24px;text-align:center;border-radius:8px;padding:8px;width:100%;margin-bottom:8px;">
-      <div style="font-size:11px;opacity:.5;margin-bottom:8px;">Optional: add a photo</div>
-      <input type="file" id="challengePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleChallengePhoto(this)">
-      <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;margin-bottom:8px;" onclick="document.getElementById('challengePhoto').click()">📷 Add Photo</button>
-      <div id="challengePhotoStatus" style="font-size:11px;opacity:.6;margin-bottom:8px;"></div>
-      <button id="challengeSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:16px;padding:14px;" onclick="submitChallengeScore()">Submit My Score</button>
-      <div id="challengeSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Score submitted — waiting for opponent…</div>
+    <div id="chActiveSubmitSection">
+      <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
+      <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;margin-bottom:8px;padding:12px;font-size:14px;" onclick="document.getElementById('chActivePhoto').click()">📷 Take Photo</button>
+      <div id="chActivePhotoStatus" style="font-size:11px;opacity:.6;margin-bottom:8px;"></div>
+      <button id="chActiveSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:15px;padding:14px;" onclick="submitZoneChallengePhoto()" disabled>Submit Photo</button>
     </div>
+    <div id="chActiveSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Photo submitted — waiting for opponent…</div>
+    <div id="chActiveStatus" style="margin-top:10px;font-size:12px;opacity:.7;"></div>
+  </div>
+  <!-- Voting phase -->
+  <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
+    <div id="chVoteContent" style="margin-bottom:12px;">
+      <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;background:rgba(255,255,255,.08);margin-bottom:10px;">
+      <div id="chVoteNoPhoto" style="display:none;background:rgba(255,255,255,.08);border-radius:10px;padding:20px;margin-bottom:10px;font-size:13px;opacity:.7;">No photo submitted by opponent.</div>
+    </div>
+    <div id="chVoteButtons" style="display:flex;gap:10px;margin-bottom:10px;">
+      <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="voteOnZoneChallenge(true)">✅ Approve</button>
+      <button class="btn" style="flex:1;background:#dc2626;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="showZoneChallengeRejectForm()">❌ Reject</button>
+    </div>
+    <div id="chVoteRejectForm" style="display:none;margin-bottom:10px;">
+      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
+      <button class="btn" style="background:#dc2626;color:white;border:none;width:100%;padding:10px;" onclick="voteOnZoneChallenge(false)">Confirm Rejection</button>
+    </div>
+    <div id="chVoteWaiting" style="display:none;font-size:13px;color:#4ade80;">✓ Vote submitted — waiting for opponent's vote…</div>
+    <div id="chVoteAutoTimer" style="font-size:11px;opacity:.5;margin-top:8px;"></div>
   </div>
   <!-- Result phase -->
-  <div id="challengeResultPhase" style="display:none;width:100%;max-width:380px;">
-    <div id="challengeResultIcon" style="font-size:64px;margin-bottom:12px;"></div>
-    <div id="challengeResultTitle" style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;margin-bottom:8px;"></div>
-    <div id="challengeResultDetail" style="font-size:14px;opacity:.8;margin-bottom:24px;line-height:1.6;"></div>
-    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;" onclick="dismissChallenge()">Continue Game</button>
+  <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
+    <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
+    <div id="chResultTitle" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
+    <div id="chResultDetail" style="font-size:13px;opacity:.8;margin-bottom:20px;line-height:1.6;"></div>
+    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
   </div>
 </div>
 
@@ -1316,7 +1349,6 @@ const SHOP_ITEMS_DATA=[
   {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'🚇'},
   {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line (14 coins if target leads in zones)',icon:'🎫',dur:120,needsLine:true,dynamicCost:true},
   {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'🔒',dur:120,needsLine:true},
-  {name:'Zone Challenge',cost:'your wager',type:'challenge',needsTarget:false,desc:'Must be in a zone controlled by another team. Wager coins — win: coins deposited in the zone; lose: opponent keeps your coins.',icon:'⚔️',needsWager:true},
 ];
 
 
@@ -2496,7 +2528,7 @@ function needsFastPoll(){
   }
   // Active zone challenge involving me
   const ch=G.activeChallenge;
-  if(ch&&!ch.resolved&&(ch.casterIdx===LS.myTeamIdx||ch.targetIdx===LS.myTeamIdx))return true;
+  if(ch&&ch.result===null&&(ch.challengerIdx===LS.myTeamIdx||ch.defenderIdx===LS.myTeamIdx))return true;
   // Active locate curse on my team (need to push GPS often)
   if(G.curses&&G.curses.some(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now()))return true;
   // I am being tracked (pushing GPS)
@@ -2611,7 +2643,7 @@ async function poll(){
       const lcp=document.getElementById('lunchChatPanel');if(lcp&&lcp.style.display==='flex')renderLunchChat();
     }
     checkForPendingVotes();
-    checkForActiveChallenge();
+    checkForActiveChallenge();checkContestedZoneExpiry();
     // Landmark auto-refresh: host checks 30-min timeout
     if(LS.isHost&&G.landmark&&!G.landmark.claimedBy){
       const pending=G.flopClaims&&G.flopClaims['landmark']&&G.flopClaims['landmark'].status==='pending';
@@ -3404,7 +3436,7 @@ function initMap(){
 }
 function renderMapColors(){
   if(!mapReady)return;
-  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5});});
+  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const contested=G.contestedZones&&G.contestedZones[z.code]&&G.contestedZones[z.code].until>Date.now();if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:contested?.45:.25,color:c,weight:contested?3:2,dashArray:contested?'8 4':null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});if(poly._path)poly._path.classList.toggle('contested-zone',!!contested);});
   renderMZL();updateLocateMarkers();
   const ml=document.getElementById('mapLegend');
   if(ml)ml.style.display=isCustomMap()?'none':'block';
@@ -3496,6 +3528,7 @@ function updateDepositHint(){
     hint.textContent='You are in: '+(zone?zoneName:'outside all zones')+' · '+Math.round(dist)+'m from nearest station';
     hint.style.color=zone?'var(--green)':'var(--muted)';
   }
+  updateZoneChallengeBtn();
 }
 
 let curZone=null;
@@ -3743,246 +3776,371 @@ async function submitDep(){
 
 
 // ZONE CHALLENGE
-const ZONE_CHALLENGE_TASKS = [
-  'Highest number found on a single licence plate — note the full plate number',
-  'Most national flags spotted from your current position',
-  'Most state flags spotted from your current position',
-  'Most pigeons counted in one continuous view',
-  'Most red cars spotted',
-  'Most people wearing hats spotted',
-  'Most dogs spotted',
-  'Most cyclists spotted',
-  'Most fire hydrants spotted',
-  'Most benches spotted',
-  'Most trees visible from one spot — count only trees, not bushes',
-  'Most streetlights visible from one spot',
-  'Most stop signs spotted',
-  'Highest house or building number spotted on any street',
-  'Most birds of any kind spotted — pigeons count',
-  'Most people spotted wearing sunglasses',
-  'Most parked bicycles spotted',
-];
+let _zcPhotoUrl=null;
+let _zcInterval=null;
 
-const CHALLENGE_SETUP_SECS = 300; // 5 min setup
-const CHALLENGE_ACTIVE_SECS = 300; // 5 min challenge
-
-let _challengePhotoUrl = null;
-let _challengeInterval = null;
-
-function showChallengeBlockedReason(reason){
-  if(reason)showToast('⚔️ Zone Challenge unavailable: '+reason,'warn',5000);
+function updateZoneChallengeBtn(){
+  const btn=document.getElementById('zoneChallengeBtn');
+  const sub=document.getElementById('zoneChallengeSub');
+  if(!btn)return;
+  btn.style.display='none';
+  if(!G.started||LS.myTeamIdx<0)return;
+  if(G.activeChallenge&&G.activeChallenge.result===null)return;
+  const lat=_freshLat,lng=_freshLng;
+  if(!lat)return;
+  const zone=getGpsZone();
+  if(!zone)return;
+  const deps=G.zones&&G.zones[zone]||{};
+  const leader=getL(deps);
+  if(leader<0||leader===LS.myTeamIdx)return;
+  const dist=distToNearestStation(lat,lng);
+  const minDist=getMinDistFromTransit();
+  if(dist<minDist)return;
+  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now())return;
+  const defName=G.teams[leader]?.name||'?';
+  btn.style.display='block';
+  if(sub)sub.textContent='Challenge '+defName+' for '+zone;
 }
 
-function openChallengeWager(itemIdx){
-  // Called from openPurchaseMo for Zone Challenge
-  const wRow = document.getElementById('purchaseWagerRow');
-  if(wRow) wRow.style.display = 'block';
+function initiateZoneChallenge(){
+  if(!G.started||LS.myTeamIdx<0){showToast('Game not started or no team.','warn');return;}
+  if(G.activeChallenge&&G.activeChallenge.result===null){showToast('A challenge is already active.','warn');return;}
+  const zone=getGpsZone();
+  if(!zone){showToast('GPS could not detect your zone.','warn');return;}
+  const deps=G.zones&&G.zones[zone]||{};
+  const leader=getL(deps);
+  if(leader<0){showToast('No team controls this zone.','warn');return;}
+  if(leader===LS.myTeamIdx){showToast('Your team controls this zone.','warn');return;}
+  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now()){showToast('This zone is contested — challenge blocked for 30 minutes.','warn');return;}
+  const lat=_freshLat,lng=_freshLng;
+  if(lat){const dist=distToNearestStation(lat,lng);const minDist=getMinDistFromTransit();if(dist<minDist){showToast('Too close to a metro station.','warn');return;}}
+  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
+  const defName=G.teams[leader]?.name||'?';
+  const html='<div style="text-align:center;padding:16px;"><div style="font-size:36px;margin-bottom:8px;">⚔️</div>'+
+    '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Challenge <b>'+esc(defName)+'</b> for zone <b>'+zone+'</b></div>'+
+    '<div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Wager (coins)</label>'+
+    '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;text-align:center;"></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Defender must match your wager within 3 minutes or forfeit.</div>'+
+    '<div style="display:flex;gap:10px;">'+
+    '<button class="btn btn-g" style="flex:1;" onclick="closeZcModal()">Cancel</button>'+
+    '<button class="btn btn-p" style="flex:1;" onclick="confirmZoneChallenge(\''+zone+'\','+leader+')">Challenge!</button></div></div>';
+  const mo=document.createElement('div');
+  mo.id='zcModal';
+  mo.style.cssText='position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
+  mo.innerHTML='<div style="background:var(--surface);border-radius:14px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);">'+html+'</div>';
+  document.body.appendChild(mo);
 }
 
-function closeChallengeWager(){
-  const wRow = document.getElementById('purchaseWagerRow');
-  if(wRow) wRow.style.display = 'none';
-  const inp = document.getElementById('purchaseWager');
-  if(inp) inp.value = '';
-}
+function closeZcModal(){const m=document.getElementById('zcModal');if(m)m.remove();}
 
-async function startZoneChallenge(targetIdx, wager, casterIdx, contestedZone){
-  const now = Date.now();
-  const task = ZONE_CHALLENGE_TASKS[Math.floor(Math.random()*ZONE_CHALLENGE_TASKS.length)];
-  // Find a zone the target team controls
-  // contestedZone passed directly from confirmPurchase (current GPS zone)
-  G.activeChallenge = {
-    id: 'ch_'+now,
-    casterIdx,
-    targetIdx,
-    wager,
-    task,
-    contestedZone,
-    phase: 'setup', // setup → active → done
-    startedAt: now,
-    activeAt: now + CHALLENGE_SETUP_SECS*1000,
-    endsAt: now + CHALLENGE_SETUP_SECS*1000 + CHALLENGE_ACTIVE_SECS*1000,
-    scores: {}, // teamIdx: {count, photoUrl, submittedAt}
-    resolved: false,
+async function confirmZoneChallenge(zone,defenderIdx){
+  const inp=document.getElementById('zcWagerInput');
+  const wager=parseInt(inp?.value)||0;
+  if(wager<1){showToast('Enter a wager of at least 1 coin.','warn');return;}
+  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
+  if(wager>myCoins){showToast('Not enough coins.','error');return;}
+  closeZcModal();
+  if(!G.coins)G.coins={};
+  G.coins[LS.myTeamIdx]=Math.max(0,(G.coins[LS.myTeamIdx]||0)-wager);
+  const now=Date.now();
+  G.activeChallenge={
+    id:'ch_'+now,
+    challengerIdx:LS.myTeamIdx,
+    defenderIdx:defenderIdx,
+    contestedZone:zone,
+    wager:wager,
+    phase:'pending',
+    createdAt:now,
+    acceptDeadline:now+3*60000,
+    acceptedAt:null,
+    challenge:null,
+    activeAt:null,
+    endsAt:null,
+    submissions:{},
+    votes:{},
+    declined:false,
+    result:null
   };
-  const cn = G.teams[casterIdx]?.name||'?', tn = G.teams[targetIdx]?.name||'?';
-  logEv('⚔️ <b>'+esc(cn)+'</b> has challenged <b>'+esc(tn)+'</b> to a Zone Challenge! Wager: '+wager+' coins.');
+  const cn=G.teams[LS.myTeamIdx]?.name||'?',dn=G.teams[defenderIdx]?.name||'?';
+  logEv('⚔️ <b>'+esc(cn)+'</b> challenges <b>'+esc(dn)+'</b> for zone '+zone+'! Wager: '+wager+' coins.');
+  sendPN('⚔️ Zone Challenge!',cn+' challenges '+dn+' for '+zone+'!');
   await pushState();
   showChallengeOverlay();
 }
 
-function showChallengeOverlay(){
-  const ch = G.activeChallenge;
-  if(!ch||ch.resolved) return;
-  const myTeam = LS.myTeamIdx;
-  const involved = myTeam===ch.casterIdx||myTeam===ch.targetIdx||LS.isHost;
-  if(!involved) return;
-
-  const ov = document.getElementById('challengeOverlay');
-  if(!ov) return;
-  ov.style.display = 'flex';
-
-  const cn = G.teams[ch.casterIdx]?.name||'?', tn = G.teams[ch.targetIdx]?.name||'?';
-  document.getElementById('challengeTitle').textContent = 'ZONE CHALLENGE';
-  document.getElementById('challengeSubtitle').textContent = cn+' vs '+tn+' · '+ch.wager+' coin wager';
-
-  updateChallengeDisplay();
-  if(_challengeInterval) clearInterval(_challengeInterval);
-  _challengeInterval = setInterval(updateChallengeDisplay, 1000);
-}
-
-function updateChallengeDisplay(){
-  const ch = G.activeChallenge;
-  if(!ch) return;
-  const now = Date.now();
-
-  if(ch.phase==='setup'||now<ch.activeAt){
-    // Setup phase
-    document.getElementById('challengeSetupPhase').style.display='block';
-    document.getElementById('challengeActivePhase').style.display='none';
-    document.getElementById('challengeResultPhase').style.display='none';
-    const rem = Math.max(0, ch.activeAt-now);
-    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
-    document.getElementById('challengeSetupCountdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    // Team B (defender) can see the task during setup to prepare
-    // Team A (challenger) only sees it when active phase begins
-    const isChallenger = LS.myTeamIdx===ch.casterIdx;
-    const setupTaskEl = document.getElementById('challengeSetupTask');
-    if(setupTaskEl){
-      if(isChallenger){
-        setupTaskEl.style.display='none';
-      } else {
-        setupTaskEl.style.display='block';
-        setupTaskEl.textContent='Your challenge: '+ch.task;
-      }
-    }
-    // Transition to active
-    if(rem<=0 && ch.phase==='setup'){
-      ch.phase='active';
-      pushState();
-    }
-  } else if(ch.phase==='active'&&now<ch.endsAt){
-    // Active phase
-    document.getElementById('challengeSetupPhase').style.display='none';
-    document.getElementById('challengeActivePhase').style.display='block';
-    document.getElementById('challengeResultPhase').style.display='none';
-    document.getElementById('challengeTask').textContent = ch.task;
-    const rem = Math.max(0, ch.endsAt-now);
-    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
-    document.getElementById('challengeActiveCountdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    // Check if my team already submitted
-    const myScore = ch.scores&&ch.scores[LS.myTeamIdx];
-    if(myScore){
-      document.getElementById('challengeSubmitSection').style.display='none';
-      document.getElementById('challengeSubmitted').style.display='block';
-    }
-    // Auto-submit whatever is currently typed, then resolve
-    if(rem<=0){
-      const myScore=ch.scores&&ch.scores[LS.myTeamIdx];
-      if(!myScore){
-        // Auto-submit current value (even if 0)
-        const count=parseInt(document.getElementById('challengeCount')?.value)||0;
-        if(!G.activeChallenge.scores)G.activeChallenge.scores={};
-        G.activeChallenge.scores[LS.myTeamIdx]={count,photoUrl:_challengePhotoUrl||null,submittedAt:Date.now(),autoSubmitted:true};
-      }
-      resolveChallenge();
-    }
-  } else if(ch.phase==='done'||now>=ch.endsAt){
-    resolveChallenge();
+async function respondToChallenge(accept){
+  const ch=G.activeChallenge;
+  if(!ch||ch.phase!=='pending')return;
+  const dn=G.teams[ch.defenderIdx]?.name||'?',cn=G.teams[ch.challengerIdx]?.name||'?';
+  if(accept){
+    const defCoins=(G.coins&&G.coins[ch.defenderIdx])||0;
+    if(defCoins<ch.wager){showToast('Not enough coins to match the wager ('+ch.wager+').','error');return;}
+    if(!G.coins)G.coins={};
+    G.coins[ch.defenderIdx]=Math.max(0,(G.coins[ch.defenderIdx]||0)-ch.wager);
+    ch.acceptedAt=Date.now();
+    const pool=FLOP_CHALLENGES.filter(f=>f.coins<=2);
+    ch.challenge=pool[Math.floor(Math.random()*pool.length)]||{text:'Take a creative photo',coins:1};
+    ch.activeAt=Date.now();
+    ch.endsAt=Date.now()+8*60000;
+    ch.phase='active';
+    logEv('⚔️ <b>'+esc(dn)+'</b> accepted the Zone Challenge! Task: '+esc(ch.challenge.text));
+  } else {
+    ch.declined=true;
+    ch.phase='done';
+    ch.result='void';
+    if(!G.coins)G.coins={};
+    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+    if(!G.contestedZones)G.contestedZones={};
+    G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
+    logEv('⚔️ <b>'+esc(dn)+'</b> declined the Zone Challenge. Zone '+ch.contestedZone+' is contested for 30 minutes.');
   }
+  await pushState();
+  showChallengeOverlay();
+  renderAll();
 }
 
-function handleChallengePhoto(input){
-  const file=input.files[0]; if(!file)return;
-  const status=document.getElementById('challengePhotoStatus');
-  status.textContent='Uploading…';
+function handleZoneChallengePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const status=document.getElementById('chActivePhotoStatus');
+  if(status)status.textContent='Uploading…';
   uploadToCloudinary(file).then(url=>{
-    _challengePhotoUrl=url;
-    status.textContent='✓ Photo ready';
-  }).catch(()=>{status.textContent='Upload failed — submit without photo';});
+    _zcPhotoUrl=url;
+    if(status)status.textContent='✓ Photo ready';
+    const btn=document.getElementById('chActiveSubmitBtn');if(btn)btn.disabled=false;
+  }).catch(()=>{if(status)status.textContent='Upload failed';});
   input.value='';
 }
 
-async function submitChallengeScore(){
-  const ch=G.activeChallenge; if(!ch)return;
-  const count=parseInt(document.getElementById('challengeCount')?.value)||0;
-  if(!G.activeChallenge.scores)G.activeChallenge.scores={};
-  G.activeChallenge.scores[LS.myTeamIdx]={count, photoUrl:_challengePhotoUrl||null, submittedAt:Date.now()};
-  _challengePhotoUrl=null;
-  document.getElementById('challengeSubmitSection').style.display='none';
-  document.getElementById('challengeSubmitted').style.display='block';
-  // If both teams submitted, resolve immediately
-  const bothSubmitted = ch.scores[ch.casterIdx]!==undefined && ch.scores[ch.targetIdx]!==undefined;
-  if(bothSubmitted) resolveChallenge();
-  else await pushState();
+async function submitZoneChallengePhoto(){
+  const ch=G.activeChallenge;if(!ch||ch.phase!=='active')return;
+  if(!_zcPhotoUrl){showToast('Take a photo first.','warn');return;}
+  if(!ch.submissions)ch.submissions={};
+  ch.submissions[LS.myTeamIdx]={photoUrl:_zcPhotoUrl,submittedAt:Date.now()};
+  _zcPhotoUrl=null;
+  const both=ch.submissions[ch.challengerIdx]&&ch.submissions[ch.defenderIdx];
+  if(both){ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;}
+  await pushState();
+  showChallengeOverlay();
 }
 
-async function resolveChallenge(){
+function showZoneChallengeRejectForm(){
+  const f=document.getElementById('chVoteRejectForm');if(f)f.style.display='block';
+  const b=document.getElementById('chVoteButtons');if(b)b.style.display='none';
+}
+
+async function voteOnZoneChallenge(approved){
+  const ch=G.activeChallenge;if(!ch||ch.phase!=='voting')return;
+  if(!approved){
+    const reason=document.getElementById('chVoteRejectReason')?.value?.trim();
+    if(!reason){showToast('Please provide a reason for rejection.','warn');return;}
+    if(!ch.votes)ch.votes={};
+    ch.votes[LS.myTeamIdx]={approved:false,reason:reason,votedAt:Date.now()};
+  } else {
+    if(!ch.votes)ch.votes={};
+    ch.votes[LS.myTeamIdx]={approved:true,reason:'',votedAt:Date.now()};
+  }
+  const bothVoted=ch.votes[ch.challengerIdx]&&ch.votes[ch.defenderIdx];
+  if(bothVoted)resolveZoneChallenge();
+  await pushState();
+  showChallengeOverlay();
+}
+
+function resolveZoneChallenge(){
   const ch=G.activeChallenge;
-  if(!ch||ch.resolved)return;
-  ch.resolved=true;
-  ch.phase='done';
-  if(_challengeInterval){clearInterval(_challengeInterval);_challengeInterval=null;}
-
-  const casterScore=(ch.scores&&ch.scores[ch.casterIdx]?.count)||0;
-  const targetScore=(ch.scores&&ch.scores[ch.targetIdx]?.count)||0;
-  const cn=G.teams[ch.casterIdx]?.name||'?', tn=G.teams[ch.targetIdx]?.name||'?';
-  const casterWins = casterScore > targetScore || (ch.scores&&ch.scores[ch.casterIdx]&&!ch.scores[ch.targetIdx]);
-
+  if(!ch||ch.result!==null)return;
+  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
   if(!G.coins)G.coins={};
   if(!G.zones)G.zones={};
-
-  if(casterWins){
-    // Wager was already deducted — deposit it as zone coins (no refund, coins go into zone)
-    if(ch.contestedZone){
-      if(!G.zones[ch.contestedZone])G.zones[ch.contestedZone]={};
-      G.zones[ch.contestedZone][ch.casterIdx]=(parseInt(G.zones[ch.contestedZone][ch.casterIdx])||0)+ch.wager;
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  const cVote=ch.votes&&ch.votes[ch.defenderIdx];
+  const dVote=ch.votes&&ch.votes[ch.challengerIdx];
+  const cApproved=cVote&&cVote.approved;
+  const dApproved=dVote&&dVote.approved;
+  if(cApproved&&dApproved){
+    ch.result='challenger';
+    const zone=ch.contestedZone;
+    if(zone){
+      if(!G.zones[zone])G.zones[zone]={};
+      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
     }
-    logEv('⚔️ <b>'+esc(cn)+'</b> won the Zone Challenge! ('+casterScore+' vs '+targetScore+') — '+ch.wager+' coins deposited in '+(ch.contestedZone||'the zone')+'.');
-    showChallengeResult(true, casterScore, targetScore, ch.wager, ch.contestedZone, cn, tn);
+    logEv('⚔️ <b>'+esc(cn)+'</b> wins the Zone Challenge! '+ch.wager*2+' coins deposited in '+zone+'.');
+  } else if(cApproved&&!dApproved){
+    ch.result='challenger';
+    const zone=ch.contestedZone;
+    if(zone){
+      if(!G.zones[zone])G.zones[zone]={};
+      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
+    }
+    logEv('⚔️ <b>'+esc(cn)+'</b> wins the Zone Challenge (only approved submission)! '+ch.wager*2+' coins deposited in '+zone+'.');
+  } else if(!cApproved&&dApproved){
+    ch.result='defender';
+    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager*2;
+    logEv('⚔️ <b>'+esc(dn)+'</b> defends the zone! Both wagers ('+ch.wager*2+' coins) go to '+dn+'.');
   } else {
-    // Target team keeps the wager
-    G.coins[ch.targetIdx]=(G.coins[ch.targetIdx]||0)+ch.wager;
-    logEv('⚔️ <b>'+esc(tn)+'</b> defended their zone! ('+targetScore+' vs '+casterScore+') — '+cn+' loses '+ch.wager+' coins to '+tn+'.');
-    showChallengeResult(false, casterScore, targetScore, ch.wager, ch.contestedZone, cn, tn);
+    ch.result='draw';
+    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager;
+    logEv('⚔️ Zone Challenge draw — wagers returned.');
   }
-
-  await pushState();
+  ch.phase='done';
+  pushState();
   renderAll();
-  _updateHeaderVar();
 }
 
-function showChallengeResult(casterWon, casterScore, targetScore, wager, zone, cn, tn){
-  document.getElementById('challengeSetupPhase').style.display='none';
-  document.getElementById('challengeActivePhase').style.display='none';
-  document.getElementById('challengeResultPhase').style.display='block';
-  const iAmCaster=LS.myTeamIdx===G.activeChallenge?.casterIdx;
-  const iWon=(iAmCaster&&casterWon)||(!iAmCaster&&!casterWon);
-  document.getElementById('challengeResultIcon').textContent=iWon?'🏆':'😔';
-  document.getElementById('challengeResultTitle').textContent=iWon?'YOU WON!':'YOU LOST';
-  let detail='';
-  if(casterWon){
-    detail=cn+': '+casterScore+' vs '+tn+': '+targetScore+' · '+wager+' coins deposited into '+(zone||'the zone')+'!';
+function showChallengeOverlay(){
+  const ch=G.activeChallenge;
+  if(!ch)return;
+  const myTeam=LS.myTeamIdx;
+  const involved=myTeam===ch.challengerIdx||myTeam===ch.defenderIdx||LS.isHost;
+  if(!involved)return;
+  const ov=document.getElementById('challengeOverlay');
+  if(!ov)return;
+  ov.style.display='flex';
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  document.getElementById('challengeTitle').textContent='ZONE CHALLENGE';
+  document.getElementById('challengeSubtitle').textContent=cn+' vs '+dn+' · '+ch.wager+' coin wager · Zone '+ch.contestedZone;
+  ['chPhasePending','chPhaseActive','chPhaseVoting','chPhaseResult'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  if(ch.phase==='pending')showChPending(ch,myTeam);
+  else if(ch.phase==='active')showChActive(ch,myTeam);
+  else if(ch.phase==='voting')showChVoting(ch,myTeam);
+  else if(ch.phase==='done')showChResult(ch,myTeam);
+  if(_zcInterval)clearInterval(_zcInterval);
+  if(ch.result===null)_zcInterval=setInterval(()=>updateChallengeTimers(),1000);
+}
 
-  } else {
-    detail=tn+': '+targetScore+' vs '+cn+': '+casterScore+' | '+wager+' coins transferred to '+tn+'.';
+function showChPending(ch,myTeam){
+  document.getElementById('chPhasePending').style.display='block';
+  const isChallenger=myTeam===ch.challengerIdx;
+  document.getElementById('chPendingChallenger').style.display=isChallenger?'block':'none';
+  document.getElementById('chPendingDefender').style.display=isChallenger?'none':'block';
+  if(!isChallenger){
+    const cn=G.teams[ch.challengerIdx]?.name||'?';
+    document.getElementById('chDefenderPrompt').textContent=cn+' challenges you for zone '+ch.contestedZone+'! Wager: '+ch.wager+' coins.';
   }
-  document.getElementById('challengeResultDetail').textContent=detail;
+}
+
+function showChActive(ch,myTeam){
+  document.getElementById('chPhaseActive').style.display='block';
+  document.getElementById('chActiveTask').textContent=ch.challenge?ch.challenge.text:'Complete the challenge';
+  const mySub=ch.submissions&&ch.submissions[myTeam];
+  document.getElementById('chActiveSubmitSection').style.display=mySub?'none':'block';
+  document.getElementById('chActiveSubmitted').style.display=mySub?'block':'none';
+  let status='';
+  const cSub=ch.submissions&&ch.submissions[ch.challengerIdx];
+  const dSub=ch.submissions&&ch.submissions[ch.defenderIdx];
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  status+=cn+': '+(cSub?'✅ submitted':'⏳ pending')+' · '+dn+': '+(dSub?'✅ submitted':'⏳ pending');
+  document.getElementById('chActiveStatus').textContent=status;
+}
+
+function showChVoting(ch,myTeam){
+  document.getElementById('chPhaseVoting').style.display='block';
+  const myVote=ch.votes&&ch.votes[myTeam];
+  if(myVote){
+    document.getElementById('chVoteButtons').style.display='none';
+    document.getElementById('chVoteRejectForm').style.display='none';
+    document.getElementById('chVoteWaiting').style.display='block';
+  } else {
+    document.getElementById('chVoteButtons').style.display='flex';
+    document.getElementById('chVoteRejectForm').style.display='none';
+    document.getElementById('chVoteWaiting').style.display='none';
+  }
+  const opponentIdx=myTeam===ch.challengerIdx?ch.defenderIdx:ch.challengerIdx;
+  const opSub=ch.submissions&&ch.submissions[opponentIdx];
+  const img=document.getElementById('chVoteImg');
+  const noPhoto=document.getElementById('chVoteNoPhoto');
+  if(opSub&&opSub.photoUrl){img.src=opSub.photoUrl;img.style.display='block';if(noPhoto)noPhoto.style.display='none';}
+  else{img.style.display='none';if(noPhoto)noPhoto.style.display='block';}
+}
+
+function showChResult(ch,myTeam){
+  document.getElementById('chPhaseResult').style.display='block';
+  const isChallenger=myTeam===ch.challengerIdx;
+  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
+  let icon='',title='',detail='';
+  if(ch.result==='void'){
+    icon='🚫';title='CHALLENGE VOIDED';detail='The challenge was declined. Wager returned.';
+  } else if(ch.result==='draw'){
+    icon='🤝';title='DRAW';detail='Neither submission was approved. Wagers returned to both teams.';
+  } else if(ch.result==='challenger'){
+    icon=isChallenger?'🏆':'😔';
+    title=isChallenger?'YOU WON!':'YOU LOST';
+    detail=cn+' wins! '+ch.wager*2+' coins deposited into zone '+ch.contestedZone+'.';
+  } else if(ch.result==='defender'){
+    icon=isChallenger?'😔':'🏆';
+    title=isChallenger?'YOU LOST':'YOU WON!';
+    detail=dn+' defends! Both wagers ('+ch.wager*2+' coins) added to '+dn+'\'s coins.';
+  }
+  document.getElementById('chResultIcon').textContent=icon;
+  document.getElementById('chResultTitle').textContent=title;
+  document.getElementById('chResultDetail').textContent=detail;
+}
+
+function updateChallengeTimers(){
+  const ch=G.activeChallenge;if(!ch||ch.result!==null)return;
+  const now=Date.now();
+  if(ch.phase==='pending'){
+    const rem=Math.max(0,ch.acceptDeadline-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    const ts=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const t1=document.getElementById('chPendingTimer');if(t1)t1.textContent=ts;
+    const t2=document.getElementById('chDefenderTimer');if(t2)t2.textContent=ts;
+    if(rem<=0&&LS.isHost){
+      ch.declined=true;ch.phase='done';ch.result='void';
+      if(!G.coins)G.coins={};
+      G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
+      if(!G.contestedZones)G.contestedZones={};
+      G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
+      logEv('⚔️ Zone Challenge timed out — '+G.teams[ch.defenderIdx]?.name+' did not respond. Wager returned.');
+      pushState();showChallengeOverlay();renderAll();
+    }
+  } else if(ch.phase==='active'){
+    const rem=Math.max(0,ch.endsAt-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    document.getElementById('chActiveTimer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(rem<=0&&LS.isHost){
+      ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;
+      pushState();showChallengeOverlay();
+    }
+  } else if(ch.phase==='voting'){
+    const deadline=ch.votingDeadline||Date.now()+5*60000;
+    const rem=Math.max(0,deadline-now);
+    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    const ta=document.getElementById('chVoteAutoTimer');
+    if(ta)ta.textContent='Auto-accept in '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(rem<=0&&LS.isHost){
+      if(!ch.votes)ch.votes={};
+      if(!ch.votes[ch.challengerIdx])ch.votes[ch.challengerIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
+      if(!ch.votes[ch.defenderIdx])ch.votes[ch.defenderIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
+      resolveZoneChallenge();showChallengeOverlay();
+    }
+  }
 }
 
 function dismissChallenge(){
   document.getElementById('challengeOverlay').style.display='none';
-  if(_challengeInterval){clearInterval(_challengeInterval);_challengeInterval=null;}
+  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
 }
 
 function checkForActiveChallenge(){
   const ch=G.activeChallenge;
-  if(!ch||ch.resolved)return;
-  const involved=LS.myTeamIdx===ch.casterIdx||LS.myTeamIdx===ch.targetIdx;
-  if(!involved)return;
+  if(!ch||ch.result!==null)return;
+  const involved=LS.myTeamIdx===ch.challengerIdx||LS.myTeamIdx===ch.defenderIdx;
+  if(!involved&&!LS.isHost)return;
   const ov=document.getElementById('challengeOverlay');
   if(ov&&ov.style.display==='none')showChallengeOverlay();
-  updateChallengeDisplay();
+  else updateChallengeTimers();
+}
+
+function checkContestedZoneExpiry(){
+  if(!G.contestedZones)return;
+  const now=Date.now();
+  let changed=false;
+  for(const z of Object.keys(G.contestedZones)){
+    if(G.contestedZones[z].until<=now){delete G.contestedZones[z];changed=true;}
+  }
+  if(changed&&LS.isHost)pushState();
 }
 
 // ── SHOP LOGIC ─────────────────────────────────────────────────────────────
@@ -3995,21 +4153,6 @@ function renderShopItems(){
   // Update coin badge
   const coins=(G.coins&&G.coins[LS.myTeamIdx])||0;
   const sb=document.getElementById('shopCoinBadge');if(sb)sb.textContent=coins+' 🪙';
-  // Determine Zone Challenge state before rendering
-  let zoneChallengeState='ok'; // ok | own-zone | no-zone | no-team
-  if(LS.myTeamIdx<0){zoneChallengeState='no-team';}
-  else {
-    // Get current GPS zone
-    const myZone=getGpsZone();
-    if(!myZone){zoneChallengeState='no-zone';}
-    else {
-      const deps=G.zones&&G.zones[myZone]||{};
-      const leader=getL(deps);
-      if(leader<0){zoneChallengeState='uncontrolled';}
-      else if(leader===LS.myTeamIdx){zoneChallengeState='own-zone';}
-    }
-  }
-
   const _shopItems=getAvailableShopItems();
   grid.innerHTML=_shopItems.map((item)=>{
     const i=SHOP_ITEMS_DATA.indexOf(item);
@@ -4017,18 +4160,10 @@ function renderShopItems(){
     const shopCfg2 = G.config&&G.config.map&&G.config.map.shopConfig;
     const shopEntry = shopCfg2 ? shopCfg2.find(s=>s.id===item.name) : null;
     const cost = shopEntry ? (shopEntry.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
-    const costDisplay = item.needsWager ? 'your wager' : cost+' coins';
+    const costDisplay = cost+' coins';
     const canAfford=coins>=cost;
-    // Zone Challenge special rendering
-    let challengeBlocked=false, challengeReason='';
-    if(item.needsWager){
-      if(zoneChallengeState==='no-team'){challengeBlocked=true;challengeReason='You must be on a team.';}
-      else if(zoneChallengeState==='no-zone'){challengeBlocked=true;challengeReason='GPS not detected — cannot determine your zone.';}
-      else if(zoneChallengeState==='uncontrolled'){challengeBlocked=true;challengeReason='No team controls this zone. Move to a zone controlled by another team.';
-      } else if(zoneChallengeState==='own-zone'){challengeBlocked=true;challengeReason='Your team controls this zone. Move to a zone controlled by another team.';}
-    }
-    const blocked=!canAfford||challengeBlocked;
-    const clickFn=blocked?'showChallengeBlockedReason('+JSON.stringify(challengeReason)+')':'openPurchaseMo('+i+')';
+    const blocked=!canAfford;
+    const clickFn=blocked?'showToast("Not enough coins.","warn")':'openPurchaseMo('+i+')';
     return '<div onclick="'+clickFn+'" style="background:var(--surface);border:1px solid '+(blocked?'#e2e8f0':'var(--border)')+';border-radius:10px;padding:10px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';transition:border-color .15s;" '+(!blocked?'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"':'')+'>'+
       '<div style="font-size:22px;margin-bottom:4px">'+item.icon+'</div>'+
       '<div style="font-weight:700;font-size:12px;margin-bottom:2px">'+item.name+'</div>'+
@@ -4056,17 +4191,7 @@ function openPurchaseMo(idx){
   const nInput=document.getElementById('purchaseNotes');
   nInput.value='';
   const wRow=document.getElementById('purchaseWagerRow');
-  if(wRow)wRow.style.display=item.needsWager?'block':'none';
-  if(item.needsWager){
-    const wi=document.getElementById('purchaseWager');if(wi)wi.value='';
-    // Show who we're challenging (auto-detected from current zone)
-    const myZone=getGpsZone();
-    const deps=myZone&&G.zones&&G.zones[myZone]||{};
-    const targetIdx=myZone?getL(deps):-1;
-    const targetName=targetIdx>=0?G.teams[targetIdx]?.name:'unknown';
-    document.getElementById('purchaseMeta').textContent=
-      (myZone?'Challenging '+targetName+' for zone '+myZone:'Zone auto-detected on confirm')+' · Win = coins deposited, Lose = they keep your coins';
-  }
+  if(wRow)wRow.style.display='none';
   if(item.needsRegion){
     nRow.style.display='block';
     document.getElementById('purchaseNotesLabel').textContent='Which region to block?';
@@ -4104,25 +4229,6 @@ async function confirmPurchase(){
   if(item.needsLine&&!notes){showToast('Please specify the metro line.','warn');return;}
   if(item.needsRegion&&!notes){showToast('Please choose a region.','warn');return;}
 
-  // Zone Challenge — auto-detect target from current GPS zone
-  if(item.needsWager){
-    const wager=parseInt(document.getElementById('purchaseWager')?.value)||0;
-    if(wager<1){showToast('Enter a wager of at least 1 coin.','warn');return;}
-    if((G.coins&&G.coins[caster]||0)<wager){showToast('Not enough coins for that wager.','error');return;}
-    // Detect zone and controlling team right now
-    const myZone=getGpsZone();
-    if(!myZone){showToast('GPS could not detect your zone. Try again in a moment.','warn');return;}
-    const deps=G.zones&&G.zones[myZone]||{};
-    const autoTarget=getL(deps);
-    if(autoTarget<0){showToast('No team controls that zone. Only controlled zones can be challenged.','warn');return;}
-    if(autoTarget===caster){showToast('Your team controls this zone. Move to a zone controlled by another team.','warn');return;}
-    // Deduct wager
-    if(!G.coins)G.coins={};
-    G.coins[caster]=Math.max(0,(G.coins[caster]||0)-wager);
-    closePurchaseMo();
-    await startZoneChallenge(autoTarget, wager, caster, myZone);
-    return;
-  }
   // Check and deduct coins BEFORE creating curse
   const shopCfg3 = G.config&&G.config.map&&G.config.map.shopConfig;
   const shopEntry2 = shopCfg3 ? shopCfg3.find(s=>s.id===item.name) : null;
@@ -4314,8 +4420,8 @@ async function downloadGamePhotos(){
   }
 
   // Zone challenge photos
-  if(G.activeChallenge&&G.activeChallenge.scores){
-    for(const [ti,s] of Object.entries(G.activeChallenge.scores)){
+  if(G.activeChallenge&&G.activeChallenge.submissions){
+    for(const [ti,s] of Object.entries(G.activeChallenge.submissions)){
       if(!s.photoUrl)continue;
       const team=G.teams[parseInt(ti)]?.name||'Team '+(parseInt(ti)+1);
       photos.push({url:s.photoUrl,label:team+' — Zone Challenge'});
@@ -4564,11 +4670,11 @@ function renderRules(){
   // ── Zone Challenge ────────────────────────────────────────────
   addTitle('Zone Challenge');
   addCard(
-    'When your team is physically inside a zone controlled by another team, you can buy a <b>Zone Challenge</b> from The Shop. '
-    +'Both teams wager the same number of coins. '
-    +'<b>If the challenger wins:</b> both wagers are deposited into the zone, giving the challenger a 2× return. '
-    +'<b>If the challenger loses:</b> both wagers go to the defending team. '
-    +'Each team gets 5 minutes to prepare, then 5 minutes to complete a live counting challenge judged by the host.'
+    '<b>Zone Challenge</b> is a free action available on the Zones tab when your GPS places you inside an enemy-controlled zone (100+ ft from metro stations). '
+    +'You set a wager; the defending team has 3 minutes to accept and match the wager, or the challenge is voided and the zone becomes "contested" for 30 minutes. '
+    +'A challenge is drawn from the Flop (Tier 1–2) with an 8-minute countdown. Both teams submit a photo, then cross-team voting occurs (5-min auto-accept). '
+    +'<b>Winner logic:</b> Both approved → challenger wins. Only one approved → that team wins. Neither → draw, wagers returned. '
+    +'<b>Challenger wins:</b> both wagers deposited into the zone. <b>Defender wins:</b> both wagers added to defender\'s coins.'
   );
 
   // ── Flop tiers ────────────────────────────────────────────────
@@ -4593,7 +4699,6 @@ function renderRules(){
       ['Forced Detour','6 🪙',isCustomMap()?'Target must reach a specific landmark and photo-verify before depositing':'Target must reach a specific metro stop and photo-verify before depositing'],
       ['Transit Cost','10–14 🪙','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours (14 coins if target leads in zones)'],
       ['Line Lockdown','10 🪙','No team can deposit into zones on a chosen line for 2 hours'],
-      ['Zone Challenge','your wager','Head-to-head counting contest — win: both wagers deposited in zone (2× return); lose: defender keeps both'],
     ]
   );
 }
@@ -4655,7 +4760,7 @@ function updateUI(){
     }
   }
 }
-function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();}
+function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();updateZoneChallengeBtn();}
 
 // ── COLOR PICKER ──────────────────────────────────────────────────────────────
 let cpTgt=null;
@@ -6041,7 +6146,6 @@ const MB_SHOP_DEFAULTS = [
   {id:'Spy',        label:'🔍 Spy',              defaultCost:3,  alwaysShow:true,  desc:'Reveals target team coin total'},
   {id:'Locate',     label:'📡 Locate',           defaultCost:3,  alwaysShow:true,  desc:'Track target team GPS for 30 min'},
   {id:'Forced Detour', label:'🚇 Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a nearby landmark'},
-  {id:'Zone Challenge',label:'⚔️ Zone Challenge',defaultCost:0,  alwaysShow:true,  desc:'Wager-based zone contest (cost = wager)'},
   {id:'Interstate Travellers',label:'🚗 Line Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing on a metro line'},
   {id:'Transit Cost',label:'🎫 Transit Cost',    defaultCost:10, alwaysShow:false, desc:'Target loses coins on deposits near a line'},
   {id:'Line Lockdown',label:'🔒 Line Lockdown',  defaultCost:10, alwaysShow:false, desc:'No deposits on a transit line for 2 hours'},
@@ -6106,14 +6210,7 @@ function _renderMbShopConfig(){
     const costWrap = document.createElement('div');
     costWrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;';
 
-    const isWager = def.id==='Zone Challenge';
-
-    if(isWager){
-      const wageLbl = document.createElement('div');
-      wageLbl.style.cssText = 'font-size:11px;color:var(--muted);font-style:italic;';
-      wageLbl.textContent = 'wager';
-      costWrap.appendChild(wageLbl);
-    } else {
+    {
       const costLabel = document.createElement('div');
       costLabel.style.cssText = 'font-size:10px;color:var(--muted);margin-bottom:2px;';
       costLabel.textContent = 'Cost (coins)';
