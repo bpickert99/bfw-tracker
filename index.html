@@ -44,7 +44,6 @@
   --navy:#0B2C61;--accent:#1A6DD4;--accent-press:#1257AE;--blue:#1A6DD4;
   --green:#00B66B;--orange:#F0801A;--gold:#F0801A;
   --red:#E23B3B;--silver:#94A3B4;
-  --board:#0B1A33;
   --shadow:0 2px 10px rgba(11,44,97,.06);
   --rl:#E23B3B;--bl:#2563EB;--ol:#EA8A1E;--gl:#15A34A;--sl:#94A3B4;--yl:#F4B400;
   --header-bg:#00B66B;--tab-bg:#F7F8FA;
@@ -891,7 +890,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 20px;">
       <div>
         <div class="stitle" style="margin:0">The Flop</div>
-        <div id="flopTimer" style="font-size:11px;color:var(--green);font-family:var(--font-led);margin-top:4px;background:var(--board);padding:4px 10px;border-radius:6px;display:inline-block;"></div>
+        <div id="flopTimer" style="font-size:11px;color:var(--green);font-family:var(--font-led);margin-top:4px;background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;display:inline-block;"></div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Your coins</div>
@@ -905,7 +904,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
   <!-- VOTE MODAL (full screen) -->
   <div id="voteScreen" style="display:none;position:fixed;inset:0;z-index:900;background:var(--surface);flex-direction:column;">
-    <div style="background:var(--board);color:white;padding:16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:var(--font-led);font-weight:400;font-size:22px;letter-spacing:1.5px;color:var(--green);">VOTE REQUIRED</div>
       <div id="voteCoins" style="font-family:var(--font-led);font-weight:400;font-size:22px;color:var(--orange);"></div>
     </div>
@@ -1143,8 +1142,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 </div>
 
   <div class="panel" id="panel-shop">
-    <div style="background:var(--board);border:none;border-radius:0;padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.7);">Your coins</div>
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:13px;font-weight:600;color:var(--muted);">Your coins</div>
       <div id="shopCoinBadge" style="font-family:var(--font-led);font-weight:400;font-size:28px;color:var(--gold);">0</div>
     </div>
 
@@ -1541,8 +1540,8 @@ const TABS=['rules','scores','map','zones','flop','shop','log','status'];
 const SHOP_ITEMS_DATA=[
   {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><circle cx="9" cy="9" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M13.5 13.5L18 18" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>'},
   {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><circle cx="10" cy="14" r="3" fill="var(--accent)"/><path d="M4 6a8 8 0 0112 0" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M6.5 9a5 5 0 017 0" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>',dur:30},
-  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen metro line for 1 hour',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="8" width="16" height="7" rx="2" fill="var(--accent)"/><circle cx="6" cy="15" r="2" fill="var(--board)"/><circle cx="14" cy="15" r="2" fill="var(--board)"/><path d="M4 8l2-4h8l2 4" fill="var(--accent)" opacity=".6"/></svg>',dur:60,needsLine:true},
-  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="3" y="4" width="14" height="10" rx="3" fill="var(--accent)"/><circle cx="7" cy="14" r="1.5" fill="var(--board)"/><circle cx="13" cy="14" r="1.5" fill="var(--board)"/><rect x="6" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/><rect x="11" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/></svg>'},
+  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen metro line for 1 hour',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="8" width="16" height="7" rx="2" fill="var(--accent)"/><circle cx="6" cy="15" r="2" fill="var(--text)"/><circle cx="14" cy="15" r="2" fill="var(--text)"/><path d="M4 8l2-4h8l2 4" fill="var(--accent)" opacity=".6"/></svg>',dur:60,needsLine:true},
+  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="3" y="4" width="14" height="10" rx="3" fill="var(--accent)"/><circle cx="7" cy="14" r="1.5" fill="var(--text)"/><circle cx="13" cy="14" r="1.5" fill="var(--text)"/><rect x="6" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/><rect x="11" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/></svg>'},
   {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line (14 coins if target leads in zones)',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="5" width="16" height="10" rx="2" fill="var(--gold)"/><path d="M7 5v10" stroke="white" stroke-width="1" stroke-dasharray="2 2"/></svg>',dur:120,needsLine:true,dynamicCost:true},
   {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="4" y="9" width="12" height="8" rx="2" fill="var(--red)"/><path d="M7 9V6a3 3 0 016 0v3" fill="none" stroke="var(--red)" stroke-width="2"/></svg>',dur:120,needsLine:true},
 ];
@@ -1963,22 +1962,23 @@ function renderFlop(){
     const canClaim=G.started&&LS.myTeamIdx>=0&&!isClaimed&&!isWon;
     const border=isWon?'var(--green)':isClaimed?'var(--gold)':'var(--border)';
     const safeId=item.id.replace(/['"]/g,'');
+    const accentBorder=isWon?'var(--green)':isClaimed?'var(--gold)':'var(--accent)';
     let html='<div ';
-    if(canClaim){html+='data-id="'+safeId+'" onclick="openClaimMo(this.dataset.id)" onmouseover="this.style.borderColor=var(--accent)" onmouseout="this.style.borderColor='+border+'" ';}
-    html+='style="background:var(--board);border:none;border-radius:0;padding:14px 20px;cursor:'+(canClaim?'pointer':'default')+';opacity:'+(isWon?'0.6':'1')+';color:white;">';
+    if(canClaim){html+='data-id="'+safeId+'" onclick="openClaimMo(this.dataset.id)" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'var(--surface)\'" ';}
+    html+='style="background:var(--surface);border-bottom:1px solid var(--border);border-left:4px solid '+accentBorder+';padding:14px 20px;cursor:'+(canClaim?'pointer':'default')+';opacity:'+(isWon?'0.65':'1')+';color:var(--text);">';
     html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
     html+='<div style="font-size:20px">'+'<svg viewBox="0 0 16 16" style="width:14px;height:14px;vertical-align:middle"><circle cx="8" cy="8" r="7" fill="var(--gold)" opacity=".8"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".6"/></svg>'.repeat(item.coins)+'</div>';
     html+='<div style="font-family:var(--font-led);font-size:16px;color:var(--gold);">'+item.coins+'</div>';
     html+='</div>';
-    html+='<div style="font-size:12px;font-weight:600;line-height:1.5;color:white">'+esc(item.text)+'</div>';
+    html+='<div style="font-size:12px;font-weight:600;line-height:1.5;color:var(--text)">'+esc(item.text)+'</div>';
     if(isWon)html+='<div style="font-size:10px;color:var(--green);margin-top:6px;font-weight:700">CLAIMED</div>';
     else if(isClaimed){
       const age=Date.now()-claim.submittedAt;
       const remain=Math.max(0,getVoteTimeoutMs()-age);
       const rm=Math.floor(remain/60000),rs=Math.floor((remain%60000)/1000);
-      html+='<div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px;font-weight:500">Voting… auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</div>';
+      html+='<div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:500">Voting… auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</div>';
     }
-    else if(canClaim)html+='<div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:6px">Tap to claim →</div>';
+    else if(canClaim)html+='<div style="font-size:10px;color:var(--faint);margin-top:6px">Tap to claim →</div>';
     html+='</div>';
     flopHtml.push(html);
   });
@@ -4540,9 +4540,9 @@ function renderShopItems(){
     const canAfford=coins>=cost;
     const blocked=!canAfford;
     const clickFn=blocked?'showToast("Not enough coins.","warn")':'openPurchaseMo('+i+')';
-    return '<div onclick="'+clickFn+'" style="background:var(--board);border:none;border-radius:0;padding:14px 20px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';color:white;display:flex;align-items:center;gap:14px;border-top:2px solid rgba(255,255,255,.1);">'+
+    return '<div onclick="'+clickFn+'" style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.55':'1')+';color:var(--text);display:flex;align-items:center;gap:14px;">'+
       '<div style="flex-shrink:0;">'+item.icon+'</div>'+
-      '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;color:white;">'+item.name+'</div><div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.4;margin-top:2px;">'+item.desc+'</div></div>'+
+      '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;color:var(--text);">'+item.name+'</div><div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:2px;">'+item.desc+'</div></div>'+
       '<div style="font-family:var(--font-led);font-size:14px;color:var(--gold);flex-shrink:0;">'+cost+'</div>'+
       '</div>';
   }).join('');
