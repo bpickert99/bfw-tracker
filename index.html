@@ -22,6 +22,22 @@
   src:url("./fonts/DepartureMono-Regular.woff2") format("woff2");
   font-weight:400;font-display:swap;
 }
+.cfgSort{background:var(--surface2);color:var(--muted);border:1px solid var(--border);transition:all .15s;}
+.cfgSort.active{background:var(--board);color:white;border-color:var(--board);}
+.mb-tip{border-bottom:none;}
+.mb-map-card{background:var(--surface);border:1px solid var(--border);border-radius:0;padding:12px 16px;margin-bottom:2px;cursor:pointer;transition:background .15s;}
+.mb-map-card:hover,.mb-map-card:active{background:var(--surface2);}
+.mb-map-card.selected{background:var(--board);color:white;border-color:var(--board);}
+.mb-map-card.selected .mc-meta{color:rgba(255,255,255,.6);}
+.mb-map-card.selected .mc-stat{color:rgba(255,255,255,.5);}
+.mc-name{font-weight:700;font-size:14px;margin-bottom:2px;}
+.mc-meta{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.mc-stats{display:flex;gap:12px;font-size:11px;}
+.mc-stat{color:var(--muted);display:flex;align-items:center;gap:3px;}
+.mc-stat svg{width:12px;height:12px;}
+.mb-draft-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;}
+.mb-draft-card .draft-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:4px;}
+
 :root{
   --bg:#F7F8FA;--surface:#FFFFFF;--surface2:#EEF2F7;--border:#E5E7EB;
   --text:#122036;--muted:#5B6B82;--faint:#9AA7B8;
@@ -570,11 +586,16 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <!-- COMMUNITY MAP BROWSER -->
       <div id="cfgMapCommunitySection">
         <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()" onfocus="if(!_allMaps.length)loadCommunityMaps()">
+          <input type="text" id="cfgMapSearch" placeholder="Search by city or map name…" style="flex:1;margin:0;" oninput="_filterMapResults()" onfocus="if(!_allMaps.length)loadCommunityMaps()">
           <button class="btn btn-g btn-sm" onclick="loadCommunityMaps()">Browse</button>
         </div>
-        <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
-        <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface2);border:2px solid var(--accent);border-radius:14px;font-size:12px;line-height:1.6;"></div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;" id="cfgMapSortBar">
+          <button class="btn btn-xs cfgSort active" data-sort="popular" onclick="_sortMaps('popular')" style="font-size:10px;">Most Played</button>
+          <button class="btn btn-xs cfgSort" data-sort="newest" onclick="_sortMaps('newest')" style="font-size:10px;">Newest</button>
+          <button class="btn btn-xs cfgSort" data-sort="az" onclick="_sortMaps('az')" style="font-size:10px;">A–Z</button>
+        </div>
+        <div id="cfgMapResults" style="max-height:320px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
+        <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:12px 14px;background:var(--board);border-radius:0;font-size:12px;line-height:1.6;color:white;"></div>
       </div>
       <div id="cfgMapCustomSection" style="display:none;">
         <span class="setup-label">City or Play Area</span>
@@ -1225,68 +1246,83 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 <!-- MAP BUILDER SCREEN -->
 <div class="screen" id="screenMapBuilder" style="background:var(--bg);">
-  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
-    <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
-    <div style="font-family:var(--font);font-weight:800;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
+  <div style="background:var(--board);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
+    <button onclick="showScreen('screenHome')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;color:white;">&#x2190;</button>
+    <div style="font-family:var(--font-led);font-weight:400;font-size:18px;letter-spacing:3px;color:white;">MAP BUILDER</div>
     <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
   </div>
 
   <!-- Step indicator -->
-  <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
-    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
-    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
-    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Landmarks</div>
-    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
-    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Shop</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">6. Publish</div>
+  <div id="mbSteps" style="display:flex;background:var(--board);border-bottom:2px solid rgba(255,255,255,.1);height:40px;">
+    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--green);color:white;">1. Info</div>
+    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">2. Zones</div>
+    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">3. Land.</div>
+    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">4. Transit</div>
+    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">5. Shop</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">6. Publish</div>
   </div>
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow:hidden;" id="mbPanelWrap">
 
     <!-- Library -->
-    <div id="mbPanel-library" style="display:none;padding:16px;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Your maps — both drafts and published. Tap Edit to continue working on a map.</div>
-      <button class="btn btn-p" style="width:100%;margin-bottom:14px;" onclick="_mbCurrentDraftId=null;_mbZones=[];_mbLandmarks=[];_mbLines=[];_mbCityData=null;if(_mbMapZones){try{_mbMapZones.remove();}catch(e){}}_mbMapZones=null;if(_mbMapLm){try{_mbMapLm.remove();}catch(e){}}_mbMapLm=null;if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){}}_mbMapTransit=null;document.getElementById('mbPanel-library').style.display='none';document.getElementById('mbSteps').style.display='flex';['mbName','mbCreator','mbDesc','mbCitySearch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const conf=document.getElementById('mbCityConfirmed');if(conf)conf.style.display='none';document.getElementById('mbCityResults').innerHTML='';document.getElementById('mbZoneList').innerHTML='';document.getElementById('mbLineList').innerHTML='';document.getElementById('mbZoneCount').textContent='0 zones';document.getElementById('mbLmCount').textContent='0 landmarks';document.getElementById('mbLineCount').textContent='0 lines';mbGotoStep('meta');">+ Create New Map</button>
-      <div id="mbLibraryList"></div>
+    <div id="mbPanel-library" style="display:none;padding:0;">
+      <div style="background:var(--board);padding:20px;margin-bottom:0;">
+        <div style="font-family:var(--font-led);font-size:14px;color:var(--green);letter-spacing:2px;margin-bottom:8px;">YOUR MAPS</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;">Drafts and published maps. Tap Edit to continue building.</div>
+        <button class="btn btn-p" style="width:100%;margin-top:14px;" onclick="_mbNewMap()">+ Create New Map</button>
+      </div>
+      <div style="padding:12px 16px;">
+        <div id="mbDraftsList" style="margin-bottom:12px;"></div>
+        <div id="mbLibraryList"></div>
+      </div>
     </div>
 
     <!-- Step 1: Meta -->
-    <div id="mbPanel-meta" style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Create a map for any city. Once published, anyone can play it. Aim for ~15 zones covering the most walkable, urban area of the city.</div>
-      <label>Map Name</label>
-      <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
-      <label>Your Name (map credit)</label>
-      <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
-      <label>City</label>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
-        <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
+    <div id="mbPanel-meta" style="padding:0;overflow-y:auto;height:100%;box-sizing:border-box;">
+      <div class="mb-tip" style="background:var(--board);padding:14px 20px;margin:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--green)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;">MAP DESIGN TIP</span>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;">Pick a walkable, urban neighborhood or downtown. The best maps cover 2–4 square miles with clear boundaries like rivers, highways, or rail lines.</div>
       </div>
-      <div id="mbCityResults" style="margin-bottom:8px;"></div>
-      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:14px;font-size:12px;margin-bottom:8px;"></div>
-      <label>Short Description</label>
-      <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
-      <label>Movement Mode</label>
-      <select id="mbTransitMode">
-        <option value="transit">Public Transit</option>
-        <option value="walking">Walking Only</option>
-        <option value="mixed">Mixed</option>
-        <option value="bike">Bikes &amp; Scooters</option>
-      </select>
-      <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
+      <div style="padding:16px 20px;">
+        <label>Map Name</label>
+        <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
+        <label>Your Name (map credit)</label>
+        <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
+        <label>City</label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
+          <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
+        </div>
+        <div id="mbCityResults" style="margin-bottom:8px;"></div>
+        <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:14px;font-size:12px;margin-bottom:8px;"></div>
+        <label>Short Description</label>
+        <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
+        <label>Movement Mode</label>
+        <select id="mbTransitMode">
+          <option value="transit">Public Transit</option>
+          <option value="walking">Walking Only</option>
+          <option value="mixed">Mixed</option>
+          <option value="bike">Bikes &amp; Scooters</option>
+        </select>
+        <button class="btn btn-p" style="width:100%;margin-top:12px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
+      </div>
     </div>
 
     <!-- Step 2: Zones -->
     <div id="mbPanel-zones" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
-        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:14px;border:1px solid var(--accent);"></div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
+        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
+        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:8px;border:1px solid rgba(255,255,255,.15);"></div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
           <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
           <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
+          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbZoneCount">0 zones</span>
         </div>
+        <div id="mbZoneGuidance" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Aim for 12–20 zones. Keep them roughly equal in size (0.1–0.5 sq mi). Use natural boundaries like streets or rivers.</div>
       </div>
       <div id="mbMapEl" style="flex:1;min-height:0;"></div>
       <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
@@ -1297,12 +1333,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 3: Landmarks -->
     <div id="mbPanel-landmarks" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark pin. Aim for 1–2 landmarks per zone. These appear as Featured Landmarks during the game.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;">
+      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
+        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;">Tap the map to place a landmark. These become Featured Landmarks that teams race to find.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
+          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbLmCount">0 landmarks</span>
         </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Place 1–2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
       </div>
       <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
       <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
@@ -1312,14 +1349,15 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 4: Transit -->
     <div id="mbPanel-transit" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. Name each line and set its type. The app will calculate which zones each line passes through.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
+        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;">Draw transit lines by tapping stops along the route. The app calculates which zones each line connects.</div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
           <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
           <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
-          <span style="font-size:11px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
+          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbLineCount">0 lines</span>
         </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
       </div>
       <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
       <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
@@ -1329,21 +1367,32 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     </div>
 
     <!-- Step 5: Shop Config -->
-    <div id="mbPanel-shop" style="display:none;padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Choose which shop items are available in your game and set their coin costs. Items requiring transit lines are automatically hidden if your map has none.</div>
+    <div id="mbPanel-shop" style="display:none;padding:0;overflow-y:auto;height:100%;box-sizing:border-box;">
+      <div class="mb-tip" style="background:var(--board);padding:14px 20px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--green)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;">SHOP SETUP</span>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;">Toggle items on/off and set costs. Higher costs make items rarer and more strategic. Transit-dependent items are hidden if your map has no lines.</div>
+      </div>
+      <div style="padding:0 16px 16px;">
       <div id="mbShopConfigList"></div>
       <button class="btn btn-p" style="width:100%;margin-top:8px;" onclick="mbGotoStep('review')">Next: Review &amp; Publish &#x2192;</button>
+      </div>
     </div>
 
     <!-- Step 6: Review & Publish -->
-    <div id="mbPanel-review" style="display:none;padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;">
+    <div id="mbPanel-review" style="display:none;padding:0;overflow-y:auto;height:100%;box-sizing:border-box;">
       <div id="mbReviewContent"></div>
-      <div id="mbReviewMapWrap" style="width:100%;height:220px;border-radius:20px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px;">
+      <div id="mbReviewMapWrap" style="width:100%;height:220px;overflow:hidden;margin-bottom:0;">
         <div id="mbReviewMapEl" style="width:100%;height:100%;"></div>
       </div>
-      <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
-      <button class="btn btn-p" style="width:100%;" onclick="publishMap()">&#x1F4E4; Publish to Community Library</button>
-      <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="showScreen('screenHome')">Save Draft &amp; Exit</button>
+      <div style="padding:16px 20px;">
+        <div id="mbReviewChecklist" style="margin-bottom:12px;"></div>
+        <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
+        <button class="btn btn-p" style="width:100%;" onclick="publishMap()">Publish to Community Library</button>
+        <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="_mbSaveDraft();showToast('Draft saved.','ok');showScreen('screenHome')">Save Draft &amp; Exit</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1409,7 +1458,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.97';
+const APP_VERSION='1.98';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -5147,22 +5196,33 @@ function _renderMapResults(maps){
   const res=document.getElementById('cfgMapResults');
   if(!res)return;
   if(!maps.length){
-    res.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps found for that city.</div>';
+    res.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps found. Try a different search or create your own!</div>';
     return;
   }
   res.innerHTML='';
   maps.forEach(m=>{
+    const zoneCount=m.config&&m.config.zones?m.config.zones.length:0;
+    const lmCount=m.config&&m.config.landmarks?m.config.landmarks.length:0;
+    const lineCount=m.config&&m.config.transitLines?Object.keys(m.config.transitLines).length:0;
+    const plays=m.playCount||0;
+    const isSelected=_selectedMapId===m.id;
     const div=document.createElement('div');
-    div.style.cssText='padding:10px 12px;border-radius:20px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:6px;background:var(--surface);transition:border-color .15s;';
-    div.innerHTML='<div style="font-weight:700;font-size:13px;margin-bottom:2px;">'+esc(m.name)+'</div>'+
-      '<div style="color:var(--muted);">'+esc(m.cityName)+' &nbsp;&middot;&nbsp; by '+esc(m.creator||'Anonymous')+
-        '&nbsp;&middot;&nbsp; '+(m.config&&m.config.zones?m.config.zones.length+' zones':'?')+
-        (m.playCount?' &nbsp;&middot;&nbsp; '+m.playCount+' plays':'')+
+    div.className='mb-map-card'+(isSelected?' selected':'');
+    div.innerHTML='<div class="mc-name">'+esc(m.name)+'</div>'+
+      '<div class="mc-meta">'+esc(m.cityName)+' &middot; by '+esc(m.creator||'Anonymous')+
+      (m.desc?' &middot; '+esc(m.desc):'')+
       '</div>'+
-      (m.desc?'<div style="color:var(--muted);margin-top:3px;font-style:italic;">'+esc(m.desc)+'</div>':'');
-    div.addEventListener('mouseover',()=>div.style.borderColor='var(--accent)');
-    div.addEventListener('mouseout',()=>div.style.borderColor='var(--border)');
-    div.addEventListener('click',()=>_selectCommunityMap(m.id));
+      '<div class="mc-stats">'+
+        '<span class="mc-stat"><svg viewBox="0 0 16 16"><rect x="1" y="4" width="4" height="8" rx="1" fill="currentColor" opacity=".5"/><rect x="6" y="2" width="4" height="10" rx="1" fill="currentColor" opacity=".7"/><rect x="11" y="6" width="4" height="6" rx="1" fill="currentColor" opacity=".3"/></svg>'+zoneCount+' zones</span>'+
+        '<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M8 1l2 4h4l-3 3 1 5-4-2-4 2 1-5-3-3h4z" fill="currentColor" opacity=".5"/></svg>'+lmCount+' landmarks</span>'+
+        (lineCount?'<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M2 12h12M4 8h8M6 4h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'+lineCount+' lines</span>':'')+
+        '<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M8 2a5 5 0 00-5 5c0 4 5 8 5 8s5-4 5-8a5 5 0 00-5-5z" fill="currentColor" opacity=".4"/><circle cx="8" cy="7" r="2" fill="white"/></svg>'+plays+' plays</span>'+
+      '</div>';
+    div.addEventListener('click',()=>{
+      _selectCommunityMap(m.id);
+      res.querySelectorAll('.mb-map-card').forEach(c=>c.classList.remove('selected'));
+      div.classList.add('selected');
+    });
     res.appendChild(div);
   });
 }
@@ -5172,8 +5232,38 @@ function _filterMapResults(){
   _renderMapResults(_allMaps.filter(m =>
     (m.cityName||'').toLowerCase().includes(q) ||
     (m.name||'').toLowerCase().includes(q) ||
-    (m.cityTag||'').toLowerCase().includes(q)
+    (m.cityTag||'').toLowerCase().includes(q) ||
+    (m.creator||'').toLowerCase().includes(q)
   ));
+}
+
+let _mapSortMode='popular';
+function _sortMaps(mode){
+  _mapSortMode=mode;
+  document.querySelectorAll('.cfgSort').forEach(b=>b.classList.toggle('active',b.dataset.sort===mode));
+  const sorted=[..._allMaps];
+  if(mode==='popular') sorted.sort((a,b)=>(b.playCount||0)-(a.playCount||0));
+  else if(mode==='newest') sorted.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  else if(mode==='az') sorted.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  _renderMapResults(sorted);
+}
+
+function _mbNewMap(){
+  _mbCurrentDraftId=null;_mbZones=[];_mbLandmarks=[];_mbLines=[];_mbCityData=null;_mbShopConfig=null;
+  if(_mbMapZones){try{_mbMapZones.remove();}catch(e){}}_mbMapZones=null;
+  if(_mbMapLm){try{_mbMapLm.remove();}catch(e){}}_mbMapLm=null;
+  if(_mbMapTransit){try{_mbMapTransit.remove();}catch(e){}}_mbMapTransit=null;
+  document.getElementById('mbPanel-library').style.display='none';
+  document.getElementById('mbSteps').style.display='flex';
+  ['mbName','mbCreator','mbDesc','mbCitySearch'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const conf=document.getElementById('mbCityConfirmed');if(conf)conf.style.display='none';
+  document.getElementById('mbCityResults').innerHTML='';
+  document.getElementById('mbZoneList').innerHTML='';
+  document.getElementById('mbLineList').innerHTML='';
+  document.getElementById('mbZoneCount').textContent='0 zones';
+  document.getElementById('mbLmCount').textContent='0 landmarks';
+  document.getElementById('mbLineCount').textContent='0 lines';
+  mbGotoStep('meta');
 }
 
 async function _selectCommunityMap(id){
@@ -5181,16 +5271,20 @@ async function _selectCommunityMap(id){
   const map = _allMaps.find(m=>m.id===id);
   if(!map) return;
   _selectedMapConfig = map.config || null;
+  const zc=map.config&&map.config.zones?map.config.zones.length:0;
+  const lc=map.config&&map.config.landmarks?map.config.landmarks.length:0;
+  const lnc=map.config&&map.config.transitLines?Object.keys(map.config.transitLines).length:0;
 
   const card = document.getElementById('cfgSelectedMapCard');
   if(card){
     card.style.display = 'block';
-    card.innerHTML = '<b>&#x2713; Selected:</b> '+esc(map.name)+'<br>'+
-      '<span style="color:var(--muted);">'+esc(map.cityName)+' &middot; '+
-      (map.config&&map.config.zones?map.config.zones.length+' zones':'')+'</span>';
+    card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'+
+      '<svg viewBox="0 0 16 16" style="width:16px;height:16px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="var(--green)"/><path d="M5 8l2 2 4-4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>'+
+      '<span style="font-weight:700;font-size:14px;">'+esc(map.name)+'</span></div>'+
+      '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:2px;">'+esc(map.cityName)+' &middot; by '+esc(map.creator||'Anonymous')+'</div>'+
+      '<div style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;margin-top:4px;">'+zc+' ZONES &middot; '+lc+' LANDMARKS'+(lnc?' &middot; '+lnc+' LINES':'')+'</div>';
   }
 
-  // Store locally for getMapConfig to read
   window._communityMapConfig = _selectedMapConfig;
 }
 
@@ -5339,8 +5433,33 @@ function _mbShowLibrary(){
 
 async function _mbRenderLibrary(){
   const el = document.getElementById('mbLibraryList');
+  const draftEl = document.getElementById('mbDraftsList');
   if(!el) return;
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading your maps…</div>';
+
+  // Show drafts first
+  const drafts = _mbGetAllDrafts().filter(d=>!d.publishedId);
+  if(draftEl){
+    if(drafts.length){
+      drafts.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+      draftEl.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Drafts</div>'+
+        drafts.map(d=>{
+          const date=d.savedAt?new Date(d.savedAt).toLocaleDateString():'';
+          const zc=d.zones?d.zones.length:0;
+          return '<div class="mb-draft-card">'+
+            '<div class="draft-label">Draft &middot; '+date+'</div>'+
+            '<div style="font-weight:700;font-size:14px;margin-bottom:2px;">'+esc(d.name||'Untitled')+'</div>'+
+            '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+esc(d.cityData?.shortName||'No city')+' &middot; '+zc+' zones &middot; '+(d.landmarks?d.landmarks.length:0)+' landmarks</div>'+
+            '<div style="display:flex;gap:6px;">'+
+              '<button class="btn btn-p btn-xs" onclick="_mbEditMap(\''+d.id+'\')">Continue Editing</button>'+
+              '<button class="btn btn-xs" style="background:#fff0f0;color:var(--red);border:1px solid #fecaca;" onclick="_mbDeleteDraftConfirm(\''+d.id+'\',\''+esc(d.name||'Untitled')+'\')">Delete</button>'+
+            '</div></div>';
+        }).join('');
+    } else {
+      draftEl.innerHTML='';
+    }
+  }
+
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading published maps…</div>';
   const creatorId = _mbGetCreatorId();
   let published = [];
   try{
@@ -5350,13 +5469,25 @@ async function _mbRenderLibrary(){
       if(data) published = Object.values(data).filter(m=>m.creatorId===creatorId);
     }
   }catch(e){}
+  if(!published.length && !drafts.length){
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No maps yet. Tap Create New Map to get started!</div>';
+    return;
+  }
   if(!published.length){
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No published maps yet. Create your first one!</div>';
+    el.innerHTML='';
     return;
   }
   published.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  el.innerHTML = published.map(m=>_mbMapCard(m.id,m.name,m.cityName,
+  el.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Published</div>'+
+    published.map(m=>_mbMapCard(m.id,m.name,m.cityName,
     m.config?.zones?.length||0,m.createdAt,true,true)).join('');
+}
+
+function _mbDeleteDraftConfirm(id,name){
+  if(!confirm('Delete draft "'+name+'"? This cannot be undone.')) return;
+  _mbDeleteDraft(id);
+  _mbRenderLibrary();
+  showToast('Draft deleted.','ok');
 }
 
 function _mbMapCard(id, name, city, zoneCount, ts, isPublished, showUnpublish){
@@ -5489,8 +5620,8 @@ function mbGotoStep(step){
     const stepBtn = document.getElementById('mbStep-'+s);
     if(panel) panel.style.display = s===step?(s==='zones'||s==='landmarks'||s==='transit'?'flex':'block'):'none';
     if(stepBtn){
-      stepBtn.style.borderBottomColor = s===step?'var(--accent)':'transparent';
-      stepBtn.style.color = s===step?'var(--text)':'var(--muted)';
+      stepBtn.style.borderBottomColor = s===step?'var(--green)':'transparent';
+      stepBtn.style.color = s===step?'white':'rgba(255,255,255,.4)';
     }
   });
   const pub = document.getElementById('mbPublishBtn');
@@ -5502,6 +5633,7 @@ function mbGotoStep(step){
   if(step==='review') _renderMbReview();
   // Auto-save draft on every step transition
   _mbSaveDraft();
+  if(_mbCurrentDraftId) showToast('Draft auto-saved','info',1500);
   const pw = document.getElementById('mbPanelWrap');
   if(pw) pw.scrollTop = 0;
 }
@@ -6172,11 +6304,37 @@ function _renderMbReview(){
   const creator=document.getElementById('mbCreator')?.value.trim()||'Anonymous';
   const city=_mbCityData?_mbCityData.shortName:'Unknown City';
   const desc=document.getElementById('mbDesc')?.value.trim()||'';
-  el.innerHTML='<div class="card" style="margin-bottom:10px;font-size:13px;line-height:1.8;">'+
-    '<b>'+esc(name)+'</b><br>City: '+esc(city)+'<br>By: '+esc(creator)+
-    (desc?'<br><span style="color:var(--muted);font-style:italic;">'+esc(desc)+'</span>':'')+
-    '</div><div class="card" style="font-size:12px;line-height:1.7;margin-bottom:12px;">'+
-    _mbZones.length+' zones &nbsp;&middot;&nbsp; '+_mbLandmarks.length+' landmarks &nbsp;&middot;&nbsp; '+_mbLines.length+' transit lines</div>';
+  el.innerHTML='<div style="background:var(--board);padding:16px 20px;margin-bottom:0;">'+
+    '<div style="font-family:var(--font-led);font-size:18px;color:white;letter-spacing:2px;margin-bottom:4px;">'+esc(name).toUpperCase()+'</div>'+
+    '<div style="font-size:12px;color:rgba(255,255,255,.6);">'+esc(city)+' &middot; by '+esc(creator)+'</div>'+
+    (desc?'<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;font-style:italic;">'+esc(desc)+'</div>':'')+
+    '<div style="display:flex;gap:16px;margin-top:10px;">'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbZones.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">ZONES</div></div>'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbLandmarks.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">LANDMARKS</div></div>'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbLines.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">LINES</div></div>'+
+    '</div></div>';
+
+  // Render quality checklist
+  const cl=document.getElementById('mbReviewChecklist');
+  if(cl){
+    const checks=[
+      {ok:!!name&&name!=='Unnamed Map',label:'Map has a name',fix:'meta'},
+      {ok:!!_mbCityData,label:'City is selected',fix:'meta'},
+      {ok:_mbZones.length>=3,label:'At least 3 zones ('+_mbZones.length+'/3)',fix:'zones'},
+      {ok:_mbZones.length>=10,label:'10+ zones recommended ('+_mbZones.length+'/10)',fix:'zones',warn:true},
+      {ok:_mbLandmarks.length>=3,label:'At least 3 landmarks ('+_mbLandmarks.length+'/3)',fix:'landmarks',warn:true},
+      {ok:_mbLandmarks.length>=_mbZones.length,label:'1+ landmark per zone',fix:'landmarks',warn:true},
+    ];
+    cl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Quality Checklist</div>'+
+      checks.map(c=>{
+        const color=c.ok?'var(--green)':(c.warn?'var(--orange)':'var(--red)');
+        const icon=c.ok?'<svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="'+color+'"/><path d="M5 8l2 2 4-4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>'
+          :'<svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="'+color+'" stroke-width="1.5"/><path d="M8 5v4M8 11v1" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round"/></svg>';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:'+(c.ok?'var(--text)':'var(--muted)')+';">'+icon+c.label+
+          (!c.ok&&c.fix?'<span style="margin-left:auto;font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="mbGotoStep(\''+c.fix+'\')">Fix</span>':'')+
+        '</div>';
+      }).join('');
+  }
 
   // Build preview map
   if(window._mbReviewMap){try{window._mbReviewMap.remove();}catch(e){} window._mbReviewMap=null;}
