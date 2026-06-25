@@ -6008,6 +6008,14 @@ function _mbSelectZone(idx){
   if(!zone||!_mbMapZones) return;
   // Highlight selected zone
   if(zone.polyLayer) zone.polyLayer.setStyle({fillColor:'#7c3aed',color:'#7c3aed',fillOpacity:.25,weight:2.5});
+  // High-resolution imported boundaries have too many vertices to edit by
+  // hand — spawning a draggable handle per point would lag. Offer rename/
+  // delete only and skip vertex editing for these.
+  if(zone.poly.length > 60){
+    document.getElementById('mbZoneHint').textContent = 'Imported boundary ('+zone.poly.length+' points) — rename or delete below. Tap outside to deselect.';
+    _mbRenderZoneToolbar(idx);
+    return;
+  }
   // Show drag handles at each vertex — L.marker with draggable:true (circleMarker can't drag)
   zone.poly.forEach((pt,ptIdx)=>{
     const handleIcon=L.divIcon({
@@ -7159,7 +7167,7 @@ async function mbBdyPreview(){
       const polys = _bdyGeoToPolys(geo);
       if(polys.length){
         const main = polys.reduce((a, b) => a.length > b.length ? a : b);
-        cands.push({ name: sub.tags.name || 'Zone', poly: _bdySimplifyPoly(main, 80) });
+        cands.push({ name: sub.tags.name || 'Zone', poly: _bdyPrepPoly(main) });
         continue;
       }
     }
@@ -7267,8 +7275,8 @@ async function mbBdyImportSelected(){
       // Take the largest polygon (by vertex count) as the main boundary
       const mainPoly = polys.reduce((a, b) => a.length > b.length ? a : b);
 
-      // Simplify if too many points
-      const simplified = _bdySimplifyPoly(mainPoly, 80);
+      // Use the full-resolution boundary (only trims if pathologically large)
+      const simplified = _bdyPrepPoly(mainPoly);
 
       const code = 'Z' + (_mbZones.length + 1);
       const area = parseFloat(_polyAreaSqMi(simplified).toFixed(2));
@@ -7318,19 +7326,51 @@ function _bdyGeoToPolys(geo) {
   return polys;
 }
 
-function _bdySimplifyPoly(poly, maxPts) {
-  if(poly.length <= maxPts) return poly;
-  // Douglas-Peucker-like: keep every Nth point to reduce
-  const step = Math.ceil(poly.length / maxPts);
-  const result = [];
-  for(let i = 0; i < poly.length; i += step) {
-    result.push(poly[i]);
+// Perpendicular distance from point p to the line a→b (in lat/lng degrees;
+// fine for the small areas used here).
+function _bdyPerpDist(p, a, b){
+  const x=p[1], y=p[0], x1=a[1], y1=a[0], x2=b[1], y2=b[0];
+  const dx=x2-x1, dy=y2-y1;
+  const len2=dx*dx+dy*dy;
+  if(len2===0) return Math.hypot(x-x1, y-y1);
+  let t=((x-x1)*dx+(y-y1)*dy)/len2;
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(x-(x1+t*dx), y-(y1+t*dy));
+}
+
+// Shape-preserving Douglas-Peucker. Unlike naive decimation, this keeps the
+// true outline (corners, curves) and only drops points that lie essentially
+// on a straight segment — so simplified shapes don't look blocky.
+function _bdyDouglasPeucker(poly, eps){
+  if(poly.length<3) return poly.slice();
+  let dmax=0, idx=0;
+  const end=poly.length-1;
+  for(let i=1;i<end;i++){
+    const d=_bdyPerpDist(poly[i], poly[0], poly[end]);
+    if(d>dmax){ dmax=d; idx=i; }
   }
-  // Ensure last point connects back
-  if(result.length > 2 && (result[result.length-1][0] !== result[0][0] || result[result.length-1][1] !== result[0][1])) {
-    result.push([...result[0]]);
+  if(dmax>eps){
+    const left=_bdyDouglasPeucker(poly.slice(0,idx+1), eps);
+    const right=_bdyDouglasPeucker(poly.slice(idx), eps);
+    return left.slice(0,-1).concat(right);
   }
-  return result;
+  return [poly[0], poly[end]];
+}
+
+// Prepare an imported boundary for use as a zone. Uses the FULL-resolution
+// region data by default. Only if a polygon is pathologically large (which
+// would bloat Firebase and slow rendering) does it apply Douglas-Peucker,
+// which preserves the visual shape rather than decimating into straight lines.
+const _BDY_MAX_PTS = 1500;
+function _bdyPrepPoly(poly){
+  if(!poly || poly.length<=_BDY_MAX_PTS) return poly;
+  let eps=0.00002; // ~2m
+  let out=poly;
+  while(out.length>_BDY_MAX_PTS && eps<0.005){
+    out=_bdyDouglasPeucker(poly, eps);
+    eps*=1.7;
+  }
+  return out;
 }
 
 // ── Transit Import (OSM) ─────────────────────────────────────────────────────
