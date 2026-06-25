@@ -7102,17 +7102,57 @@ function mbBdySelectNone(){
 // Fetch + cache the polygon geometry for a sub-area
 async function _bdyEnsureGeo(sub){
   if(sub._directGeo) return sub._directGeo;
-  if(sub._geo !== undefined) return sub._geo; // cached (possibly null)
-  if(sub.type === 'node'){ sub._geo = null; return null; } // place points have no boundary
-  const ot = sub.type === 'way' ? 'W' : 'R';
-  try {
-    const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=' + ot + '&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
-      headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
-    });
-    const d = await r.json();
-    sub._geo = d.geometry || null;
-  } catch(e){ sub._geo = null; }
-  return sub._geo;
+  if(sub._geo !== undefined) return sub._geo;
+
+  // Strategy 1: Nominatim details (works for relations/ways)
+  if(sub.type === 'relation' || sub.type === 'way') {
+    const ot = sub.type === 'way' ? 'W' : 'R';
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=' + ot + '&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
+        headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
+      });
+      const d = await r.json();
+      if(d.geometry && (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon')) {
+        sub._geo = d.geometry;
+        return sub._geo;
+      }
+    } catch(e){}
+  }
+
+  // Strategy 2: Nominatim search by name near coordinates (works for nodes/neighborhoods)
+  const name = sub.tags && sub.tags.name;
+  if(name) {
+    try {
+      let searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=3&q=' + encodeURIComponent(name);
+      if(sub.lat && sub.lon) searchUrl += '&viewbox=' + (sub.lon-0.15) + ',' + (sub.lat+0.15) + ',' + (sub.lon+0.15) + ',' + (sub.lat-0.15) + '&bounded=1';
+      const r = await fetch(searchUrl, {
+        headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
+      });
+      const results = await r.json();
+      const match = results.find(r => r.geojson && (r.geojson.type === 'Polygon' || r.geojson.type === 'MultiPolygon'));
+      if(match) {
+        sub._geo = match.geojson;
+        return sub._geo;
+      }
+    } catch(e){}
+  }
+
+  // Strategy 3: generate a circular approximation around the point
+  if(sub.lat && sub.lon) {
+    const R = 0.008; // ~0.9km radius
+    const pts = [];
+    for(let a = 0; a < 360; a += 15) {
+      const rad = a * Math.PI / 180;
+      pts.push([sub.lon + R * Math.cos(rad), sub.lat + R * Math.sin(rad)]);
+    }
+    pts.push(pts[0]); // close ring
+    sub._geo = { type: 'Polygon', coordinates: [pts] };
+    sub._isApprox = true;
+    return sub._geo;
+  }
+
+  sub._geo = null;
+  return null;
 }
 
 function _bdyPolyCentroid(poly){
@@ -7260,24 +7300,9 @@ async function mbBdyImportSelected(){
     try {
       let geo = null;
 
-      if(sub._directGeo) {
-        geo = sub._directGeo;
-      } else if(sub._geo !== undefined) {
-        // Reuse geometry already fetched during preview
-        geo = sub._geo;
-      } else if(sub.type !== 'node') {
-        // Fetch polygon from Nominatim
-        const ot = sub.type === 'way' ? 'W' : 'R';
-        const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=' + ot + '&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
-          headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
-        });
-        const data = await r.json();
-        geo = data.geometry;
-        sub._geo = geo || null;
-
-        // Rate limit: Nominatim requires 1 req/sec
-        await new Promise(resolve => setTimeout(resolve, 1100));
-      }
+      geo = await _bdyEnsureGeo(sub);
+      // Rate limit: Nominatim requires 1 req/sec
+      if(!sub._directGeo) await new Promise(resolve => setTimeout(resolve, 1100));
 
       if(!geo) { failed++; continue; }
 
