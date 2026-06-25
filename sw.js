@@ -1,8 +1,8 @@
-// BFW Service Worker v1.31
+// BFW Service Worker v1.32
 // Bump this comment with every deploy to ensure SW updates
-const CACHE = 'bfw-v8';
+const CACHE = 'bfw-v9';
 const STATIC_ASSETS = [
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
 ];

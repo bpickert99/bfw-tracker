@@ -24,13 +24,13 @@
   --green:#00B66B;--orange:#F0801A;--gold:#F0801A;
   --red:#E23B3B;--silver:#94A3B4;
   --shadow:0 2px 10px rgba(11,44,97,.06);
-  --shadow-lg:0 4px 14px rgba(11,44,97,.10);
   --rl:#E23B3B;--bl:#2563EB;--ol:#EA8A1E;--gl:#15A34A;--sl:#94A3B4;--yl:#F4B400;
   --header-bg:#0B2C61;--tab-bg:#0B2C61;
   --r-card:20px;--r-feat:24px;--r-btn:999px;--r-input:14px;--r-chip:999px;
+  font-feature-settings:"tnum" 1;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;font-variant-numeric:tabular-nums;}
 .screen{display:none;}
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
@@ -39,10 +39,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken
 .join-logo{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--navy);line-height:1.05;margin-bottom:4px;text-align:center;}
 .join-logo span{color:var(--green);}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
-.join-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.join-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:380px;box-shadow:var(--shadow);}
 .join-card h2{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:16px;text-transform:uppercase;}
 .join-divider{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;position:relative;}
-.join-divider::before,.join-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+.join-divider::before,.join-divider::after{content:'';position:absolute;top:50%;width:42%;height:2px;background:var(--border);border-radius:1px;}
 .join-divider::before{left:0;}.join-divider::after{right:0;}
 .code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:var(--r-input);width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
 .code-input:focus{border-color:var(--accent);}
@@ -53,11 +53,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken
 
 /* HOST SETUP */
 #screenHostSetup{padding:20px;overflow-y:auto;background:var(--bg);}
-.setup-form{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow-lg);}
+.setup-form{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow);}
 .setup-form h2{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:18px;line-height:1.15;}
-.team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 12px;margin-bottom:7px;}
+.team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 12px;margin-bottom:7px;}
 .tcd{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);}
-.cpp{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:10px;z-index:800;box-shadow:var(--shadow-lg);}
+.cpp{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:10px;z-index:800;box-shadow:var(--shadow);}
 .cpr{display:flex;gap:6px;flex-wrap:wrap;}
 .csw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .csw:hover{transform:scale(1.2);}.csw.sel{border-color:var(--text);}
@@ -87,7 +87,7 @@ header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:
 .logo span{color:var(--green);}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
 .clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--orange);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
-.clock.lunch{color:var(--green);}.clock.ended{color:var(--muted);}
+.clock.lunch{color:var(--orange);}.clock.ended{color:var(--muted);}
 .gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 .gpill.live{background:rgba(255,255,255,.95);color:var(--green);border-color:var(--green);}
@@ -99,8 +99,9 @@ header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:
 /* TABS */
 .tabs{display:flex;background:var(--tab-bg);border-bottom:none;overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);cursor:pointer;border-bottom:4px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-4px;}
-.tab.active{color:white;border-bottom:4px solid var(--accent);}
+.tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);cursor:pointer;white-space:nowrap;transition:color .15s;position:relative;}
+.tab.active{color:white;}
+.tab.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:4px;background:var(--accent);border-radius:2px;}
 
 /* PANELS */
 .panel{display:none;padding:20px;}
@@ -125,7 +126,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .btn-sm{min-height:40px;border-radius:var(--r-chip);font-size:13px;padding:8px 16px;}.btn-xs{padding:4px 10px;font-size:11px;border-radius:var(--r-chip);}
 .stitle{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;margin-top:32px;text-transform:uppercase;}
 .stitle:first-child{margin-top:0;}
-.divider{height:2px;background:var(--border);border-radius:1px;margin:14px 0;}
+.divider{height:2px;background:var(--border);border-radius:1px;margin:24px 0;}
 .empty{text-align:center;color:var(--muted);padding:32px 0;font-size:13px;}
 
 /* STATUS */
@@ -143,7 +144,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 /* SCORES */
 .scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;margin-bottom:16px;}
-.tscc{background:var(--surface);border:none;border-radius:var(--r-card);padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-lg);}
+.tscc{background:var(--surface);border:none;border-radius:var(--r-card);padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow);}
 .tsrk{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--muted);background:var(--surface2);border-radius:var(--r-chip);padding:2px 8px;}
 .tsn2{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;}
 .bsc{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:56px;letter-spacing:-1px;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;}
@@ -156,7 +157,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 /* MAP overlays */
 .leaflet-container{background:#F7F8FA !important;}
 .leaflet-interactive:focus{outline:none !important;}
-#zonePopup{position:fixed;z-index:400;background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow-lg);min-width:200px;max-width:260px;pointer-events:auto;}
+#zonePopup{position:fixed;z-index:400;background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow);min-width:200px;max-width:260px;pointer-events:auto;}
 #zonePopup h4{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
 #zonePopup .zp-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
 #zonePopup .zp-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--surface2);}
@@ -181,7 +182,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .zone-region-header{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;text-transform:uppercase;}
 .zone-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
 .zone-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:16px 20px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
-.zone-card:hover{box-shadow:var(--shadow-lg);}
+.zone-card:hover{box-shadow:var(--shadow);}
 .zone-card.controlled{border-left:5px solid;}
 .zone-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
 .zone-code{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
@@ -213,10 +214,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 /* MODALS */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);}
 .mo.open{display:flex;}
-.md{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-feat);padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-feat);padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
 .md h2{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
 .mdm{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
-.dr{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
+.dr{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 11px;margin-bottom:7px;}
 .drl{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px;}
 .dd{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .dr input[type=number]{width:80px;margin:0;text-align:center;}
@@ -227,13 +228,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 /* TOAST */
 #toastContainer{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1100;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
-.toast{background:var(--text);color:var(--surface);padding:12px 24px;border-radius:var(--r-chip);font-size:15px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);backdrop-filter:blur(10px);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;text-align:center;line-height:1.5;pointer-events:auto;width:100%;}
+.toast{background:var(--text);color:var(--surface);padding:12px 24px;border-radius:var(--r-chip);font-size:15px;font-weight:600;box-shadow:var(--shadow);backdrop-filter:blur(10px);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;text-align:center;line-height:1.5;pointer-events:auto;width:100%;}
 .toast.show{opacity:1;transform:translateY(0);}
 .toast.error{background:#991b1b;color:white;}
 .toast.warn{background:#92400e;color:white;}
 .toast.ok{background:#065f46;color:white;}
 
-.notif-banner{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--accent);color:white;padding:12px 20px;font-size:13px;font-weight:700;text-align:center;transform:translateY(-100%);transition:transform .3s;box-shadow:var(--shadow-lg);}
+.notif-banner{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--accent);color:white;padding:12px 20px;font-size:13px;font-weight:700;text-align:center;transform:translateY(-100%);transition:transform .3s;box-shadow:var(--shadow);}
 .notif-banner.show{transform:translateY(0);}
 
 @media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
@@ -256,7 +257,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .hben.locked .hbicon{background:var(--surface2);}
 .hben.locked{color:var(--muted);}
 .hbadge{margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);background:var(--surface2);border-radius:var(--r-chip);padding:2px 8px;white-space:nowrap;}
-.home-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.home-divider{border:none;border-top:2px solid var(--border);border-radius:1px;margin:24px 0;}
 .home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 24px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-btn);min-height:52px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
 .home-google-btn:hover{background:var(--surface2);}
 .home-google-btn svg{width:20px;height:20px;}
@@ -268,7 +269,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px;}
 @media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:36px;}}
 .hgcard{background:var(--surface);border:none;border-radius:var(--r-card);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column;box-shadow:var(--shadow);}
-.hgcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);}
+.hgcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
 .hgcard.coming{cursor:default;}
 .hgcard.coming:hover{transform:none;box-shadow:var(--shadow);}
 .hgcard-anim{width:100%;aspect-ratio:3/2;background:#dde8d8;overflow:hidden;}
@@ -550,7 +551,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <div class="divider"></div>
     <label>Map &amp; Transit</label>
-    <div id="mapSelectionSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;line-height:1.5;"></div>
+    <div id="mapSelectionSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:8px;font-size:12px;line-height:1.5;"></div>
 
     <div style="margin-bottom:10px;">
       <label style="font-size:12px;color:var(--muted);">Game Preset</label>
@@ -580,7 +581,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div id="cfgCityResults" style="margin-bottom:8px;"></div>
 
       <div id="cfgZoneSection" style="display:none;">
-        <div id="cfgZoneStatus" style="font-size:12px;padding:8px 10px;border-radius:8px;background:var(--surface2);margin-bottom:10px;line-height:1.5;"></div>
+        <div id="cfgZoneStatus" style="font-size:12px;padding:8px 10px;border-radius:14px;background:var(--surface2);margin-bottom:10px;line-height:1.5;"></div>
         <label style="font-size:12px;color:var(--muted);">Zones — tap to include or exclude</label>
         <div id="cfgZoneCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -608,7 +609,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <div class="lobby-header" style="flex-direction:column;align-items:center;text-align:center;gap:10px;padding:16px 20px;">
     <div style="width:100%;">
       <div class="lobby-code-label" style="margin-bottom:6px;">Game Code — share with players</div>
-      <div class="lobby-code" id="lobbyCode" style="font-size:42px;letter-spacing:12px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:10px 16px;display:inline-block;min-width:200px;">—</div>
+      <div class="lobby-code" id="lobbyCode" style="font-size:42px;letter-spacing:12px;background:var(--surface2);border:2px solid var(--border);border-radius:20px;padding:10px 16px;display:inline-block;min-width:200px;">—</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:center;width:100%;margin-top:6px;">
       <button class="btn btn-g btn-sm" style="flex:1;max-width:120px;display:none;" id="backToSetupBtn" onclick="backToSetup()">&#x2190; Setup</button>
@@ -651,12 +652,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="preGameStartTime"></div>
       </div>
-      <div id="preTeamCard" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:none;">
+      <div id="preTeamCard" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;margin-bottom:14px;display:none;">
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Your Team</div>
         <div style="font-size:22px;font-weight:700;" id="preTeamName"></div>
         <div style="font-size:12px;color:var(--muted);margin-top:4px;">Use the Chat tab to coordinate with your team before the game starts.</div>
       </div>
-      <div id="preNoTeamCard" style="background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px;margin-bottom:14px;">
+      <div id="preNoTeamCard" style="background:#fef9c3;border:1px solid #fde68a;border-radius:20px;padding:14px;margin-bottom:14px;">
         <div style="font-weight:700;font-size:13px;margin-bottom:4px;">⏳ Waiting for team assignment</div>
         <div style="font-size:12px;color:#92400e;line-height:1.5;">The host will assign you to a team shortly. Hang tight!</div>
       </div>
@@ -766,12 +767,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
 
   <div class="panel" id="panel-zones">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);">
       <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Your GPS determines which zone you're in. Move into a zone, tap Deposit, and spend coins to take control. The team with the most coins deposited in a zone controls it.</div>
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">💰 Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
       <div id="zoneChallengeBtn" style="display:none;margin-top:10px;">
-        <button class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:12px;" onclick="initiateZoneChallenge()">⚔️ Zone Challenge<div id="zoneChallengeSub" style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;"></div></button>
+        <button class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:20px;" onclick="initiateZoneChallenge()">⚔️ Zone Challenge<div id="zoneChallengeSub" style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;"></div></button>
       </div>
     </div>
     <div class="stitle" style="margin-top:0">Zone Status</div>
@@ -791,7 +792,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <div id="myCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0</div>
       </div>
     </div>
-    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.5;">
+    <div style="background:var(--surface2);border-radius:14px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.5;">
       💡 <b>How The Flop works:</b> Tap a challenge, take a photo proving you completed it, and submit. Other teams vote — one yes earns your coins. Rejected? Try again.
     </div>
     <div id="landmarkContainer"></div>
@@ -808,11 +809,11 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div style="background:var(--surface2);border-radius:20px;padding:12px;font-size:13px;font-weight:600;" id="voteChallenge"></div>
       <div style="font-size:12px;color:var(--muted);">A team has submitted a photo claiming to have completed this challenge. Does the photo clearly show the task has been accomplished?</div>
       <img id="voteImg" src="" style="width:100%;max-height:280px;object-fit:contain;border-radius:20px;background:var(--surface2);">
-      <div id="voteSubmitterMsg" style="display:none;background:var(--surface2);border-radius:8px;padding:8px 12px;font-size:12px;font-style:italic;color:var(--muted);border-left:3px solid var(--gold);"></div>
+      <div id="voteSubmitterMsg" style="display:none;background:var(--surface2);border-radius:14px;padding:8px 12px;font-size:12px;font-style:italic;color:var(--muted);border-left:3px solid var(--gold);"></div>
       <div id="voteStatus" style="font-size:12px;color:var(--muted);text-align:center;padding:8px;"></div>
       <div id="voteRejectReason" style="display:none;margin-bottom:8px;">
         <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Reason for rejection (optional — shown in the log)</label>
-        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;margin-top:4px;margin-bottom:0;"></textarea>
+        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:14px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;margin-top:4px;margin-bottom:0;"></textarea>
       </div>
       <div id="voteButtons" style="display:flex;gap:10px;">
         <button class="btn" style="flex:1;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:16px;padding:16px;" onclick="castVote(true)">✓ Yes, accomplished</button>
@@ -832,12 +833,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <div class="md" style="max-width:400px;">
     <h2 id="lmTitle">📍 Landmark</h2>
     <div class="mdm" id="lmMeta"></div>
-    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:600;" id="lmName"></div>
+    <div style="background:var(--surface2);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:600;" id="lmName"></div>
     <label>Upload your photo at this landmark</label>
     <input type="file" id="lmPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleLmPhoto(this)">
     <button class="btn btn-g" style="width:100%;margin-bottom:8px;" onclick="document.getElementById('lmPhotoInput').click()">📷 Take Photo</button>
     <div id="lmPhotoPreview" style="display:none;margin-bottom:10px;text-align:center;">
-      <img id="lmPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border);">
+      <img id="lmPreviewImg" style="max-width:100%;max-height:200px;border-radius:14px;border:1px solid var(--border);">
     </div>
     <div id="lmUploadStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:18px;"></div>
     <div class="mac">
@@ -893,7 +894,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           <button class="btn btn-g" style="flex:1" onclick="document.getElementById('claimFileInput').click()">📷 Take / Take Photo</button>
         </div>
         <div id="claimPhotoPreview" style="margin-top:10px;display:none;">
-          <img id="claimPreviewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:8px;background:var(--surface2);">
+          <img id="claimPreviewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:14px;background:var(--surface2);">
           <div style="font-size:11px;color:var(--green);margin-top:4px;text-align:center;">✓ Photo ready</div>
         </div>
       </div>
@@ -918,14 +919,14 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <!-- Pending phase: challenger waiting / defender accept-decline -->
   <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chPendingChallenger" style="display:none;">
-      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px;margin-bottom:12px;">
         <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
         <div id="chPendingTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
       </div>
       <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
     <div id="chPendingDefender" style="display:none;">
-      <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:16px;margin-bottom:12px;">
         <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
         <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
         <div id="chDefenderTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
@@ -938,8 +939,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
   <!-- Active phase: challenge text, timer, photo upload -->
   <div id="chPhaseActive" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
-    <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:12px;">
+    <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
+    <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:12px;margin-bottom:12px;">
       <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
       <div id="chActiveTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
@@ -964,7 +965,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <button class="btn" style="flex:1;background:#dc2626;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="showZoneChallengeRejectForm()">❌ Reject</button>
     </div>
     <div id="chVoteRejectForm" style="display:none;margin-bottom:10px;">
-      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
+      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:white;border-radius:14px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
       <button class="btn" style="background:#dc2626;color:white;border:none;width:100%;padding:10px;" onclick="voteOnZoneChallenge(false)">Confirm Rejection</button>
     </div>
     <div id="chVoteWaiting" style="display:none;font-size:13px;color:#4ade80;">✓ Vote submitted — waiting for opponent's vote…</div>
@@ -989,7 +990,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Resuming in</div>
     <div id="lunchCountdown" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:52px;letter-spacing:4px;">00:00</div>
   </div>
-  <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
+  <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Current Standings</div>
     <div id="lunchStandings"></div>
   </div>
@@ -1006,7 +1007,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <div id="lunchChatPanel" style="display:none;position:fixed;inset:0;z-index:955;background:var(--surface);flex-direction:column;">
   <div style="background:var(--text);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
     <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
-    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;cursor:pointer;">← Back to Lunch</button>
+    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:14px;padding:6px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;cursor:pointer;">← Back to Lunch</button>
   </div>
   <div id="lunchChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;"></div>
   <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
@@ -1025,7 +1026,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <input type="file" id="detourFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleDetourPhoto(this)">
       <button class="btn btn-g" style="width:100%" onclick="document.getElementById('detourFileInput').click()">📷 Take Photo of Sign</button>
       <div id="detourPhotoPreview" style="margin-top:10px;display:none;">
-        <img id="detourPreviewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:8px;background:var(--surface2);">
+        <img id="detourPreviewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:14px;background:var(--surface2);">
         <div style="font-size:11px;color:var(--green);margin-top:4px;text-align:center;">✓ Photo ready</div>
       </div>
     </div>
@@ -1042,7 +1043,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div style="font-size:13px;font-weight:600;color:var(--text);">Your coins</div>
       <div id="shopCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0 🪙</div>
     </div>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#92400e;line-height:1.5;">
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#92400e;line-height:1.5;">
       ⚠️ <b>Shop items are permanent and affect other teams.</b> Use them wisely — coins spent cannot be recovered.
     </div>
     <div class="stitle">Active Effects</div>
@@ -1121,7 +1122,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
   <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="curseAlertItem"></div>
   <div style="font-size:15px;opacity:.85;margin-bottom:40px;line-height:1.6;max-width:320px;" id="curseAlertBody"></div>
-  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:12px;padding:16px 40px;font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.2);">I UNDERSTAND — DISMISS</button>
+  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:20px;padding:16px 40px;font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);">I UNDERSTAND — DISMISS</button>
 </div>
 
 <!-- END GAME CONFIRM -->
@@ -1195,7 +1196,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <button class="btn btn-g btn-sm" onclick="mbSearchCity()">Find</button>
       </div>
       <div id="mbCityResults" style="margin-bottom:8px;"></div>
-      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;font-size:12px;margin-bottom:8px;"></div>
+      <div id="mbCityConfirmed" style="display:none;padding:8px 10px;background:var(--surface2);border:1px solid var(--accent);border-radius:14px;font-size:12px;margin-bottom:8px;"></div>
       <label>Short Description</label>
       <input type="text" id="mbDesc" placeholder="e.g. Downtown KC and the Crossroads Arts District" maxlength="120">
       <label>Movement Mode</label>
@@ -1212,7 +1213,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div id="mbPanel-zones" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
-        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--accent);"></div>
+        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:14px;border:1px solid var(--accent);"></div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
           <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
           <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
@@ -1325,7 +1326,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <option value="light_rail">Light Rail</option>
     </select>
     <label>Color</label>
-    <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;">
+    <input type="color" id="mbLineColor" value="#3b82f6" style="width:100%;height:36px;padding:2px;border-radius:14px;border:1px solid var(--border);cursor:pointer;">
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
       <input type="checkbox" id="mbLineSmooth" style="width:16px;height:16px;cursor:pointer;">
       <label for="mbLineSmooth" style="margin:0;font-size:13px;cursor:pointer;">Smooth curve between stops</label>
@@ -1734,17 +1735,17 @@ function renderLandmark(container){
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--accent));"></div>
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">🗺️ Featured Landmark</div>
+          <div style="font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">🗺️ Featured Landmark</div>
           <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px;">${esc(lm.hint)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
           <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
-          <div style="font-size:10px;color:var(--gold);">coins</div>
+          <div style="font-size:13px;color:var(--muted);">coins</div>
         </div>
       </div>
-      ${isWon?`<div style="font-size:12px;font-weight:700;color:${claimerColor};padding:6px 10px;background:${claimerColor}22;border-radius:8px;margin-top:6px;">✅ Claimed by ${esc(claimerName||'a team')}! New landmark incoming…</div>`:
-        isPending?`<div style="font-size:12px;color:var(--gold);padding:6px 10px;background:#fef9c322;border-radius:8px;margin-top:6px;border:1px solid var(--gold)44;">⏳ A team submitted a photo — vote in progress!</div>`:
+      ${isWon?`<div style="font-size:12px;font-weight:700;color:${claimerColor};padding:6px 10px;background:${claimerColor}22;border-radius:14px;margin-top:6px;">✅ Claimed by ${esc(claimerName||'a team')}! New landmark incoming…</div>`:
+        isPending?`<div style="font-size:12px;color:var(--gold);padding:6px 10px;background:#fef9c322;border-radius:14px;margin-top:6px;border:1px solid var(--gold)44;">⏳ A team submitted a photo — vote in progress!</div>`:
         canClaim?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><div style="font-size:11px;color:var(--muted);">${timerTxt}</div><button class="btn btn-p btn-sm" onclick="openLandmarkMo()">📍 I'm Here!</button></div>`:
         `<div style="font-size:11px;color:var(--muted);margin-top:6px;">${timerTxt}</div>`
       }
@@ -1772,16 +1773,16 @@ function renderFlop(){
     const claim=G.flopClaims&&G.flopClaims[item.id];
     const isClaimed=claim&&claim.status==='pending';
     const isWon=claim&&claim.status==='won';
-    const coinColor=item.coins===1?'var(--green)':item.coins===2?'var(--gold)':'var(--accent)';
+    const coinColor=item.coins===1?'var(--accent)':item.coins===2?'var(--gold)':'var(--navy)';
     const canClaim=G.started&&LS.myTeamIdx>=0&&!isClaimed&&!isWon;
     const border=isWon?'var(--green)':isClaimed?'var(--gold)':'var(--border)';
     const safeId=item.id.replace(/['"]/g,'');
     let html='<div ';
     if(canClaim){html+='data-id="'+safeId+'" onclick="openClaimMo(this.dataset.id)" onmouseover="this.style.borderColor=var(--accent)" onmouseout="this.style.borderColor='+border+'" ';}
-    html+='style="background:var(--surface);border:1px solid '+border+';border-radius:12px;padding:12px;cursor:'+(canClaim?'pointer':'default')+';opacity:'+(isWon?'0.6':'1')+';transition:border-color .15s;">';
+    html+='style="background:var(--surface);border:1px solid '+border+';border-radius:20px;padding:12px;cursor:'+(canClaim?'pointer':'default')+';opacity:'+(isWon?'0.6':'1')+';transition:border-color .15s;">';
     html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
     html+='<div style="font-size:20px">'+'🪙'.repeat(item.coins)+'</div>';
-    html+='<div style="font-size:10px;font-weight:700;color:'+coinColor+';background:'+coinColor+'22;padding:2px 7px;border-radius:20px;">'+item.coins+' coin'+(item.coins>1?'s':'')+'</div>';
+    html+='<div style="font-size:13px;font-weight:500;color:'+coinColor+';background:'+coinColor+'18;padding:6px 12px;border-radius:999px;height:30px;display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:'+coinColor+';display:inline-block;"></span>'+item.coins+' coin'+(item.coins>1?'s':'')+'</div>';
     html+='</div>';
     html+='<div style="font-size:12px;font-weight:600;line-height:1.5;color:var(--text)">'+esc(item.text)+'</div>';
     if(isWon)html+='<div style="font-size:10px;color:var(--green);margin-top:6px;font-weight:700">✓ Claimed!</div>';
@@ -1789,7 +1790,7 @@ function renderFlop(){
       const age=Date.now()-claim.submittedAt;
       const remain=Math.max(0,getVoteTimeoutMs()-age);
       const rm=Math.floor(remain/60000),rs=Math.floor((remain%60000)/1000);
-      html+='<div style="font-size:10px;color:var(--gold);margin-top:6px;font-weight:700">⏳ Voting… auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</div>';
+      html+='<div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:500">⏳ Voting… auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</div>';
     }
     else if(canClaim)html+='<div style="font-size:10px;color:var(--muted);margin-top:6px">Tap to claim →</div>';
     html+='</div>';
@@ -3015,7 +3016,7 @@ function renderLunchChat(){
     return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'
       +'<div style="font-size:10px;color:var(--muted);margin-bottom:2px;'+(isMe?'text-align:right':'')+'"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> · '+esc(m.playerName||'')+' · '+m.time+'</div>'
       +'<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:'+(m.img?'6px':'7px 11px')+';border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'
-      +(m.img?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:12px;display:block;">':esc(m.text||''))
+      +(m.img?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:20px;display:block;">':esc(m.text||''))
       +'</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -3195,7 +3196,7 @@ function renderStatus(){
       const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
       const sc2=(()=>{const sc=computeScores();return sc[LS.myTeamIdx]||{zones:0,bonuses:0};})();
       hero.style.display='block';
-      hero.innerHTML=`<div style="background:${mt.color}18;border:2px solid ${mt.color};border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
+      hero.innerHTML=`<div style="background:${mt.color}18;border:2px solid ${mt.color};border-radius:20px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
         <div style="width:36px;height:36px;border-radius:50%;background:${mt.color};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;">${esc(mt.name[0])}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:1px;">Your Team</div>
@@ -3565,7 +3566,7 @@ function openDepManual(){
   if(blockReason){showToast(blockReason,'warn');return;}
   // Build zone picker modal content via dmTitle/dmMeta reuse isn't clean — use a simple prompt-style select
   const sel=document.createElement('select');
-  sel.style.cssText='width:100%;font-size:15px;padding:8px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px;background:var(--surface);color:var(--text);';
+  sel.style.cssText='width:100%;font-size:15px;padding:8px;border-radius:14px;border:1px solid var(--border);margin-bottom:12px;background:var(--surface);color:var(--text);';
   sel.innerHTML='<option value="">— Pick your zone —</option>'+getZones().map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');
   // Inject into depMo for reuse
   const meta=document.getElementById('dmMeta');
@@ -3653,7 +3654,7 @@ function openZoneInfo(code){
     G.teams.forEach((t,i)=>{
       const v=deps[i]||0;
       const isLeader=leader===i&&v>0;
-      html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border)${isLeader?';border-left:3px solid '+t.color:''}">
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border)${isLeader?';border-left:3px solid '+t.color:''}">
         <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
         <div style="flex:1;font-weight:600;font-size:13px;color:${t.color}">${esc(t.name)}</div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;">${v} 🪙</div>
@@ -3829,7 +3830,7 @@ function initiateZoneChallenge(){
     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
     '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Challenge <b>'+esc(defName)+'</b> for zone <b>'+zone+'</b></div>'+
     '<div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Wager (coins)</label>'+
-    '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px;text-align:center;"></div>'+
+    '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:14px;font-size:16px;text-align:center;"></div>'+
     '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Defender must match your wager within 3 minutes or forfeit.</div>'+
     '<div style="display:flex;gap:10px;">'+
     '<button class="btn btn-g" style="flex:1;" onclick="closeZcModal()">Cancel</button>'+
@@ -3837,7 +3838,7 @@ function initiateZoneChallenge(){
   const mo=document.createElement('div');
   mo.id='zcModal';
   mo.style.cssText='position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
-  mo.innerHTML='<div style="background:var(--surface);border-radius:20px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);">'+html+'</div>';
+  mo.innerHTML='<div style="background:var(--surface);border-radius:20px;width:100%;max-width:360px;box-shadow:var(--shadow);">'+html+'</div>';
   document.body.appendChild(mo);
 }
 
@@ -4176,7 +4177,7 @@ function renderShopItems(){
     return '<div onclick="'+clickFn+'" style="background:var(--surface);border:1px solid '+(blocked?'#e2e8f0':'var(--border)')+';border-radius:20px;padding:10px;cursor:'+(blocked?'default':'pointer')+';opacity:'+(blocked?'0.5':'1')+';transition:border-color .15s;" '+(!blocked?'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"':'')+'>'+
       '<div style="font-size:22px;margin-bottom:4px">'+item.icon+'</div>'+
       '<div style="font-weight:700;font-size:12px;margin-bottom:2px">'+item.name+'</div>'+
-      '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px">'+costDisplay+'</div>'+
+      '<div style="font-size:13px;font-weight:500;color:var(--accent);background:var(--accent);background:rgba(26,109,212,.1);padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;margin-bottom:4px;height:26px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>'+costDisplay+'</div>'+
       '<div style="font-size:10px;color:var(--muted);line-height:1.4">'+item.desc+'</div>'+
       '</div>';
   }).join('');
@@ -4569,7 +4570,7 @@ function renderChat(){
     return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'+
       '<div style="font-size:10px;color:var(--muted);margin-bottom:2px;'+(isMe?'text-align:right':'')+'"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> · '+esc(m.playerName||'')+' · '+m.time+'</div>'+
       '<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:'+(hasImg?'6px':'7px 11px')+';border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'+
-      (hasImg?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:12px;display:block;" onerror="this.style.display=\'none\'">':esc(m.text||''))+
+      (hasImg?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:20px;display:block;" onerror="this.style.display=\'none\'">':esc(m.text||''))+
       '</div></div>';
   }).join('');
   el.scrollTop=el.scrollHeight;
@@ -4691,8 +4692,8 @@ function renderRules(){
   addTableCard(
     ['Coins','Difficulty','Examples'],
     [
-      ['<span style="color:var(--green);font-weight:700">🪙 1</span>','Easy','Find a pun business name, stack a cairn, skip a full block, food truck selfie'],
-      ['<span style="color:var(--gold);font-weight:700">🪙🪙 2</span>','Moderate','Mimic a statue, atlas obscura find, jump mid-air as a team, traverse monkey bars'],
+      ['<span style="color:var(--accent);font-weight:700">🪙 1</span>','Easy','Find a pun business name, stack a cairn, skip a full block, food truck selfie'],
+      ['<span style="color:var(--navy);font-weight:700">🪙🪙 2</span>','Moderate','Mimic a statue, atlas obscura find, jump mid-air as a team, traverse monkey bars'],
       ['<span style="color:var(--accent);font-weight:700">🪙🪙🪙 3</span>','Hard / Physical','Four-leaf clover, 10 pull-ups, 15 burpees, handstand, working payphone'],
     ]
   );
@@ -5242,7 +5243,7 @@ async function _mbRenderLibrary(){
 
 function _mbMapCard(id, name, city, zoneCount, ts, isPublished, showUnpublish){
   const date = ts ? new Date(ts).toLocaleDateString() : '';
-  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">'+
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px 14px;margin-bottom:10px;">'+
     '<div style="font-weight:700;font-size:14px;margin-bottom:2px;">'+esc(name)+'</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">'+esc(city)+' &middot; '+zoneCount+' zones'+(isPublished?' &middot; <span style="color:var(--green);font-weight:700;">Published</span>':'')+(date?' &middot; '+date:'')+
     '</div>'+
@@ -5402,7 +5403,7 @@ async function mbSearchCity(){
     res.innerHTML='';
     data.forEach((item,i)=>{
       const d=document.createElement('div');
-      d.style.cssText='padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);';
+      d.style.cssText='padding:8px 10px;border-radius:14px;cursor:pointer;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2);';
       d.textContent=item.display_name;
       d.addEventListener('click',()=>mbSelectCity(i));
       res.appendChild(d);
