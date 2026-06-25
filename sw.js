@@ -1,10 +1,11 @@
-// BFW Service Worker v1.32
+// BFW Service Worker v2.0
 // Bump this comment with every deploy to ensure SW updates
-const CACHE = 'bfw-v9';
+const CACHE = 'bfw-v10';
 const STATIC_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
+  './fonts/DepartureMono-Regular.woff2',
 ];
 
 self.addEventListener('install', e => {

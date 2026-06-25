@@ -4,8 +4,8 @@
   "description": "Real-time game tracker for Battle for Washington",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0d0f14",
-  "theme_color": "#0d0f14",
+  "background_color": "#F7F8FA",
+  "theme_color": "#00B66B",
   "orientation": "any",
   "icons": [
     {

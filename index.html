@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#0B2C61">
+<meta name="theme-color" content="#00B66B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Transit Tournament">
@@ -17,44 +17,51 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 
 <style>
+@font-face{
+  font-family:"Departure Mono";
+  src:url("./fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight:400;font-display:swap;
+}
 :root{
   --bg:#F7F8FA;--surface:#FFFFFF;--surface2:#EEF2F7;--border:#E5E7EB;
   --text:#122036;--muted:#5B6B82;--faint:#9AA7B8;
   --navy:#0B2C61;--accent:#1A6DD4;--accent-press:#1257AE;--blue:#1A6DD4;
   --green:#00B66B;--orange:#F0801A;--gold:#F0801A;
   --red:#E23B3B;--silver:#94A3B4;
+  --board:#0B1A33;
   --shadow:0 2px 10px rgba(11,44,97,.06);
   --rl:#E23B3B;--bl:#2563EB;--ol:#EA8A1E;--gl:#15A34A;--sl:#94A3B4;--yl:#F4B400;
-  --header-bg:#0B2C61;--tab-bg:#0B2C61;
-  --r-card:20px;--r-feat:24px;--r-btn:999px;--r-input:14px;--r-chip:999px;
+  --header-bg:#00B66B;--tab-bg:#F7F8FA;
+  --font:'Hanken Grotesk',sans-serif;--font-mono:'DM Mono',monospace;--font-led:'Departure Mono',monospace;
+  --r-card:20px;--r-feat:24px;--r-btn:999px;--r-input:14px;--r-chip:999px;--r-badge:8px;
   font-feature-settings:"tnum" 1;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;font-variant-numeric:tabular-nums;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;font-variant-numeric:tabular-nums;}
 .screen{display:none;}
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
 /* JOIN */
 #screenJoin{align-items:center;justify-content:flex-start;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));background:var(--bg);overflow-y:auto;}
-.join-logo{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--navy);line-height:1.05;margin-bottom:4px;text-align:center;}
+.join-logo{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--navy);line-height:1.05;margin-bottom:4px;text-align:center;}
 .join-logo span{color:var(--green);}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
-.join-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:380px;box-shadow:var(--shadow);}
-.join-card h2{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:16px;text-transform:uppercase;}
+.join-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:24px;width:100%;max-width:380px;box-shadow:none;}
+.join-card h2{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:16px;text-transform:uppercase;}
 .join-divider{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;position:relative;}
 .join-divider::before,.join-divider::after{content:'';position:absolute;top:50%;width:42%;height:2px;background:var(--border);border-radius:1px;}
 .join-divider::before{left:0;}.join-divider::after{right:0;}
-.code-input{font-family:'DM Mono',monospace;font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:var(--r-input);width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
+.code-input{font-family:var(--font-mono);font-size:26px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:14px;border:2px solid var(--border);border-radius:var(--r-input);width:100%;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s;margin-bottom:10px;}
 .code-input:focus{border-color:var(--accent);}
-.hbtn{width:100%;padding:14px 24px;border-radius:var(--r-btn);font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;min-height:52px;}
+.hbtn{width:100%;padding:14px 24px;border-radius:var(--r-btn);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-bottom:8px;min-height:52px;}
 .hbtn.p{background:var(--accent);color:white;box-shadow:0 4px 14px rgba(26,109,212,.30);}
 .hbtn.s{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
 .hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
 
 /* HOST SETUP */
 #screenHostSetup{padding:20px;overflow-y:auto;background:var(--bg);}
-.setup-form{background:var(--surface);border:none;border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:var(--shadow);}
-.setup-form h2{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:18px;line-height:1.15;}
+.setup-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:none;}
+.setup-form h2{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:18px;line-height:1.15;}
 .team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 12px;margin-bottom:7px;}
 .tcd{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .cpp{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:10px;z-index:800;box-shadow:var(--shadow);}
@@ -65,12 +72,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken
 /* LOBBY */
 #screenLobby{background:var(--bg);}
 .lobby-header{display:flex;flex-direction:column;align-items:center;}
-.lobby-code{font-family:'DM Mono',monospace;font-size:30px;font-weight:700;letter-spacing:8px;color:var(--accent);}
+.lobby-code{font-family:var(--font-mono);font-size:30px;font-weight:700;letter-spacing:8px;color:var(--accent);}
 .lobby-code-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
 .lobby-body{padding:16px;flex:1;overflow-y:auto;}
 .lsec{margin-bottom:20px;}
-.lsec h3{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;text-transform:uppercase;}
-.player-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
+.lsec h3{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;text-transform:uppercase;}
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:none;}
 .player-name{font-weight:700;font-size:14px;}
 .team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
@@ -83,72 +90,77 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Hanken
 /* MAIN APP */
 #screenApp{background:var(--bg);}
 header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
-.logo{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.005em;color:white;}
-.logo span{color:var(--green);}
+.logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:white;}
+.logo span{color:white;}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
-.clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--orange);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
-.clock.lunch{color:var(--orange);}.clock.ended{color:var(--muted);}
-.gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);}
+.clock{font-family:var(--font-led);font-size:11px;color:rgba(255,255,255,.9);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
+.clock.lunch{color:rgba(255,255,255,.7);}.clock.ended{color:rgba(255,255,255,.5);}
+.gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:rgba(0,0,0,.15);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.25);}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
-.gpill.live{background:rgba(255,255,255,.95);color:var(--green);border-color:var(--green);}
-.gpill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:livepulse 1.5s ease-in-out infinite;}
-.gpill.lunch{background:rgba(217,119,6,.3);color:#fcd34d;border-color:rgba(252,211,77,.3);}
-.gpill.ended{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
+.gpill.live{background:var(--green);color:white;border-color:rgba(255,255,255,.3);}
+.gpill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:white;margin-right:4px;animation:livepulse 1.5s ease-in-out infinite;}
+.go-arc{display:inline-block;width:14px;height:14px;margin-right:3px;vertical-align:middle;}
+.gpill.lunch{background:rgba(240,128,26,.3);color:white;border-color:rgba(240,128,26,.4);}
+.gpill.ended{background:rgba(0,0,0,.15);color:rgba(255,255,255,.5);}
 .myteam-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:var(--r-chip);color:white;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
 
 /* TABS */
-.tabs{display:flex;background:var(--tab-bg);border-bottom:none;overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
+.tabs{display:flex;background:var(--tab-bg);border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);cursor:pointer;white-space:nowrap;transition:color .15s;position:relative;}
-.tab.active{color:white;}
-.tab.active::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:4px;background:var(--accent);border-radius:2px;}
+.tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .15s;position:relative;}
+.tab.active{color:var(--navy);}
+.tab.active::after{content:'';position:absolute;bottom:-2px;left:8px;right:8px;height:4px;background:var(--accent);border-radius:2px;}
 
 /* PANELS */
 .panel{display:none;padding:20px;}
 .panel.active{display:block;}
+#panel-scores,#panel-zones{padding:20px 0;}
+#panel-scores .stitle,#panel-zones .zone-region-header{padding:0 20px;}
 #panelWrap{position:fixed;left:0;right:0;bottom:0;top:var(--app-top,88px);overflow-y:auto;overflow-x:hidden;overflow-anchor:none;}
 #panel-map{display:none;padding:0;}
 #panel-map.active{display:block;position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;}
 /* MAP */
 #mapWrap{position:absolute;top:90px;left:0;right:0;bottom:0;}
 #mapEl{position:absolute;inset:0;width:100%;height:100%;}
-.card{background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;box-shadow:none;}
 label{display:block;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-input);color:var(--text);padding:12px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:15px;margin-bottom:10px;outline:none;transition:border-color .15s;}
+input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-input);color:var(--text);padding:12px 14px;font-family:var(--font);font-size:15px;margin-bottom:10px;outline:none;transition:border-color .15s;}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26,109,212,.25);}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 24px;border-radius:var(--r-btn);font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;min-height:52px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:14px 24px;border-radius:var(--r-btn);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;min-height:52px;}
 .btn:hover{opacity:.85;transform:translateY(-1px);}.btn:active{transform:scale(.98);}
 .btn-p{background:var(--accent);color:white;box-shadow:0 4px 14px rgba(26,109,212,.30);}.btn-b{background:var(--blue);color:white;}
 .btn-g{background:var(--bg);border:1px solid var(--border);color:var(--text);}
-.btn-gr{background:var(--green);color:white;}
+.btn-gr{background:var(--green);color:white;box-shadow:0 4px 14px rgba(0,182,107,.30);}
 .btn-sm{min-height:40px;border-radius:var(--r-chip);font-size:13px;padding:8px 16px;}.btn-xs{padding:4px 10px;font-size:11px;border-radius:var(--r-chip);}
-.stitle{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;margin-top:32px;text-transform:uppercase;}
+.stitle{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;margin-top:32px;text-transform:uppercase;}
 .stitle:first-child{margin-top:0;}
 .divider{height:2px;background:var(--border);border-radius:1px;margin:24px 0;}
 .empty{text-align:center;color:var(--muted);padding:32px 0;font-size:13px;}
 
 /* STATUS */
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;margin-bottom:14px;}
-.tsc{background:var(--surface);border:none;border-radius:var(--r-card);padding:12px;position:relative;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);min-width:0;}
+.tsc{background:var(--surface);border:none;border-radius:var(--r-card);padding:12px;position:relative;overflow:hidden;cursor:pointer;box-shadow:none;min-width:0;border:1px solid var(--border);}
 .tsc::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;}
 .tsn{font-weight:700;font-size:13px;margin-bottom:4px;}
 .tsl2{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
 .lname{color:var(--text);font-weight:500;}
-.tss{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
-.tst{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.tss{font-family:var(--font-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.tst{font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;}
 .pd{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:ping 2s infinite;}
 .sdd{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
 @keyframes ping{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* SCORES */
-.scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;margin-bottom:16px;}
-.tscc{background:var(--surface);border:none;border-radius:var(--r-card);padding:14px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow);}
-.tsrk{position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:var(--muted);background:var(--surface2);border-radius:var(--r-chip);padding:2px 8px;}
-.tsn2{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px;}
-.bsc{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:56px;letter-spacing:-1px;line-height:1;margin-bottom:2px;font-variant-numeric:tabular-nums;}
-.brkd{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;}
+.scg{display:flex;flex-direction:column;margin-bottom:16px;}
+.tscc{background:var(--navy);color:white;border:none;border-radius:0;padding:14px 20px;text-align:left;position:relative;overflow:hidden;box-shadow:none;display:flex;align-items:center;gap:14px;}
+.tscc+.tscc{border-top:2px solid rgba(255,255,255,.15);}
+.tscc .route-badge{width:30px;height:30px;border-radius:var(--r-badge);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-weight:800;font-size:14px;color:white;flex-shrink:0;}
+.tsrk{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,255,255,.15);border-radius:var(--r-chip);padding:2px 8px;}
+.tsn2{font-size:14px;font-weight:700;color:white;flex:1;min-width:0;}
+.bsc{font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums;color:white;text-align:right;margin-left:auto;}
+.brkd{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
 .btbl{width:100%;border-collapse:collapse;font-size:12px;}
 .btbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);}
 .btbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -158,70 +170,71 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .leaflet-container{background:#F7F8FA !important;}
 .leaflet-interactive:focus{outline:none !important;}
 #zonePopup{position:fixed;z-index:400;background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow);min-width:200px;max-width:260px;pointer-events:auto;}
-#zonePopup h4{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
+#zonePopup h4{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
 #zonePopup .zp-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
 #zonePopup .zp-row{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--surface2);}
 #zonePopup .zp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 #zonePopup .zp-close{position:absolute;top:8px;right:10px;font-size:16px;cursor:pointer;color:var(--muted);}
-.zt{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Hanken Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 9px;box-shadow:var(--shadow);}
+.zt{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;font-weight:600;padding:5px 9px;box-shadow:var(--shadow);}
 .mleg{position:absolute;bottom:14px;left:14px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:var(--r-card);padding:10px 14px;font-size:11px;box-shadow:var(--shadow);pointer-events:none;}
-.mleg h4{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
+.mleg h4{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
 .lr{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
 .ll{width:18px;height:3px;border-radius:2px;}
 .mzl{position:absolute;top:8px;right:8px;z-index:1000;background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:var(--r-card);padding:10px;max-height:calc(100% - 40px);overflow-y:auto;width:165px;box-shadow:var(--shadow);}
-.mzl h4{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
+.mzl h4{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
 .mzr{display:flex;align-items:center;gap:5px;padding:4px 5px;font-size:11px;cursor:pointer;border-radius:5px;transition:background .1s;}
 .mzr:hover{background:var(--surface2);}
 .mzd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.mzc{font-family:'DM Mono',monospace;color:var(--muted);font-size:10px;width:26px;flex-shrink:0;}
+.mzc{font-family:var(--font-mono);color:var(--muted);font-size:10px;width:26px;flex-shrink:0;}
 .mznm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;}
 .loc-pulse{width:16px;height:16px;border-radius:50%;border:2px solid white;animation:locpulse 1.5s infinite;}
 @keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
 
 /* ZONES */
-.zone-region-header{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;text-transform:uppercase;}
-.zone-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
-.zone-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:16px 20px;cursor:pointer;transition:box-shadow .15s;box-shadow:var(--shadow);}
-.zone-card:hover{box-shadow:var(--shadow);}
-.zone-card.controlled{border-left:5px solid;}
+.zone-region-header{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;text-transform:uppercase;}
+.zone-list-grid{display:flex;flex-direction:column;}
+.zone-card{background:var(--border);border:none;border-radius:0;padding:14px 20px;cursor:pointer;transition:opacity .15s;box-shadow:none;color:white;}
+.zone-card+.zone-card{border-top:2px solid rgba(255,255,255,.15);}
+.zone-card:hover{opacity:.9;}
+.zone-card.controlled{border-left:none;}
 .zone-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
-.zone-code{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
-.zone-name-t{font-weight:700;font-size:13px;flex:1;}
-.zone-area{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.zone-code{font-family:var(--font-mono);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+.zone-name-t{font-weight:700;font-size:13px;flex:1;color:white;}
+.zone-area{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--font-mono);}
 .zone-chips{display:flex;gap:5px;flex-wrap:wrap;}
-.chip{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--r-chip);font-size:13px;font-weight:500;white-space:nowrap;font-family:'Hanken Grotesk',sans-serif;background:var(--surface2);border:none;height:30px;}
+.chip{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--r-chip);font-size:13px;font-weight:500;white-space:nowrap;font-family:var(--font);background:rgba(255,255,255,.15);border:none;height:30px;color:white;}
 .chip-dot{width:8px;height:8px;border-radius:50%;}
-.unclaimed{font-size:11px;color:var(--muted);font-style:italic;}
+.unclaimed{font-size:11px;color:var(--text);font-style:italic;opacity:.6;}
 .line-dots{display:flex;gap:3px;margin-top:5px;}
 .line-dot{width:7px;height:7px;border-radius:50%;}
 
 /* SHOP */
-.cc{background:var(--surface);border:none;border-left:4px solid var(--accent);border-radius:var(--r-card);padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);}
+.cc{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-card);padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:none;}
 .cc h4{font-weight:700;font-size:13px;margin-bottom:2px;}
 .cc p{font-size:12px;color:var(--muted);line-height:1.4;}
-.ctmr{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap;font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.ctmr{font-family:var(--font-mono);font-size:13px;color:var(--accent);white-space:nowrap;font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums;}
 .ctmr.exp{color:var(--muted);}
 .cdism{font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
 .addf{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;margin-top:14px;}
-.addf h3{font-family:'Hanken Grotesk',sans-serif;font-weight:500;letter-spacing:.08em;font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;}
+.addf h3{font-family:var(--font);font-weight:500;letter-spacing:.08em;font-size:13px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;}
 .loc-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-input);padding:12px 16px;margin-bottom:10px;font-size:13px;line-height:1.5;}
 .loc-banner b{color:var(--accent);}
 
 /* LOG */
 .le{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
-.lt{font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap;font-size:10px;margin-top:2px;flex-shrink:0;}
+.lt{font-family:var(--font-mono);color:var(--muted);white-space:nowrap;font-size:10px;margin-top:2px;flex-shrink:0;}
 
 /* MODALS */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:700;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);}
 .mo.open{display:flex;}
 .md{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-feat);padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
-.md h2{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
+.md h2{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
 .mdm{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
 .dr{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 11px;margin-bottom:7px;}
 .drl{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px;}
 .dd{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .dr input[type=number]{width:80px;margin:0;text-align:center;}
-.ev{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ev{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
 .mac{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
 
 /* NOTIF */
@@ -234,7 +247,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .toast.warn{background:#92400e;color:white;}
 .toast.ok{background:#065f46;color:white;}
 
-.notif-banner{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--accent);color:white;padding:12px 20px;font-size:13px;font-weight:700;text-align:center;transform:translateY(-100%);transition:transform .3s;box-shadow:var(--shadow);}
+.notif-banner{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--green);color:white;padding:12px 20px;font-size:13px;font-weight:700;text-align:center;transform:translateY(-100%);transition:transform .3s;box-shadow:var(--shadow);}
 .notif-banner.show{transform:translateY(0);}
 
 @media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
@@ -244,12 +257,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 /* ── HOME SCREEN ─────────────────────────────────────────── */
 #screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;}
 .home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
-.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--header-bg);}
+.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--green);}
 .home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
-.home-title{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:44px;letter-spacing:-0.005em;color:white;line-height:1.05;}
+.home-title{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:white;line-height:1.05;}
 .home-tagline{font-size:14px;color:rgba(255,255,255,.7);font-weight:500;letter-spacing:.01em;}
 .home-auth-wrap{padding:0 20px 4px;}
-.home-auth-card{background:var(--surface);border:none;border-radius:var(--r-card);padding:20px 24px;box-shadow:var(--shadow);}
+.home-auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px 24px;box-shadow:none;}
 .home-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-bottom:16px;}
 .hben{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);font-weight:500;pointer-events:none;user-select:none;}
 .hben .hbicon{width:28px;height:28px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
@@ -258,30 +271,30 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .hben.locked{color:var(--muted);}
 .hbadge{margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);background:var(--surface2);border-radius:var(--r-chip);padding:2px 8px;white-space:nowrap;}
 .home-divider{border:none;border-top:2px solid var(--border);border-radius:1px;margin:24px 0;}
-.home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 24px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-btn);min-height:52px;font-family:'Hanken Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
+.home-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 24px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-btn);min-height:52px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;text-decoration:none;}
 .home-google-btn:hover{background:var(--surface2);}
 .home-google-btn svg{width:20px;height:20px;}
-.home-signed-in-pill{display:inline-flex;align-items:center;gap:10px;background:var(--accent);border-radius:999px;padding:7px 16px 7px 7px;color:white;font-size:13px;font-weight:600;}
+.home-signed-in-pill{display:inline-flex;align-items:center;gap:10px;background:var(--green);border-radius:999px;padding:7px 16px 7px 7px;color:white;font-size:13px;font-weight:600;}
 .home-signed-in-pill .hpavatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;}
 .home-signed-in-pill .hpavatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:'Hanken Grotesk',sans-serif;}
-.home-section-label{font-family:'Hanken Grotesk',sans-serif;font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
+.home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:var(--font);}
+.home-section-label{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
 .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px;}
 @media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:36px;}}
-.hgcard{background:var(--surface);border:none;border-radius:var(--r-card);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column;box-shadow:var(--shadow);}
-.hgcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+.hgcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;box-shadow:none;}
+.hgcard:hover{transform:translateY(-3px);}
 .hgcard.coming{cursor:default;}
-.hgcard.coming:hover{transform:none;box-shadow:var(--shadow);}
+.hgcard.coming:hover{transform:none;}
 .hgcard-anim{width:100%;aspect-ratio:3/2;background:#dde8d8;overflow:hidden;}
 .hgcard-anim svg{width:100%;height:100%;display:block;}
 .hgcard-body{padding:20px;flex:1;display:flex;flex-direction:column;gap:6px;}
 .hgcard-titlerow{display:flex;align-items:center;justify-content:space-between;}
-.hgcard-title{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:24px;letter-spacing:0;line-height:1.15;}
+.hgcard-title{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;line-height:1.15;}
 .hgcard.zone-mode .hgcard-title{color:var(--accent);}
 .hgcard.c4-mode   .hgcard-title{color:var(--orange);}
 .hgcard-badge{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--orange);color:var(--navy);border-radius:var(--r-chip);padding:4px 10px;}
 .hgcard-desc{font-size:13px;color:var(--muted);line-height:1.4;}
-.hgcard-cta{margin-top:8px;padding:14px 0;border:none;border-radius:var(--r-btn);font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;min-height:52px;}
+.hgcard-cta{margin-top:8px;padding:14px 0;border:none;border-radius:var(--r-btn);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;color:white;width:100%;transition:background .15s;min-height:52px;}
 .hgcard.zone-mode .hgcard-cta{background:var(--accent);}
 .hgcard.zone-mode .hgcard-cta:hover{background:var(--accent-press);}
 .hgcard.c4-mode   .hgcard-cta{background:var(--surface2);color:var(--muted);cursor:default;}
@@ -480,7 +493,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="text-align:center;margin-top:8px;">
       <span onclick="clearSession()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Clear saved session</span>
     </div>
-    <div id="joinVersion" style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;opacity:.55;"></div>
+    <div id="joinVersion" style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted);font-family:var(--font-mono);opacity:.55;"></div>
   </div>
 </div>
 
@@ -633,7 +646,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <div class="screen" id="screenWaiting" style="flex-direction:column;background:var(--bg);overflow:hidden;">
   <!-- Header -->
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">Transit <span style="color:var(--accent);">Tournament</span></div>
+    <div style="font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">Transit <span style="color:var(--accent);">Tournament</span></div>
     <div id="preGameTeamBadge" style="display:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;color:white;"></div>
   </div>
   <!-- Tabs -->
@@ -648,8 +661,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <!-- Info panel -->
     <div id="prePanel-info" style="padding:20px;">
       <div style="text-align:center;margin-bottom:20px;">
-        <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;" id="preGameStatus">GAME STARTS IN</div>
-        <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
+        <div style="font-family:var(--font);font-weight:800;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;" id="preGameStatus">GAME STARTS IN</div>
+        <div style="font-family:var(--font);font-weight:800;font-size:72px;letter-spacing:4px;color:var(--accent);line-height:1;" id="preGameCountdown">--:--</div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px;" id="preGameStartTime"></div>
       </div>
       <div id="preTeamCard" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;margin-bottom:14px;display:none;">
@@ -722,13 +735,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div>
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Game Code</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span id="statusGameCode" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">—</span>
+          <span id="statusGameCode" style="font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:2px;color:var(--text);">—</span>
           <button class="btn btn-g btn-sm" style="padding:2px 8px;font-size:11px;" onclick="copyStatusCode()">Copy</button>
         </div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;" id="phaseLabel">Phase</div>
-        <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--text);" id="phaseCountdown">—</div>
+        <div style="font-family:var(--font-led);font-size:14px;font-weight:400;color:var(--green);background:var(--board);padding:4px 10px;border-radius:6px;display:inline-block;" id="phaseCountdown">—</div>
       </div>
     </div>
     <div id="myTeamHero" style="display:none;"></div>
@@ -767,7 +780,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
 
   <div class="panel" id="panel-zones">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 16px;margin-bottom:14px;">
       <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Your GPS determines which zone you're in. Move into a zone, tap Deposit, and spend coins to take control. The team with the most coins deposited in a zone controls it.</div>
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">💰 Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
@@ -785,11 +798,11 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div>
         <div class="stitle" style="margin:0">The Flop</div>
-        <div id="flopTimer" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;"></div>
+        <div id="flopTimer" style="font-size:11px;color:var(--green);font-family:var(--font-led);margin-top:4px;background:var(--board);padding:4px 10px;border-radius:6px;display:inline-block;"></div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Your coins</div>
-        <div id="myCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0</div>
+        <div id="myCoinBadge" style="font-family:var(--font);font-weight:800;font-size:28px;color:var(--gold);">0</div>
       </div>
     </div>
     <div style="background:var(--surface2);border-radius:14px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.5;">
@@ -801,9 +814,9 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
   <!-- VOTE MODAL (full screen) -->
   <div id="voteScreen" style="display:none;position:fixed;inset:0;z-index:900;background:var(--surface);flex-direction:column;">
-    <div style="background:var(--text);color:white;padding:16px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;">TEAM VOTE REQUIRED</div>
-      <div id="voteCoins" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:24px;color:var(--gold);"></div>
+    <div style="background:var(--board);color:white;padding:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:var(--font-led);font-weight:400;font-size:22px;letter-spacing:1.5px;color:var(--green);">VOTE REQUIRED</div>
+      <div id="voteCoins" style="font-family:var(--font-led);font-weight:400;font-size:22px;color:var(--orange);"></div>
     </div>
     <div style="padding:16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
       <div style="background:var(--surface2);border-radius:20px;padding:12px;font-size:13px;font-weight:600;" id="voteChallenge"></div>
@@ -813,7 +826,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div id="voteStatus" style="font-size:12px;color:var(--muted);text-align:center;padding:8px;"></div>
       <div id="voteRejectReason" style="display:none;margin-bottom:8px;">
         <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Reason for rejection (optional — shown in the log)</label>
-        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:14px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'Hanken Grotesk',sans-serif;margin-top:4px;margin-bottom:0;"></textarea>
+        <textarea id="voteRejectText" placeholder="e.g. Photo doesn't clearly show the task…" style="width:100%;height:60px;resize:none;font-size:12px;padding:8px;border-radius:14px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--font);margin-top:4px;margin-bottom:0;"></textarea>
       </div>
       <div id="voteButtons" style="display:flex;gap:10px;">
         <button class="btn" style="flex:1;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:16px;padding:16px;" onclick="castVote(true)">✓ Yes, accomplished</button>
@@ -871,7 +884,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     </div>
     <div style="background:var(--surface2);border-radius:20px;padding:14px;margin-bottom:12px;text-align:center;">
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Available coins</div>
-      <div id="dmCoinBalance" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;color:var(--gold);">0 🪙</div>
+      <div id="dmCoinBalance" style="font-family:var(--font);font-weight:800;font-size:36px;color:var(--gold);">0 🪙</div>
     </div>
     <label>Coins to deposit</label>
     <input type="number" id="dmCoinAmount" min="1" max="999" placeholder="Enter amount" style="font-size:18px;text-align:center;" oninput="updateDepSummary()">
@@ -914,14 +927,14 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <!-- ZONE CHALLENGE OVERLAY -->
 <div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;overflow-y:auto;color:white;text-align:center;padding:24px;">
   <div style="font-size:48px;margin-bottom:8px;">⚔️</div>
-  <div id="challengeTitle" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
+  <div id="challengeTitle" style="font-family:var(--font);font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
   <div id="challengeSubtitle" style="font-size:13px;opacity:.7;margin-bottom:16px;"></div>
   <!-- Pending phase: challenger waiting / defender accept-decline -->
   <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chPendingChallenger" style="display:none;">
       <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px;margin-bottom:12px;">
         <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
-        <div id="chPendingTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
+        <div id="chPendingTimer" style="font-family:var(--font);font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
       </div>
       <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
@@ -929,7 +942,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:16px;margin-bottom:12px;">
         <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
         <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
-        <div id="chDefenderTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
+        <div id="chDefenderTimer" style="font-family:var(--font);font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
         <div style="display:flex;gap:10px;">
           <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
           <button class="btn" style="flex:1;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
@@ -942,7 +955,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
     <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:12px;margin-bottom:12px;">
       <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
-      <div id="chActiveTimer" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
+      <div id="chActiveTimer" style="font-family:var(--font);font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
     <div id="chActiveSubmitSection">
       <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
@@ -955,7 +968,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
   <!-- Voting phase -->
   <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
+    <div style="font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
     <div id="chVoteContent" style="margin-bottom:12px;">
       <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:20px;background:rgba(255,255,255,.08);margin-bottom:10px;">
       <div id="chVoteNoPhoto" style="display:none;background:rgba(255,255,255,.08);border-radius:20px;padding:20px;margin-bottom:10px;font-size:13px;opacity:.7;">No photo submitted by opponent.</div>
@@ -974,7 +987,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <!-- Result phase -->
   <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
-    <div id="chResultTitle" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
+    <div id="chResultTitle" style="font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
     <div id="chResultDetail" style="font-size:13px;opacity:.8;margin-bottom:20px;line-height:1.6;"></div>
     <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
   </div>
@@ -984,11 +997,11 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <!-- LUNCH OVERLAY -->
 <div id="lunchOverlay" style="display:none;position:fixed;inset:0;z-index:950;background:linear-gradient(135deg,#1a1d2e 0%,#2d3561 100%);flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:32px;">
   <div style="font-size:56px;margin-bottom:16px;">🍽️</div>
-  <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:8px;">LUNCH BREAK</div>
+  <div style="font-family:var(--font);font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:8px;">LUNCH BREAK</div>
   <div style="font-size:14px;opacity:.7;margin-bottom:24px;">All game activity is paused. Enjoy your break!</div>
   <div style="background:rgba(255,255,255,.1);border-radius:16px;padding:20px 32px;margin-bottom:24px;">
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Resuming in</div>
-    <div id="lunchCountdown" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:52px;letter-spacing:4px;">00:00</div>
+    <div id="lunchCountdown" style="font-family:var(--font);font-weight:800;font-size:52px;letter-spacing:4px;">00:00</div>
   </div>
   <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
     <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Current Standings</div>
@@ -1006,8 +1019,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <!-- LUNCH CHAT PANEL (slides over lunch overlay) -->
 <div id="lunchChatPanel" style="display:none;position:fixed;inset:0;z-index:955;background:var(--surface);flex-direction:column;">
   <div style="background:var(--text);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
-    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:14px;padding:6px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:13px;cursor:pointer;">← Back to Lunch</button>
+    <div style="font-family:var(--font);font-weight:800;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
+    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:14px;padding:6px 14px;font-family:var(--font);font-size:13px;cursor:pointer;">← Back to Lunch</button>
   </div>
   <div id="lunchChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;"></div>
   <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
@@ -1039,9 +1052,9 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 </div>
 
   <div class="panel" id="panel-shop">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:13px;font-weight:600;color:var(--text);">Your coins</div>
-      <div id="shopCoinBadge" style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);">0 🪙</div>
+      <div id="shopCoinBadge" style="font-family:var(--font);font-weight:800;font-size:28px;color:var(--gold);">0 🪙</div>
     </div>
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#92400e;line-height:1.5;">
       ⚠️ <b>Shop items are permanent and affect other teams.</b> Use them wisely — coins spent cannot be recovered.
@@ -1119,10 +1132,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <!-- CURSE ALERT (full-screen takeover) -->
 <div id="curseAlertScreen" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(230,57,70,.97);color:white;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
   <div style="font-size:64px;margin-bottom:16px;" id="curseAlertIcon">⚠️</div>
-  <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
+  <div style="font-family:var(--font);font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:12px;line-height:1.1;" id="curseAlertTitle">CURSE ACTIVATED</div>
   <div style="font-size:18px;font-weight:700;margin-bottom:8px;" id="curseAlertItem"></div>
   <div style="font-size:15px;opacity:.85;margin-bottom:40px;line-height:1.6;max-width:320px;" id="curseAlertBody"></div>
-  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:20px;padding:16px 40px;font-family:'Hanken Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);">I UNDERSTAND — DISMISS</button>
+  <button onclick="dismissCurseAlert()" style="background:white;color:var(--accent);border:none;border-radius:20px;padding:16px 40px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);">I UNDERSTAND — DISMISS</button>
 </div>
 
 <!-- END GAME CONFIRM -->
@@ -1160,7 +1173,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <div class="screen" id="screenMapBuilder" style="background:var(--bg);">
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
     <button onclick="showScreen('screenJoin')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;">&#x2190;</button>
-    <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
+    <div style="font-family:var(--font);font-weight:800;font-size:20px;letter-spacing:2px;">Map <span style="color:var(--accent);">Builder</span></div>
     <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
   </div>
 
@@ -1736,11 +1749,11 @@ function renderLandmark(container){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">🗺️ Featured Landmark</div>
-          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
+          <div style="font-family:var(--font);font-weight:800;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px;">${esc(lm.hint)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
+          <div style="font-family:var(--font);font-weight:800;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
           <div style="font-size:13px;color:var(--muted);">coins</div>
         </div>
       </div>
@@ -1764,8 +1777,8 @@ function renderFlop(){
   if(timerEl&&G.lastFlopActivity&&G.config?.flopRefreshEnabled){
     const remaining=Math.max(0,getFlopInactivityMs()-(Date.now()-G.lastFlopActivity));
     const mins=Math.floor(remaining/60000),secs=Math.floor((remaining%60000)/1000);
-    if(remaining<5*60000){timerEl.textContent='⚠️ Flop refreshes in '+mins+':'+String(secs).padStart(2,'0');timerEl.style.color='var(--accent)';}
-    else{timerEl.textContent='Refreshes in '+mins+'m';timerEl.style.color='var(--muted)';}
+    if(remaining<5*60000){timerEl.innerHTML='<svg class="go-arc" viewBox="0 0 14 14"><path d="M7 1a6 6 0 110 12" fill="none" stroke="#00B66B" stroke-width="2" stroke-linecap="round"/><path d="M7 3.5a3.5 3.5 0 110 7" fill="none" stroke="#00B66B" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>'+mins+':'+String(secs).padStart(2,'0');timerEl.style.color='#00B66B';}
+    else{timerEl.textContent='REFRESH '+mins+'m';timerEl.style.color='rgba(255,255,255,.6)';}
   }
   if(!G.flop||!G.flop.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">No challenges loaded yet</div>';return;}
   const flopHtml=[];
@@ -3010,7 +3023,7 @@ function renderLunchChat(){
   if(!G.chat||!G.chat.length){el.innerHTML='<div class="empty" style="padding:16px 0">No messages yet</div>';return;}
   el.innerHTML=G.chat.map(m=>{
     if(m.type==='system'){
-      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);text-align:center;max-width:90%;"><span style="font-family:DM Mono,monospace;font-size:10px;margin-right:4px;">'+m.time+'</span>'+m.text+'</div></div>';
+      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);text-align:center;max-width:90%;"><span style="font-family:var(--font-mono);font-size:10px;margin-right:4px;">'+m.time+'</span>'+m.text+'</div></div>';
     }
     const isMe=m.playerName===LS.playerName&&m.teamIdx===LS.myTeamIdx;
     return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'
@@ -3196,15 +3209,15 @@ function renderStatus(){
       const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
       const sc2=(()=>{const sc=computeScores();return sc[LS.myTeamIdx]||{zones:0,bonuses:0};})();
       hero.style.display='block';
-      hero.innerHTML=`<div style="background:${mt.color}18;border:2px solid ${mt.color};border-radius:20px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${mt.color};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;">${esc(mt.name[0])}</div>
+      hero.innerHTML=`<div style="background:${mt.color};border:none;border-radius:0;padding:14px 20px;margin:0 -20px 14px;display:flex;align-items:center;gap:14px;color:white;">
+        <div style="width:36px;height:36px;border-radius:var(--r-badge);background:rgba(0,0,0,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;">${esc(mt.name[0])}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:1px;">Your Team</div>
-          <div style="font-weight:700;font-size:16px;color:${mt.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(mt.name)}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.7);margin-bottom:1px;">Your Team</div>
+          <div style="font-weight:700;font-size:16px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(mt.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:26px;color:var(--gold);line-height:1;">${myCoins} 🪙</div>
-          <div style="font-size:10px;color:var(--muted);">${sc2.zones+sc2.bonuses} pts</div>
+          <div style="font-family:var(--font);font-weight:800;font-size:26px;color:white;line-height:1;">${myCoins} 🪙</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.7);">${sc2.zones+sc2.bonuses} pts</div>
         </div>
       </div>`;
     } else {
@@ -3219,19 +3232,19 @@ function renderStatus(){
     const isMine=LS.myTeamIdx===i,sc2=sc[i];
     const card=document.createElement('div');card.className='tsc';
     card.onclick=()=>{if(LS.isHost||isMine)openLocMo(i);};
-    card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:5px;background:${team.color};border-radius:20px 20px 0 0"></div>
-      <div class="tsn" style="color:${team.color}">${esc(team.name)}</div>
+    card.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="width:30px;height:30px;border-radius:var(--r-badge);background:${team.color};display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;flex-shrink:0;">${esc(team.name[0])}</div>
+      <div class="tsn" style="color:${team.color}">${esc(team.name)}</div></div>
       <div class="tsl2"><div class="${stale?'sdd':'pd'}"></div>${zone?`<span class="lname">${zone.code} — ${zone.name}</span>`:'<span style="color:var(--muted)">Unknown</span>'}</div>
       ${loc&&loc.notes?`<div style="font-size:11px;color:var(--muted);margin-bottom:3px">${esc(loc.notes)}</div>`:''}
       <div class="tst">${mins===null?'No check-in':mins===0?'Just now':`${mins}m ago`}</div>
-      ${hasGps?`<div style="font-size:10px;color:var(--green);margin-top:3px">📡 GPS active</div>`:''}
+      ${hasGps?`<div style="font-size:10px;color:var(--green);margin-top:3px"><svg class="go-arc" viewBox="0 0 14 14" style="width:12px;height:12px"><path d="M7 1a6 6 0 110 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> GPS active</div>`:''}
       <div class="tss" style="margin-top:6px">${sc2.zones+sc2.bonuses} pts (${sc2.zones}z+${sc2.bonuses}b)</div>
       ${isMine?`<div style="font-size:10px;color:var(--blue);margin-top:4px;font-weight:700">Your team · tap to update</div>`:''}`;
     g.appendChild(card);
   });
   // Version footer — use fixed id so it never duplicates
   let vf=document.getElementById('statusVersion');
-  if(!vf){vf=document.createElement('div');vf.id='statusVersion';vf.style.cssText='text-align:center;font-size:10px;color:var(--muted);margin-top:16px;font-family:\'DM Mono\',monospace;';g.parentElement.appendChild(vf);}
+  if(!vf){vf=document.createElement('div');vf.id='statusVersion';vf.style.cssText='text-align:center;font-size:10px;color:var(--muted);margin-top:16px;font-family:var(--font-mono);';g.parentElement.appendChild(vf);}
   vf.textContent='v'+APP_VERSION;
 }
 let locTI=null;
@@ -3287,7 +3300,7 @@ function computeScores(){
 function renderScores(){
   const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses),rk=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t),ro={};rk.forEach((r,p)=>ro[r.i]=p+1);
   const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
-  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.innerHTML=`<div style="position:absolute;top:0;left:0;right:0;height:5px;background:${team.color};border-radius:20px 20px 0 0"></div><div class="tsrk">#${ro[i]}</div><div class="tsn2">${esc(team.name)}</div><div class="bsc" style="color:${team.color}">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div>`;g.appendChild(card);});
+  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.style.background=team.color;card.innerHTML=`<div class="route-badge" style="background:rgba(0,0,0,.2)">${esc(team.name[0])}</div><div class="tsn2">${esc(team.name)}</div><div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:auto;"><div class="bsc">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div></div><div class="tsrk">#${ro[i]}</div>`;g.appendChild(card);});
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
   // Momentum bonus display
   const scoreTime2=_parseTimeToMs(G.config?.score||'18:00');
@@ -3391,7 +3404,7 @@ function initMap(){
   getZones().forEach(z=>{
     const poly=L.polygon(z.poly,{fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,interactive:true});
     const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]),clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
-    L.marker([clat,clng],{icon:L.divIcon({className:'',html:`<div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:rgba(30,40,80,.55);text-shadow:0 1px 2px rgba(255,255,255,.9);pointer-events:none;white-space:nowrap">${z.code}</div>`,iconAnchor:[14,8]}),interactive:false}).addTo(bfwMap);
+    L.marker([clat,clng],{icon:L.divIcon({className:'',html:`<div style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:rgba(30,40,80,.55);text-shadow:0 1px 2px rgba(255,255,255,.9);pointer-events:none;white-space:nowrap">${z.code}</div>`,iconAnchor:[14,8]}),interactive:false}).addTo(bfwMap);
     poly.on('click',(e)=>{
       const deps=G.zones&&G.zones[z.code]||{};
       const leader=getL(deps);
@@ -3483,11 +3496,12 @@ function renderZones(){
     zones.filter(z=>(z.region||'GAME')===region).forEach(z=>{
       const deps=G.zones&&G.zones[z.code]||{},leader=getL(deps);
       const card=document.createElement('div');card.className='zone-card'+(leader>=0?' controlled':'');
-      if(leader>=0&&G.teams[leader])card.style.borderLeftColor=G.teams[leader].color;
+      if(leader>=0&&G.teams[leader]){card.style.background=G.teams[leader].color;}else{card.style.background='var(--border);';card.style.color='var(--text)';}
       card.onclick=()=>openZoneInfo(z.code);
-      const chips=G.teams.map((t,i)=>{const v=deps[i]||0;if(!v)return '';return `<div class="chip"><div class="chip-dot" style="background:${t.color}"></div>${v}</div>`;}).join('');
-      const lineDots=z.lines.map(l=>`<div class="line-dot" style="background:${LCOLORS[l]}" title="${l}"></div>`).join('');
-      card.innerHTML=`<div class="zone-top"><span class="zone-code">${z.code}</span><span class="zone-name-t">${z.name}</span><span class="zone-area">${z.area} mi²</span></div><div class="zone-chips">${chips||'<span class="unclaimed">unclaimed</span>'}</div>${lineDots?`<div class="line-dots">${lineDots}</div>`:''}`;
+      const totalCoins=Object.values(deps).reduce((s,v)=>s+(parseInt(v)||0),0);
+      const badgeLetter=leader>=0&&G.teams[leader]?G.teams[leader].name[0]:'?';
+      const badgeBg=leader>=0?'rgba(0,0,0,.2)':'rgba(0,0,0,.1)';
+      card.innerHTML=`<div style="display:flex;align-items:center;gap:12px;"><div style="width:30px;height:30px;border-radius:var(--r-badge);background:${badgeBg};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;flex-shrink:0;">${esc(badgeLetter)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span class="zone-code">${z.code}</span><span class="zone-name-t">${z.name}</span></div></div><div style="text-align:right;"><div style="font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;color:white;">${totalCoins||'–'}</div><div style="font-size:10px;color:rgba(255,255,255,.6);">${z.area} mi²</div></div></div>`;
       grid.appendChild(card);
     });
     con.appendChild(grid);
@@ -3657,7 +3671,7 @@ function openZoneInfo(code){
       html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border)${isLeader?';border-left:3px solid '+t.color:''}">
         <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
         <div style="flex:1;font-weight:600;font-size:13px;color:${t.color}">${esc(t.name)}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:13px;">${v} 🪙</div>
+        <div style="font-family:var(--font-mono);font-size:13px;">${v} 🪙</div>
         ${isLeader?'<div style="font-size:10px;font-weight:700;color:'+t.color+'">LEADS</div>':''}
       </div>`;
     });
@@ -3827,7 +3841,7 @@ function initiateZoneChallenge(){
   const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
   const defName=G.teams[leader]?.name||'?';
   const html='<div style="text-align:center;padding:16px;"><div style="font-size:36px;margin-bottom:8px;">⚔️</div>'+
-    '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
+    '<div style="font-family:var(--font);font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
     '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Challenge <b>'+esc(defName)+'</b> for zone <b>'+zone+'</b></div>'+
     '<div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Wager (coins)</label>'+
     '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:14px;font-size:16px;text-align:center;"></div>'+
@@ -4516,8 +4530,8 @@ function showFinalScores(){
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+(pos===0?'#fef9c3':pos===1?'#f1f5f9':pos===2?'#fdf4ff':'var(--surface2)')+';border-radius:20px;margin-bottom:8px;border:1px solid var(--border);">'+
       '<div style="font-size:24px;width:32px;text-align:center">'+(medals[pos]||(pos+1))+'</div>'+
       '<div style="flex:1"><div style="font-weight:700;font-size:15px;color:'+team.color+'">'+esc(team.name)+'</div>'+
-      '<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;">'+s.zones+' zones · '+s.bonuses+' bonus pts · '+teamCoins+' coins left</div></div>'+
-      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:36px;color:'+team.color+'">'+r.t+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">'+s.zones+' zones · '+s.bonuses+' bonus pts · '+teamCoins+' coins left</div></div>'+
+      '<div style="font-family:var(--font);font-size:36px;color:'+team.color+'">'+r.t+'</div>'+
       '</div>';
   }).join('');
   document.getElementById('finalScoresMo').style.display='';
@@ -4563,7 +4577,7 @@ function renderChat(){
   if(!G.chat||!G.chat.length){el.innerHTML='<div class="empty" style="padding:16px 0">No messages yet</div>';return;}
   el.innerHTML=G.chat.map(m=>{
     if(m.type==='system'){
-      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);text-align:center;max-width:90%;"><span style="font-family:\'DM Mono\',monospace;font-size:10px;margin-right:4px;">'+m.time+'</span>'+m.text+'</div></div>';
+      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);text-align:center;max-width:90%;"><span style="font-family:var(--font-mono);font-size:10px;margin-right:4px;">'+m.time+'</span>'+m.text+'</div></div>';
     }
     const isMe=m.playerName===LS.playerName&&m.teamIdx===LS.myTeamIdx;
     const hasImg=m.img;
