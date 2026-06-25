@@ -36,6 +36,10 @@
 .mc-stat{color:var(--muted);display:flex;align-items:center;gap:3px;}
 .mc-stat svg{width:12px;height:12px;}
 .mb-draft-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;}
+.mb-modebar{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.mb-modebtn{flex:1;padding:9px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.mb-modebtn.active{background:var(--accent);color:#fff;}
+.mb-modebtn .mb-modecount{font-family:var(--font-mono);font-size:10px;opacity:.7;}
 .mb-draft-card .draft-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:4px;}
 
 :root{
@@ -1198,11 +1202,9 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <!-- Step indicator -->
   <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
     <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
-    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
-    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Land.</div>
-    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
-    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Shop</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">6. Publish</div>
+    <div class="mb-step" id="mbStep-build" onclick="mbGotoStep('build')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Build</div>
+    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Shop</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Publish</div>
   </div>
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow:hidden;" id="mbPanelWrap">
@@ -1250,83 +1252,81 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           <option value="mixed">Mixed</option>
           <option value="bike">Bikes &amp; Scooters</option>
         </select>
-        <button class="btn btn-p" style="width:100%;margin-top:12px;" onclick="mbGotoStep('zones')">Next: Draw Zones &#x2192;</button>
+        <button class="btn btn-p" style="width:100%;margin-top:12px;" onclick="mbGotoStep('build')">Next: Build the Map &#x2192;</button>
       </div>
     </div>
 
-    <!-- Step 2: Zones -->
-    <div id="mbPanel-zones" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
+    <!-- Step 2: Build (single canvas: zones + landmarks + transit) -->
+    <div id="mbPanel-build" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
-        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);"></div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
-          <button class="btn btn-g btn-xs" id="mbImportBdyBtn" onclick="mbOpenBoundaryImport()" style="font-size:10px;">Import Boundaries</button>
-          <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
-          <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
+        <div class="mb-modebar">
+          <button class="mb-modebtn active" id="mbMode-zones" onclick="mbSetMode('zones')">Zones <span class="mb-modecount" id="mbZoneCount">0</span></button>
+          <button class="mb-modebtn" id="mbMode-landmarks" onclick="mbSetMode('landmarks')">Landmarks <span class="mb-modecount" id="mbLmCount">0</span></button>
+          <button class="mb-modebtn" id="mbMode-transit" onclick="mbSetMode('transit')">Transit <span class="mb-modecount" id="mbLineCount">0</span></button>
         </div>
-        <div id="mbZoneGuidance" style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Aim for 12–20 zones. Keep them roughly equal in size (0.1–0.5 sq mi). Use natural boundaries like streets or rivers.</div>
-      </div>
-      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
-      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
-      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('landmarks')">Next: Add Landmarks &#x2192;</button>
-      </div>
-    </div>
 
-    <!-- Step 3: Landmarks -->
-    <div id="mbPanel-landmarks" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark. These become Featured Landmarks that teams race to find.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
-          <button class="btn btn-g btn-xs" onclick="mbDiscoverLandmarks()">&#x2728; Discover POIs</button>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
+        <!-- ZONES controls -->
+        <div id="mbModeRow-zones" style="margin-top:8px;">
+          <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
+          <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);"></div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
+            <button class="btn btn-g btn-xs" id="mbImportBdyBtn" onclick="mbOpenBoundaryImport()" style="font-size:10px;">Import Boundaries</button>
+            <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
+            <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
+          </div>
+          <div id="mbZoneGuidance" style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Aim for 12&#x2013;20 zones. Keep them roughly equal in size (0.1&#x2013;0.5 sq mi). Use natural boundaries like streets or rivers.</div>
         </div>
-        <div id="mbLmSuggestions" style="display:none;margin-top:6px;max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);"></div>
-        <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Place 1–2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
-      </div>
-      <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
-      <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
-        <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('transit')">Next: Add Transit &#x2192;</button>
-      </div>
-    </div>
 
-    <!-- Step 4: Transit -->
-    <div id="mbPanel-transit" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines manually or import real-world routes from OpenStreetMap.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
-          <button class="btn btn-g btn-xs" onclick="mbImportTransit()">&#x1F687; Import Routes</button>
-          <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
-          <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
+        <!-- LANDMARKS controls -->
+        <div id="mbModeRow-landmarks" style="margin-top:8px;display:none;">
+          <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap + Place Landmark then tap the map, or discover real points of interest in your zones.</div>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
+            <button class="btn btn-g btn-xs" onclick="mbDiscoverLandmarks()">&#x2728; Discover POIs</button>
+          </div>
+          <div id="mbLmSuggestions" style="display:none;margin-top:6px;max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);"></div>
+          <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Place 1&#x2013;2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
         </div>
-        <div id="mbTransitImport" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden;">
-          <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
-            <div style="font-size:11px;font-weight:700;margin-bottom:6px;">Select transit types to import:</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;" id="mbTransitTypes">
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="subway" style="width:14px;height:14px;">&#x1F687; Subway</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="light_rail" style="width:14px;height:14px;">&#x1F688; Light Rail</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="tram" style="width:14px;height:14px;">&#x1F68B; Streetcar</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="bus" style="width:14px;height:14px;">&#x1F68C; Bus</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="monorail" style="width:14px;height:14px;">&#x1F69D; Monorail</label>
-              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="ferry" style="width:14px;height:14px;">&#x26F4;&#xFE0F; Ferry</label>
+
+        <!-- TRANSIT controls -->
+        <div id="mbModeRow-transit" style="margin-top:8px;display:none;">
+          <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines manually or import real-world routes from OpenStreetMap.</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
+            <button class="btn btn-g btn-xs" onclick="mbImportTransit()">&#x1F687; Import Routes</button>
+            <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
+            <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
+          </div>
+          <div id="mbTransitImport" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden;">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
+              <div style="font-size:11px;font-weight:700;margin-bottom:6px;">Select transit types to import:</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;" id="mbTransitTypes">
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="subway" style="width:14px;height:14px;">&#x1F687; Subway</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="light_rail" style="width:14px;height:14px;">&#x1F688; Light Rail</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="tram" style="width:14px;height:14px;">&#x1F68B; Streetcar</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="bus" style="width:14px;height:14px;">&#x1F68C; Bus</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="monorail" style="width:14px;height:14px;">&#x1F69D; Monorail</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="ferry" style="width:14px;height:14px;">&#x26F4;&#xFE0F; Ferry</label>
+              </div>
             </div>
+            <div style="padding:6px 10px;display:flex;gap:6px;align-items:center;">
+              <button class="btn btn-p btn-xs" onclick="mbDoTransitImport()">Search &amp; Import</button>
+              <button class="btn btn-g btn-xs" onclick="document.getElementById('mbTransitImport').style.display='none';">Cancel</button>
+              <span style="font-size:10px;color:var(--muted);margin-left:auto;" id="mbTransitStatus"></span>
+            </div>
+            <div id="mbTransitResults" style="display:none;max-height:180px;overflow-y:auto;border-top:1px solid var(--border);"></div>
           </div>
-          <div style="padding:6px 10px;display:flex;gap:6px;align-items:center;">
-            <button class="btn btn-p btn-xs" onclick="mbDoTransitImport()">Search &amp; Import</button>
-            <button class="btn btn-g btn-xs" onclick="document.getElementById('mbTransitImport').style.display='none';">Cancel</button>
-            <span style="font-size:10px;color:var(--muted);margin-left:auto;" id="mbTransitStatus"></span>
-          </div>
-          <div id="mbTransitResults" style="display:none;max-height:180px;overflow-y:auto;border-top:1px solid var(--border);"></div>
+          <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
         </div>
-        <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
       </div>
-      <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
-      <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
+
+      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
+
+      <!-- contextual chip lists (zones / transit) -->
+      <div id="mbZoneList" style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;"></div>
+      <div id="mbLineList" style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:none;gap:6px;overflow-x:auto;"></div>
+
       <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
         <button class="btn btn-p" style="width:100%;" onclick="mbGotoStep('shop')">Next: Configure Shop &#x2192;</button>
       </div>
@@ -5388,9 +5388,9 @@ function _mbNewMap(){
   document.getElementById('mbCityResults').innerHTML='';
   document.getElementById('mbZoneList').innerHTML='';
   document.getElementById('mbLineList').innerHTML='';
-  document.getElementById('mbZoneCount').textContent='0 zones';
-  document.getElementById('mbLmCount').textContent='0 landmarks';
-  document.getElementById('mbLineCount').textContent='0 lines';
+  document.getElementById('mbZoneCount').textContent='0';
+  document.getElementById('mbLmCount').textContent='0';
+  document.getElementById('mbLineCount').textContent='0';
   mbGotoStep('meta');
 }
 
@@ -5542,12 +5542,13 @@ let _mbCurrentLineStops = [];
 let _mbCurrentLineLayer = null;
 let _mbPendingLineStops = [];
 let _mbMapZones = null, _mbMapLm = null, _mbMapTransit = null;
+let _mbMode = 'zones'; // active layer in the unified build canvas
 let _mbShopConfig = null; // [{id, enabled, cost}] — null means use defaults
 
 // ── Library screen ────────────────────────────────────────────────
 function _mbShowLibrary(){
   // Hide all step panels, show library
-  ['meta','zones','landmarks','transit','shop','review'].forEach(s=>{
+  ['meta','build','shop','review'].forEach(s=>{
     const p=document.getElementById('mbPanel-'+s); if(p)p.style.display='none';
   });
   const lib = document.getElementById('mbPanel-library');
@@ -5687,7 +5688,7 @@ function _mbStartBuilder(){
   document.getElementById('mbPanel-library').style.display='none';
   _mbUpdateZoneCount();
   const lmEl=document.getElementById('mbLmCount');
-  if(lmEl) lmEl.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+  if(lmEl) lmEl.textContent=_mbLandmarks.length;
   mbGotoStep('meta');
 }
 
@@ -5743,10 +5744,10 @@ async function _mbUnpublishMap(id){
 // ── Step navigation ───────────────────────────────────────────────
 function mbGotoStep(step){
   _mbStep = step;
-  ['meta','zones','landmarks','transit','shop','review'].forEach(s=>{
+  ['meta','build','shop','review'].forEach(s=>{
     const panel = document.getElementById('mbPanel-'+s);
     const stepBtn = document.getElementById('mbStep-'+s);
-    if(panel) panel.style.display = s===step?(s==='zones'||s==='landmarks'||s==='transit'?'flex':'block'):'none';
+    if(panel) panel.style.display = s===step?(s==='build'?'flex':'block'):'none';
     if(stepBtn){
       stepBtn.style.borderBottomColor = s===step?'var(--accent)':'transparent';
       stepBtn.style.color = s===step?'var(--text)':'var(--muted)';
@@ -5754,9 +5755,7 @@ function mbGotoStep(step){
   });
   const pub = document.getElementById('mbPublishBtn');
   if(pub) pub.style.display = step==='review'?'block':'none';
-  if(step==='zones') _initMbMapZones();
-  if(step==='landmarks') _initMbMapLm();
-  if(step==='transit') _initMbMapTransit();
+  if(step==='build') _mbInitBuildMap();
   if(step==='shop') _renderMbShopConfig();
   if(step==='review') _renderMbReview();
   // Auto-save draft on every step transition
@@ -5824,56 +5823,81 @@ function _mbMakeMap(elId, existingZones){
   return m;
 }
 
-function _initMbMapZones(){
-  // Destroy any stale map instance first
-  if(_mbMapZones){ try{_mbMapZones.remove();}catch(e){} _mbMapZones=null; }
-  // Clear polyLayer refs so zones re-draw on the new map
+// ── Unified build canvas: one map holds zones + landmarks + transit ──
+// All three map references point to the SAME Leaflet instance so the
+// existing per-layer draw/edit logic works unchanged.
+function _mbInitBuildMap(){
+  // Tear down any stale instance
+  if(_mbMapZones){ try{_mbMapZones.remove();}catch(e){} }
+  _mbMapZones = _mbMapLm = _mbMapTransit = null;
   _mbZones.forEach(z=>{ z.polyLayer=null; z.labelMarker=null; });
-  // Yield to browser layout engine before creating Leaflet map,
-  // so the container has real pixel dimensions
-  setTimeout(()=>{
-    _mbMapZones = _mbMakeMap('mbMapEl', null);
-    if(!_mbMapZones) return;
-    _mbMapZones.on('click', e=>{
-      if(_mbDrawing) _mbAddPoint(e.latlng);
-      else _mbDeselectZone();
-    });
-    _mbZones.forEach((z,i)=>{
-      if(z.poly&&z.poly.length>2) _mbDrawZoneOnMapNow(z,i);
-    });
-  }, 0);
-}
-
-function _initMbMapLm(){
-  if(_mbMapLm){ try{_mbMapLm.remove();}catch(e){} _mbMapLm=null; }
   _mbLandmarks.forEach(lm=>{ if(lm.marker){try{lm.marker.remove();}catch(e){}} lm.marker=null; });
-  setTimeout(()=>{
-    _mbMapLm = _mbMakeMap('mbMapEl2', _mbZones);
-    if(!_mbMapLm) return;
-    _mbMapLm.on('click', e=>{ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); });
-    _mbLandmarks.forEach((lm,i)=>{ lm.marker=_mbAddLmMarker(lm,i,_mbMapLm); });
-  }, 0);
-}
-
-function _initMbMapTransit(){
-  if(_mbMapTransit){ try{_mbMapTransit.remove();}catch(e){} _mbMapTransit=null; }
   _mbLines.forEach(ln=>{ ln.polyLayer=null; ln.stopMarkers=[]; });
+
+  // Yield so the container has real pixel dimensions before Leaflet init
   setTimeout(()=>{
-    _mbMapTransit = _mbMakeMap('mbMapEl3', _mbZones);
-    if(!_mbMapTransit) return;
-    _mbMapTransit.on('click', e=>{ if(_mbDrawingLine) _mbAddLineStop(e.latlng); });
+    const map = _mbMakeMap('mbMapEl', null);
+    if(!map) return;
+    _mbMapZones = _mbMapLm = _mbMapTransit = map;
+
+    // Single click dispatcher routes by the active mode
+    map.on('click', e=>{
+      if(_mbMode==='zones'){ if(_mbDrawing) _mbAddPoint(e.latlng); else _mbDeselectZone(); }
+      else if(_mbMode==='landmarks'){ if(_mbPlacingLm) _mbPlaceLandmark(e.latlng); }
+      else if(_mbMode==='transit'){ if(_mbDrawingLine) _mbAddLineStop(e.latlng); }
+    });
+
+    // Draw all existing layers onto the shared canvas
+    _mbZones.forEach((z,i)=>{ if(z.poly&&z.poly.length>2) _mbDrawZoneOnMapNow(z,i); });
+    _mbLandmarks.forEach((lm,i)=>{ lm.marker=_mbAddLmMarker(lm,i,map); });
     _mbLines.forEach(ln=>{
       if(ln.stops.length>1){
         const pts=_mbSmoothLine(ln.stops,ln.smooth);
-        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(_mbMapTransit);
+        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(map);
         ln.stopMarkers=[];
         ln.stops.forEach(s=>{
           const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:'+ln.color+';border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
-          ln.stopMarkers.push(L.marker([s.lat,s.lng],{icon}).addTo(_mbMapTransit));
+          ln.stopMarkers.push(L.marker([s.lat,s.lng],{icon}).addTo(map));
         });
       }
     });
+
+    // Fit to existing content if any
+    const allPts=[..._mbZones.flatMap(z=>z.poly||[]), ..._mbLandmarks.map(l=>[l.lat,l.lng])];
+    if(allPts.length) try{ map.fitBounds(L.latLngBounds(allPts.map(p=>L.latLng(p[0],p[1]))),{padding:[40,40],maxZoom:15}); }catch(e){}
+
+    mbSetMode(_mbMode||'zones');
   }, 0);
+}
+
+// Switch the active build layer
+function mbSetMode(mode){
+  // Cancel any in-progress drawing when leaving a mode
+  if(_mbMode!=='zones' || mode!=='zones'){ if(_mbDrawing) mbCancelZone(); _mbDeselectZone(); }
+  if(mode!=='landmarks' && _mbPlacingLm){ _mbPlacingLm=false; if(_mbMapZones) _mbMapZones.getContainer().style.cursor=''; }
+  if(mode!=='transit' && _mbDrawingLine){ mbCancelLine(); }
+
+  _mbMode = mode;
+  ['zones','landmarks','transit'].forEach(m=>{
+    const btn=document.getElementById('mbMode-'+m);
+    if(btn) btn.classList.toggle('active', m===mode);
+    const row=document.getElementById('mbModeRow-'+m);
+    if(row) row.style.display = m===mode?'block':'none';
+  });
+  // Bottom chip lists: zones list in zones mode, line list in transit mode
+  const zl=document.getElementById('mbZoneList'); if(zl) zl.style.display = mode==='zones'?'flex':'none';
+  const ll=document.getElementById('mbLineList'); if(ll) ll.style.display = mode==='transit'?'flex':'none';
+  if(_mbMapZones){
+    _mbMapZones.getContainer().style.cursor = '';
+    setTimeout(()=>{ try{_mbMapZones.invalidateSize();}catch(e){} }, 0);
+  }
+}
+
+// Jump from the review checklist straight to the relevant build layer
+function mbGotoFix(fix){
+  if(fix==='meta'){ mbGotoStep('meta'); return; }
+  mbGotoStep('build');
+  if(fix==='zones'||fix==='landmarks'||fix==='transit') setTimeout(()=>mbSetMode(fix), 30);
 }
 
 // ── Zone drawing ──────────────────────────────────────────────────
@@ -5970,7 +5994,7 @@ function _mbDrawZoneOnMapNow(zone, idx){
   if(!_mbMapZones) return;
   if(zone.polyLayer) zone.polyLayer.remove();
   zone.polyLayer = L.polygon(zone.poly,{fillColor:'#3b82f6',fillOpacity:.18,color:'#2563eb',weight:2}).addTo(_mbMapZones);
-  zone.polyLayer.on('click', e=>{ L.DomEvent.stopPropagation(e); _mbSelectZone(idx); });
+  zone.polyLayer.on('click', e=>{ if(_mbMode!=='zones') return; L.DomEvent.stopPropagation(e); _mbSelectZone(idx); });
   if(zone.labelMarker) zone.labelMarker.remove();
   const c=_centroid(zone.poly);
   zone.labelMarker=L.marker(c,{icon:L.divIcon({className:'',html:'<div style="font-size:11px;font-weight:700;color:#1d4ed8;pointer-events:none;text-shadow:0 1px 2px white;">'+esc(zone.name)+'</div>',iconAnchor:[20,8]}),interactive:false,zIndexOffset:-100}).addTo(_mbMapZones);
@@ -6054,7 +6078,7 @@ function mbCancelZone(){
 
 function _mbUpdateZoneCount(){
   const el=document.getElementById('mbZoneCount');
-  if(el) el.textContent=_mbZones.length+' zone'+(_mbZones.length!==1?'s':'');
+  if(el) el.textContent=_mbZones.length;
 }
 
 function _mbRenderZoneList(){
@@ -6141,7 +6165,7 @@ function mbConfirmLandmark(){
     _mbPendingLmLatLng=null;
   }
   const el=document.getElementById('mbLmCount');
-  if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+  if(el) el.textContent=_mbLandmarks.length;
 }
 
 function mbDeleteLandmark(){
@@ -6157,7 +6181,7 @@ function mbDeleteLandmark(){
   }
   _mbEditingLmIdx=null;
   const el=document.getElementById('mbLmCount');
-  if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+  if(el) el.textContent=_mbLandmarks.length;
 }
 
 // ── Landmark Discovery (OSM POIs) ────────────────────────────
@@ -6228,7 +6252,7 @@ function _mbAddDiscoveredLandmark(poi){
   if(_mbMapLm) lm.marker = _mbAddLmMarker(lm, idx, _mbMapLm);
   _mbLandmarks.push(lm);
   const el = document.getElementById('mbLmCount');
-  if(el) el.textContent = _mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+  if(el) el.textContent = _mbLandmarks.length;
 }
 
 function _pointInPoly(pt, poly){
@@ -6427,7 +6451,7 @@ function mbConfirmLine(){
   _mbLines.push({id,name,type,color,smooth,stops,zonesServed,polyLayer:layer,stopMarkers});
   _mbPendingLineStops=[]; if(_mbCurrentLineLayer){_mbCurrentLineLayer.remove();_mbCurrentLineLayer=null;} _mbCurrentLineStops=[];
   const el=document.getElementById('mbLineCount');
-  if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+  if(el) el.textContent=_mbLines.length;
   _mbRenderLineList();
   _mbZones.forEach((z)=>{ if(zonesServed.includes(z.code)&&!z.lines.includes(name)) z.lines.push(name); });
 }
@@ -6502,7 +6526,7 @@ function mbDeleteLine(i){
   (ln.stopMarkers||[]).forEach(m=>m.remove());
   _mbLines.splice(i,1); _mbRenderLineList();
   const el=document.getElementById('mbLineCount');
-  if(el) el.textContent=_mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+  if(el) el.textContent=_mbLines.length;
 }
 
 // ── Review & Publish ──────────────────────────────────────────────
@@ -6539,7 +6563,7 @@ function _renderMbReview(){
         const icon=c.ok?'<svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="'+color+'"/><path d="M5 8l2 2 4-4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>'
           :'<svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="'+color+'" stroke-width="1.5"/><path d="M8 5v4M8 11v1" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round"/></svg>';
         return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:'+(c.ok?'var(--text)':'var(--muted)')+';">'+icon+c.label+
-          (!c.ok&&c.fix?'<span style="margin-left:auto;font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="mbGotoStep(\''+c.fix+'\')">Fix</span>':'')+
+          (!c.ok&&c.fix?'<span style="margin-left:auto;font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="mbGotoFix(\''+c.fix+'\')">Fix</span>':'')+
         '</div>';
       }).join('');
   }
@@ -6587,7 +6611,7 @@ async function publishMap(){
   const status=document.getElementById('mbPublishStatus');
   if(!name){showToast('Enter a map name.','warn');mbGotoStep('meta');return;}
   if(!_mbCityData){showToast('Select a city first.','warn');mbGotoStep('meta');return;}
-  if(_mbZones.length<3){showToast('Add at least 3 zones before publishing.','warn');mbGotoStep('zones');return;}
+  if(_mbZones.length<3){showToast('Add at least 3 zones before publishing.','warn');mbGotoStep('build');mbSetMode('zones');return;}
   const profCheck=_checkProfanity([['Map Name',name],['Creator',creator],['Description',desc],
     ..._mbZones.map(z=>['Zone "'+z.name+'"',z.name]),
     ..._mbLandmarks.map(lm=>['Landmark "'+lm.name+'"',lm.name]),
@@ -7492,7 +7516,7 @@ async function mbDoTransitImportSelected(){
   }
 
   status.textContent = imported+' imported';
-  document.getElementById('mbLineCount').textContent = _mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+  document.getElementById('mbLineCount').textContent = _mbLines.length;
   _mbRenderLineList();
 
   if(imported) showToast(imported+' transit route'+(imported!==1?'s':'')+' imported!','ok',4000);
