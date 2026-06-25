@@ -40,6 +40,12 @@
 .mb-modebtn{flex:1;padding:9px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .mb-modebtn.active{background:var(--accent);color:#fff;}
 .mb-modebtn .mb-modecount{font-family:var(--font-mono);font-size:10px;opacity:.7;}
+.mb-progress{display:none;margin-top:8px;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;}
+.mb-progress-label{font-size:11px;font-weight:600;color:var(--fg);margin-bottom:4px;display:flex;justify-content:space-between;}
+.mb-progress-track{height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+.mb-progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s ease;width:0%;}
+.mb-progress-fill.indeterminate{width:30%;animation:mb-indeterminate 1.2s ease-in-out infinite;}
+@keyframes mb-indeterminate{0%{transform:translateX(-100%)}50%{transform:translateX(200%)}100%{transform:translateX(-100%)}}
 .mb-draft-card .draft-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:4px;}
 
 :root{
@@ -1319,6 +1325,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           </div>
           <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
         </div>
+      </div>
+
+      <!-- Import progress bar -->
+      <div id="mbProgress" class="mb-progress">
+        <div class="mb-progress-label"><span id="mbProgressText">Importing...</span><span id="mbProgressPct"></span></div>
+        <div class="mb-progress-track"><div class="mb-progress-fill" id="mbProgressFill"></div></div>
       </div>
 
       <div id="mbMapEl" style="flex:1;min-height:0;"></div>
@@ -6188,6 +6200,7 @@ async function mbDiscoverLandmarks(){
   const sug = document.getElementById('mbLmSuggestions');
   sug.style.display = 'block';
   sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">Searching for points of interest...</div>';
+  _mbProgressShow('Discovering landmarks...', true);
 
   let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
   _mbZones.forEach(z => (z.poly||[]).forEach(p => { minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]); }));
@@ -6206,7 +6219,7 @@ async function mbDiscoverLandmarks(){
   try {
     let data;
     try { data = await _overpass(q, {timeoutMs:40000}); }
-    catch(e) { sug.innerHTML='<div style="padding:8px;font-size:11px;color:var(--orange);">POI service unavailable right now. Please try again in a moment.</div>'; return; }
+    catch(e) { _mbProgressHide(); sug.innerHTML='<div style="padding:8px;font-size:11px;color:var(--orange);">POI service unavailable right now. Please try again in a moment.</div>'; return; }
 
     let pois = (data.elements||[]).filter(el => el.tags && el.tags.name);
     // Normalize coords: ways/relations carry their point in .center
@@ -6224,6 +6237,7 @@ async function mbDiscoverLandmarks(){
     list = list.filter(p => !existing.has(p.tags.name.toLowerCase()));
     pois = list;
 
+    _mbProgressHide();
     if(!pois.length) {
       sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">No new points of interest found in this area. Try placing landmarks manually.</div>';
       return;
@@ -7250,6 +7264,27 @@ function _bdyDrawPreview(cands, noBoundary){
   legend.innerHTML = html;
 }
 
+function _mbProgressShow(label, indeterminate){
+  const el=document.getElementById('mbProgress'); if(!el) return;
+  el.style.display='block';
+  document.getElementById('mbProgressText').textContent=label||'Importing...';
+  document.getElementById('mbProgressPct').textContent='';
+  const fill=document.getElementById('mbProgressFill');
+  fill.style.width='0%';
+  fill.classList.toggle('indeterminate', !!indeterminate);
+}
+function _mbProgressUpdate(done, total, label){
+  const pct=Math.round((done/total)*100);
+  const fill=document.getElementById('mbProgressFill');
+  fill.classList.remove('indeterminate');
+  fill.style.width=pct+'%';
+  document.getElementById('mbProgressPct').textContent=done+'/'+total;
+  if(label) document.getElementById('mbProgressText').textContent=label;
+}
+function _mbProgressHide(){
+  const el=document.getElementById('mbProgress'); if(el) el.style.display='none';
+}
+
 async function mbBdyImportSelected(){
   if(!_bdySelectedSubs.size){ showToast('Select at least one area to import.','warn'); return; }
 
@@ -7260,11 +7295,13 @@ async function mbBdyImportSelected(){
   let imported = 0;
   let failed = 0;
   const total = _bdySelectedSubs.size;
+  _mbProgressShow('Importing zones...');
 
   for(const idx of _bdySelectedSubs) {
     const sub = _bdySubAreas[idx];
     if(!sub) continue;
     const name = sub.tags.name || 'Zone';
+    _mbProgressUpdate(imported + failed, total, 'Importing ' + name + '...');
 
     try {
       let geo = null;
@@ -7296,6 +7333,9 @@ async function mbBdyImportSelected(){
       failed++;
     }
   }
+
+  _mbProgressUpdate(total, total, imported + ' zone' + (imported!==1?'s':'') + ' imported');
+  setTimeout(_mbProgressHide, 2000);
 
   btn.textContent = 'Import Selected';
   btn.disabled = false;
@@ -7563,12 +7603,14 @@ async function mbDoTransitImportSelected(){
   const typeMap={subway:'subway',light_rail:'light_rail',tram:'streetcar',bus:'bus',monorail:'commuter',ferry:'ferry',train:'commuter'};
 
   let imported=0, total=sel.size, processed=0;
+  _mbProgressShow('Importing routes...');
 
   for(const idx of sel){
     const rel = cands[idx];
     if(!rel) continue;
     processed++;
     status.textContent = 'Importing '+processed+'/'+total+'...';
+    _mbProgressUpdate(processed, total, 'Importing ' + (rel.tags.name||rel.tags.ref||'route') + '...');
 
     const name = rel.tags.name || rel.tags.ref || 'Route';
     const rtype = rel.tags.route || 'subway';
@@ -7623,6 +7665,9 @@ async function mbDoTransitImportSelected(){
       console.warn('Failed to import route', name, e);
     }
   }
+
+  _mbProgressUpdate(total, total, imported + ' route' + (imported!==1?'s':'') + ' imported');
+  setTimeout(_mbProgressHide, 2000);
 
   status.textContent = imported+' imported';
   document.getElementById('mbLineCount').textContent = _mbLines.length;
