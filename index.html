@@ -6969,13 +6969,13 @@ async function _bdySelectResult(idx) {
 
     let opData;
     try {
-      opData = await _overpass(`[out:json][timeout:45];rel(${osmId})->.parent;.parent out tags;.parent map_to_area->.parentArea;(rel(area.parentArea)["boundary"="administrative"];rel(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough|village|town"];node(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough"];);out tags;`, {timeoutMs:45000});
+      opData = await _overpass(`[out:json][timeout:45];rel(${osmId})->.parent;.parent out tags;.parent map_to_area->.parentArea;(rel(area.parentArea)["boundary"="administrative"];rel(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough|village|town"];node(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough"];);out tags center;`, {timeoutMs:45000});
     } catch(e1) {
       console.warn('Area query failed, trying bbox fallback:', e1);
       const bb = item.boundingbox;
       if(bb && bb.length === 4) {
         try {
-          opData = await _overpass(`[out:json][timeout:45];rel(${osmId});out tags;(rel["boundary"="administrative"](${bb[0]},${bb[2]},${bb[1]},${bb[3]});node["place"~"suburb|neighbourhood|quarter|borough"](${bb[0]},${bb[2]},${bb[1]},${bb[3]}););out tags;`, {timeoutMs:45000});
+          opData = await _overpass(`[out:json][timeout:45];rel(${osmId});out tags;(rel["boundary"="administrative"](${bb[0]},${bb[2]},${bb[1]},${bb[3]});node["place"~"suburb|neighbourhood|quarter|borough"](${bb[0]},${bb[2]},${bb[1]},${bb[3]}););out tags center;`, {timeoutMs:45000});
         } catch(e2) { console.error('Both Overpass queries failed:', e2); }
       }
     }
@@ -7104,10 +7104,12 @@ async function _bdyEnsureGeo(sub){
 
   // Strategy 2: Nominatim search by name near coordinates (works for nodes/neighborhoods)
   const name = sub.tags && sub.tags.name;
+  const clat = sub.lat ?? sub.center?.lat;
+  const clon = sub.lon ?? sub.center?.lon;
   if(name) {
     try {
       let searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=3&q=' + encodeURIComponent(name);
-      if(sub.lat && sub.lon) searchUrl += '&viewbox=' + (sub.lon-0.15) + ',' + (sub.lat+0.15) + ',' + (sub.lon+0.15) + ',' + (sub.lat-0.15) + '&bounded=1';
+      if(clat && clon) searchUrl += '&viewbox=' + (clon-0.15) + ',' + (clat+0.15) + ',' + (clon+0.15) + ',' + (clat-0.15) + '&bounded=1';
       const r = await fetch(searchUrl, {
         headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
       });
@@ -7121,12 +7123,14 @@ async function _bdyEnsureGeo(sub){
   }
 
   // Strategy 3: generate a circular approximation around the point
-  if(sub.lat && sub.lon) {
+  const flat = clat || sub.lat;
+  const flon = clon || sub.lon;
+  if(flat && flon) {
     const R = 0.008; // ~0.9km radius
     const pts = [];
     for(let a = 0; a < 360; a += 15) {
       const rad = a * Math.PI / 180;
-      pts.push([sub.lon + R * Math.cos(rad), sub.lat + R * Math.sin(rad)]);
+      pts.push([flon + R * Math.cos(rad), flat + R * Math.sin(rad)]);
     }
     pts.push(pts[0]); // close ring
     sub._geo = { type: 'Polygon', coordinates: [pts] };
