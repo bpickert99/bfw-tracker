@@ -57,7 +57,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
 /* JOIN */
-#screenJoin{align-items:center;justify-content:flex-start;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));background:var(--bg);overflow-y:auto;}
 .join-logo{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--navy);line-height:1.05;margin-bottom:4px;text-align:center;}
 .join-logo span{color:var(--green);}
 .join-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
@@ -329,6 +328,11 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .home-signed-in-pill .hpavatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .home-signed-in-pill button{background:none;border:none;font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:underline;padding:0;font-family:var(--font);}
 .home-section-label{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:28px 20px 12px;text-transform:uppercase;}
+.home-actions{padding:18px 20px 0;display:flex;flex-direction:column;gap:8px;}
+.home-join-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;margin-bottom:6px;}
+.home-join-title{font-family:var(--font);font-weight:700;font-size:18px;margin-bottom:14px;}
+.home-showcase{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;margin:0 20px;}
+.home-showcase .hgcard-anim{aspect-ratio:5/2;}
 .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px;}
 @media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:36px;}}
 .hgcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;box-shadow:none;}
@@ -408,14 +412,30 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </div>
     </div>
 
-    <!-- Game mode cards -->
-    <div class="home-section-label">Choose a Game Mode</div>
-    <div class="home-cards">
+    <!-- Active games (signed-in, in-progress) -->
+    <div id="activeGamesSection" style="display:none;padding:0 20px;margin-top:14px;"></div>
 
-      <!-- Zone Capture -->
-      <div class="hgcard zone-mode" onclick="showScreen('screenJoin')">
-        <div class="hgcard-anim">
-          <svg id="hzc-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- Primary actions -->
+    <div class="home-actions">
+      <div class="home-join-card">
+        <div class="home-join-title">Join a Game</div>
+        <input type="text" id="joinName" placeholder="Your name" maxlength="24">
+        <input class="code-input" id="joinCode" placeholder="XXXXX" maxlength="5" oninput="this.value=this.value.toUpperCase()">
+        <button class="hbtn p" onclick="joinGame()">Join Game &#x2192;</button>
+      </div>
+      <button class="hbtn s" onclick="showScreen('screenHostSetup')">Host a New Game</button>
+      <button class="hbtn s" onclick="openMapBuilder()">Create or Edit a Map</button>
+      <button class="hbtn s" onclick="showScreen('screenRejoin')">Rejoin a Game</button>
+      <div style="text-align:center;margin-top:6px;">
+        <span onclick="clearSession()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Clear saved session</span>
+      </div>
+      <div id="joinVersion" style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted);font-family:var(--font-mono);opacity:.55;"></div>
+    </div>
+
+    <!-- Showcase -->
+    <div class="home-section-label">How It Works</div>
+    <div class="home-showcase">
+      <div class="hgcard-anim"><svg id="hzc-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="hfg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
@@ -448,103 +468,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
             <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#bfdbfe" stroke-width="22" stroke-linecap="round" opacity=".9"/>
             <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#60a5fa" stroke-width="9" stroke-linecap="round" opacity=".75"/>
             <path d="M 0,67 C 20,61 38,69 56,65 C 80,61 100,69 124,65 C 148,61 162,65 176,63 C 200,60 220,67 240,67" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
-          </svg>
-        </div>
-        <div class="hgcard-body">
-          <div class="hgcard-titlerow"><div class="hgcard-title">Zone Capture</div></div>
-          <div class="hgcard-desc">Capture more territory than your opponents before time runs out.</div>
-          <button class="hgcard-cta">Play</button>
-        </div>
+          </svg></div>
+      <div style="padding:16px 20px;">
+        <div class="hgcard-title" style="color:var(--accent);font-size:20px;">Zone Capture</div>
+        <div class="hgcard-desc" style="margin-top:4px;">Race across the city, complete challenges to earn coins, then deposit them to claim territory. Hold the most zones when time runs out to win.</div>
       </div>
-
-      <!-- Connect 4 -->
-      <div class="hgcard c4-mode coming">
-        <div class="hgcard-anim">
-          <svg id="hc4-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="hfg2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <rect width="240" height="160" fill="#dde8d8"/>
-            <!--
-              Same rectilinear spine system, but river runs higher at y≈52,
-              leaving a large bottom row for orange's winning 4-zone horizontal.
-
-              Spine 1: 58,0→58,20→62,20→62,42→56,42→56,52
-                      56,52→56,75→62,75→62,104→58,104→58,160
-              Spine 2: 118,0→118,22→122,22→122,45→116,45→116,52
-                      116,52→116,78→122,78→122,108→118,108→118,160
-              Spine 3: 178,0→178,18→182,18→182,42→176,42→176,50
-                      176,50→176,74→180,74→180,104→174,104→174,160
-              River seam: 0,54 — 56,52 — 116,52 — 176,50 — 240,54
-            -->
-            <!-- Top row (narrow — above river) -->
-            <polygon id="hc0" class="hc" points="0,0 58,0 58,20 62,20 62,42 56,42 56,52 0,54"/>
-            <polygon id="hc1" class="hc" points="58,0 118,0 118,22 122,22 122,45 116,45 116,52 56,52 56,42 62,42 62,20 58,20"/>
-            <polygon id="hc2" class="hc" points="118,0 178,0 178,18 182,18 182,42 176,42 176,50 116,52 116,45 122,45 122,22 118,22"/>
-            <polygon id="hc3" class="hc" points="178,0 240,0 240,54 176,50 176,42 182,42 182,18 178,18"/>
-            <!-- Bottom row (wide — orange captures all 4 for the win) -->
-            <polygon id="hc4" class="hc" points="0,54 56,52 56,75 62,75 62,104 58,104 58,160 0,160"/>
-            <polygon id="hc5" class="hc" points="56,52 116,52 116,78 122,78 122,108 118,108 118,160 58,160 58,104 62,104 62,75 56,75"/>
-            <polygon id="hc6" class="hc" points="116,52 176,50 176,74 180,74 180,104 174,104 174,160 118,160 118,108 122,108 122,78 116,78"/>
-            <polygon id="hc7" class="hc" points="176,50 240,54 240,160 174,160 174,104 180,104 180,74 176,74"/>
-            <!-- River — horizontal band at y≈52 following the seam -->
-            <path d="M 0,54 C 18,48 38,56 56,52 C 80,48 98,56 116,52 C 140,48 158,54 176,50 C 198,46 220,54 240,52" fill="none" stroke="#bfdbfe" stroke-width="20" stroke-linecap="round" opacity=".9"/>
-            <path d="M 0,54 C 18,48 38,56 56,52 C 80,48 98,56 116,52 C 140,48 158,54 176,50 C 198,46 220,54 240,52" fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" opacity=".75"/>
-            <path d="M 0,51 C 18,45 38,53 56,49 C 80,45 98,53 116,49 C 140,45 158,51 176,47 C 198,43 220,51 240,49" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
-            <!-- Win line through bottom row centers (~y=106), drawn on 4-in-a-row -->
-            <line id="hc4-win"
-                  x1="16" y1="106" x2="222" y2="104"
-                  stroke="white" stroke-width="5" stroke-linecap="round"
-                  stroke-dasharray="208" stroke-dashoffset="208"
-                  opacity="0" filter="url(#hfg2)"/>
-          </svg>
-        </div>
-        <div class="hgcard-body">
-          <div class="hgcard-titlerow">
-            <div class="hgcard-title">Connect 4</div>
-            <span class="hgcard-badge">Coming Soon</span>
-          </div>
-          <div class="hgcard-desc">Capture four connected zones in a straight line to win.</div>
-          <button class="hgcard-cta" disabled>Coming Soon</button>
-        </div>
-      </div>
-
-    </div><!-- /home-cards -->
+    </div>
   </div><!-- /home-inner -->
-</div>
-
-<!-- JOIN -->
-<div class="screen" id="screenJoin">
-  <div style="text-align:center;margin-bottom:4px;padding-top:32px;">
-    <div style="margin-bottom:8px;"><span onclick="showScreen('screenHome')" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;">← Back to Home</span></div>
-    <div class="join-logo">Zone <span>Capture</span></div>
-    <div class="join-sub">The city strategy game — played in real life</div>
-  </div>
-  <div style="text-align:center;margin-bottom:12px;">
-    <div id="authPill" style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;min-height:36px;">
-      <button onclick="signInWithGoogle()" style="background:none;border:none;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;">Sign in with Google &#x2192;</button>
-    </div>
-  </div>
-  <div id="activeGamesSection" style="display:none;margin:0 auto 12px;max-width:380px;padding:0 16px;"></div>
-  <div class="join-card" style="margin:0 auto;">
-    <h2>Join a Game</h2>
-    <label>Your Name</label>
-    <input type="text" id="joinName" placeholder="Enter your name" maxlength="24">
-    <label>Game Code</label>
-    <input class="code-input" id="joinCode" placeholder="XXXXX" maxlength="5" oninput="this.value=this.value.toUpperCase()">
-    <button class="hbtn p" onclick="joinGame()">Join Game →</button>
-    <div class="join-divider">or</div>
-    <button class="hbtn s" onclick="showScreen('screenHostSetup')">Host a New Game</button>
-    <div class="join-divider">or</div>
-    <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="showScreen('screenRejoin')">Rejoin a Game</button>
-    <div style="text-align:center;margin-top:10px;">
-      <button class="hbtn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:13px;" onclick="openMapBuilder()">Create or Edit a Map</button>
-    </div>
-    <div style="text-align:center;margin-top:8px;">
-      <span onclick="clearSession()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Clear saved session</span>
-    </div>
-    <div id="joinVersion" style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted);font-family:var(--font-mono);opacity:.55;"></div>
-  </div>
 </div>
 
 <!-- REJOIN SCREEN -->
@@ -562,7 +492,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     </div>
     <div id="rejoinError" style="font-size:12px;color:var(--accent);text-align:center;margin-top:8px;min-height:16px;"></div>
     <div style="text-align:center;margin-top:12px;">
-      <span onclick="showScreen('screenJoin')" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">&#x2190; Back</span>
+      <span onclick="showScreen('screenHome')" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">&#x2190; Back</span>
     </div>
   </div>
 </div>
@@ -3294,7 +3224,7 @@ async function cancelGame(){
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   try{localStorage.removeItem('bfw5L');}catch(e){}
   G={config:{start:'10:00',end:'19:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
-  showScreen('screenJoin');
+  showScreen('screenHome');
 }
 
 
@@ -4772,7 +4702,7 @@ function clearSession(){
   try{localStorage.removeItem('bfw5L');}catch(e){}
   if(bfwMap){bfwMap.remove();bfwMap=null;}
   mapReady=false;zPolys={};locMarkers={};
-  showScreen('screenJoin');
+  showScreen('screenHome');
   showNotif('Session cleared');
 }
 
@@ -4857,7 +4787,7 @@ function returnToHome(){
   const fsMo=document.getElementById('finalScoresMo');if(fsMo)fsMo.style.display='none';
   document.getElementById('joinName').value='';
   document.getElementById('joinCode').value='';
-  showScreen('screenJoin');
+  showScreen('screenHome');
 }
 
 function confirmEndGame(){document.getElementById('endGameMo').classList.add('open');}
