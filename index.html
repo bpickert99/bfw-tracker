@@ -23,11 +23,11 @@
   font-weight:400;font-display:swap;
 }
 .cfgSort{background:var(--surface2);color:var(--muted);border:1px solid var(--border);transition:all .15s;}
-.cfgSort.active{background:var(--board);color:white;border-color:var(--board);}
+.cfgSort.active{background:var(--accent);color:white;border-color:var(--accent);}
 .mb-tip{border-bottom:none;}
 .mb-map-card{background:var(--surface);border:1px solid var(--border);border-radius:0;padding:12px 16px;margin-bottom:2px;cursor:pointer;transition:background .15s;}
 .mb-map-card:hover,.mb-map-card:active{background:var(--surface2);}
-.mb-map-card.selected{background:var(--board);color:white;border-color:var(--board);}
+.mb-map-card.selected{background:var(--accent);color:white;border-color:var(--accent);}
 .mb-map-card.selected .mc-meta{color:rgba(255,255,255,.6);}
 .mb-map-card.selected .mc-stat{color:rgba(255,255,255,.5);}
 .mc-name{font-weight:700;font-size:14px;margin-bottom:2px;}
@@ -76,15 +76,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 /* HOST SETUP */
 #screenHostSetup{padding:0;overflow-y:auto;background:var(--bg);padding-bottom:80px;}
-.setup-header{background:var(--header-bg);color:white;padding:16px 20px;display:flex;align-items:center;gap:12px;}
+.setup-header{background:var(--surface);color:var(--text);padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
 .setup-header h2{font-family:var(--font);font-weight:700;font-size:20px;margin:0;flex:1;}
 .setup-section{border-bottom:1px solid var(--border);}
-.setup-section-head{background:var(--board);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.setup-section-head{background:var(--surface);color:var(--text);padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);}
 .setup-section-head:active{opacity:.85;}
-.setup-section-head .ss-icon{width:28px;height:28px;border-radius:var(--r-badge);background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.setup-section-head .ss-icon{width:28px;height:28px;border-radius:var(--r-badge);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .setup-section-head .ss-title{font-weight:700;font-size:14px;flex:1;}
-.setup-section-head .ss-meta{font-size:11px;color:rgba(255,255,255,.5);font-family:var(--font-mono);}
-.setup-section-head .ss-arrow{font-size:12px;color:rgba(255,255,255,.4);transition:transform .2s;margin-left:4px;}
+.setup-section-head .ss-meta{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
+.setup-section-head .ss-arrow{font-size:12px;color:var(--muted);transition:transform .2s;margin-left:4px;}
 .setup-section.open .ss-arrow{transform:rotate(180deg);}
 .setup-section-body{display:none;padding:16px 20px;background:var(--surface);}
 .setup-section.open .setup-section-body{display:block;}
@@ -116,6 +116,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .player-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;box-shadow:none;}
 .player-name{font-weight:700;font-size:14px;}
 .team-assign-sel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
+.lobby-player-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;cursor:grab;touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s;margin:3px;}
+.lobby-player-chip:active{cursor:grabbing;transform:scale(1.05);}
+.lobby-player-chip.dragging{opacity:.4;}
+.lobby-team-drop{background:var(--surface);border:2px dashed var(--border);border-radius:var(--r-card);padding:10px 14px;margin-bottom:10px;min-height:50px;transition:border-color .15s,background .15s;}
+.lobby-team-drop.drag-over{border-color:var(--accent);background:rgba(26,109,212,.04);}
+.lobby-team-drop .team-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.lobby-team-drop .team-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.lobby-team-drop .team-name{font-weight:700;font-size:14px;}
+.lobby-team-drop .team-members{display:flex;flex-wrap:wrap;gap:4px;min-height:28px;}
+.lobby-unassigned{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 14px;margin-bottom:12px;}
+.lobby-unassigned h4{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.lobby-unassigned .chips{display:flex;flex-wrap:wrap;gap:4px;min-height:32px;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes contested-pulse{0%,100%{opacity:.3}50%{opacity:.7}}
 .contested-zone{animation:contested-pulse 2s ease-in-out infinite;}
@@ -125,7 +137,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 /* MAIN APP */
 #screenApp{background:var(--bg);}
-header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
+header{background:var(--header-bg);border-bottom:none;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
 .logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:white;}
 .logo span{color:white;}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
@@ -141,7 +153,7 @@ header{background:var(--header-bg);border-bottom:none;padding:12px 20px;display:
 .myteam-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:var(--r-chip);color:white;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
 
 /* TABS */
-.tabs{display:flex;background:var(--tab-bg);border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
+.tabs{display:flex;background:var(--tab-bg);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:var(--header-h,44px);z-index:200;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{padding:14px 18px;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .15s;position:relative;}
 .tab.active{color:var(--navy);}
@@ -557,7 +569,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <!-- HOST SETUP -->
 <div class="screen" id="screenHostSetup">
   <div class="setup-header">
-    <button class="btn btn-g btn-xs" onclick="showScreen('screenHome')" style="background:rgba(255,255,255,.15);border:none;color:white;padding:6px 10px;">&#x2190;</button>
+    <button class="btn btn-g btn-xs" onclick="showScreen('screenHome')" style="padding:6px 10px;">&#x2190;</button>
     <h2>New Game</h2>
   </div>
 
@@ -570,7 +582,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <!-- SECTION 2: MAP -->
   <div class="setup-section open" id="setupSecMap">
     <div class="setup-section-head" onclick="toggleSetupSection('setupSecMap')">
-      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 3l4 1.5V13l-4-1.5V3zm4 1.5l4-1.5v8.5l-4 1.5V4.5zm4-1.5l4 1.5V13l-4-1.5V3z" fill="white" opacity=".8"/></svg></div>
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 3l4 1.5V13l-4-1.5V3zm4 1.5l4-1.5v8.5l-4 1.5V4.5zm4-1.5l4 1.5V13l-4-1.5V3z" fill="var(--accent)" opacity=".8"/></svg></div>
       <div class="ss-title">Map</div>
       <div class="ss-meta" id="setupMapMeta">Community Maps</div>
       <div class="ss-arrow">&#x25BC;</div>
@@ -595,7 +607,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           <button class="btn btn-xs cfgSort" data-sort="az" onclick="_sortMaps('az')" style="font-size:10px;">A–Z</button>
         </div>
         <div id="cfgMapResults" style="max-height:320px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
-        <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:12px 14px;background:var(--board);border-radius:0;font-size:12px;line-height:1.6;color:white;"></div>
+        <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:12px 14px;background:var(--surface2);border:2px solid var(--accent);border-radius:14px;font-size:12px;line-height:1.6;color:var(--text);"></div>
       </div>
       <div id="cfgMapCustomSection" style="display:none;">
         <span class="setup-label">City or Play Area</span>
@@ -620,7 +632,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <!-- SECTION 3: TEAMS -->
   <div class="setup-section open" id="setupSecTeams">
     <div class="setup-section-head" onclick="toggleSetupSection('setupSecTeams')">
-      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="5" cy="6" r="3" fill="white" opacity=".8"/><circle cx="11" cy="6" r="3" fill="white" opacity=".6"/><path d="M1 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".8"/><path d="M7 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".6"/></svg></div>
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="5" cy="6" r="3" fill="var(--accent)" opacity=".8"/><circle cx="11" cy="6" r="3" fill="white" opacity=".6"/><path d="M1 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".8"/><path d="M7 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".6"/></svg></div>
       <div class="ss-title">Teams</div>
       <div class="ss-meta" id="setupTeamMeta">3 teams</div>
       <div class="ss-arrow">&#x25BC;</div>
@@ -819,17 +831,17 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <div id="panelWrap">
   <div class="panel active" id="panel-status">
     <!-- Game code + phase timer -->
-    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--board);border:none;border-radius:0;padding:14px 20px;margin-bottom:12px;color:white;">
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:none;border-radius:0;padding:14px 20px;margin-bottom:12px;border-bottom:1px solid var(--border);">
       <div>
-        <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Game Code</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Game Code</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span id="statusGameCode" style="font-family:var(--font-led);font-weight:400;font-size:22px;letter-spacing:2px;color:var(--green);">—</span>
+          <span id="statusGameCode" style="font-family:var(--font-led);font-weight:400;font-size:22px;letter-spacing:2px;color:var(--accent);">—</span>
           <button class="btn btn-g btn-sm" style="padding:2px 8px;font-size:11px;" onclick="copyStatusCode()">Copy</button>
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;" id="phaseLabel">Phase</div>
-        <div style="font-family:var(--font-led);font-size:14px;font-weight:400;color:var(--green);background:var(--board);padding:4px 10px;border-radius:6px;display:inline-block;" id="phaseCountdown">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;" id="phaseLabel">Phase</div>
+        <div style="font-family:var(--font-led);font-size:14px;font-weight:400;color:var(--accent);background:var(--surface2);padding:4px 10px;border-radius:6px;display:inline-block;" id="phaseCountdown">—</div>
       </div>
     </div>
     <div id="myTeamHero" style="display:none;"></div>
@@ -1246,29 +1258,29 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 <!-- MAP BUILDER SCREEN -->
 <div class="screen" id="screenMapBuilder" style="background:var(--bg);">
-  <div style="background:var(--board);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
-    <button onclick="showScreen('screenHome')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;color:white;">&#x2190;</button>
-    <div style="font-family:var(--font-led);font-weight:400;font-size:18px;letter-spacing:3px;color:white;">MAP BUILDER</div>
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;height:50px;box-sizing:border-box;">
+    <button onclick="showScreen('screenHome')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:0 6px 0 0;color:var(--text);">&#x2190;</button>
+    <div style="font-family:var(--font);font-weight:800;font-size:20px;letter-spacing:2px;color:var(--text);">Map <span style="color:var(--accent);">Builder</span></div>
     <button class="btn btn-p btn-sm" id="mbPublishBtn" onclick="publishMap()" style="display:none;">Publish</button>
   </div>
 
   <!-- Step indicator -->
-  <div id="mbSteps" style="display:flex;background:var(--board);border-bottom:2px solid rgba(255,255,255,.1);height:40px;">
-    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--green);color:white;">1. Info</div>
-    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">2. Zones</div>
-    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">3. Land.</div>
-    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">4. Transit</div>
-    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">5. Shop</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);">6. Publish</div>
+  <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
+    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
+    <div class="mb-step" id="mbStep-zones" onclick="mbGotoStep('zones')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Zones</div>
+    <div class="mb-step" id="mbStep-landmarks" onclick="mbGotoStep('landmarks')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Land.</div>
+    <div class="mb-step" id="mbStep-transit" onclick="mbGotoStep('transit')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Transit</div>
+    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">5. Shop</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">6. Publish</div>
   </div>
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow:hidden;" id="mbPanelWrap">
 
     <!-- Library -->
     <div id="mbPanel-library" style="display:none;padding:0;">
-      <div style="background:var(--board);padding:20px;margin-bottom:0;">
-        <div style="font-family:var(--font-led);font-size:14px;color:var(--green);letter-spacing:2px;margin-bottom:8px;">YOUR MAPS</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;">Drafts and published maps. Tap Edit to continue building.</div>
+      <div style="background:var(--surface);padding:20px;border-bottom:1px solid var(--border);">
+        <div style="font-weight:700;font-size:16px;color:var(--text);margin-bottom:4px;">Your Maps</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Drafts and published maps. Tap Edit to continue building.</div>
         <button class="btn btn-p" style="width:100%;margin-top:14px;" onclick="_mbNewMap()">+ Create New Map</button>
       </div>
       <div style="padding:12px 16px;">
@@ -1279,18 +1291,18 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 1: Meta -->
     <div id="mbPanel-meta" style="padding:0;overflow-y:auto;height:100%;box-sizing:border-box;">
-      <div class="mb-tip" style="background:var(--board);padding:14px 20px;margin:0;">
+      <div class="mb-tip" style="background:var(--surface2);padding:14px 20px;margin:0;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--green)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;">MAP DESIGN TIP</span>
+          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--accent)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;">Map Design Tip</span>
         </div>
-        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;">Pick a walkable, urban neighborhood or downtown. The best maps cover 2–4 square miles with clear boundaries like rivers, highways, or rail lines.</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Pick a walkable, urban neighborhood or downtown. The best maps cover 2–4 square miles with clear boundaries like rivers, highways, or rail lines.</div>
       </div>
       <div style="padding:16px 20px;">
         <label>Map Name</label>
         <input type="text" id="mbName" placeholder="e.g. Kansas City Crossroads" maxlength="60">
-        <label>Your Name (map credit)</label>
-        <input type="text" id="mbCreator" placeholder="e.g. Ben P." maxlength="40">
+        <div id="mbCreatorInfo" style="margin-bottom:8px;"></div>
+        <input type="hidden" id="mbCreator" value="">
         <label>City</label>
         <div style="display:flex;gap:6px;margin-bottom:8px;">
           <input type="text" id="mbCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
@@ -1313,17 +1325,17 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 2: Zones -->
     <div id="mbPanel-zones" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
-        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
-        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:rgba(255,255,255,.08);border-radius:8px;border:1px solid rgba(255,255,255,.15);"></div>
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;" id="mbZoneHint">Tap + New Zone to start drawing. Tap a completed zone to edit its vertices.</div>
+        <div id="mbZoneToolbar" style="display:none;align-items:center;gap:6px;margin-top:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);"></div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbNewZoneBtn" onclick="mbStartZone()">+ New Zone</button>
-          <button class="btn btn-xs" id="mbImportBdyBtn" onclick="mbOpenBoundaryImport()" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);font-size:10px;">Import Boundaries</button>
+          <button class="btn btn-g btn-xs" id="mbImportBdyBtn" onclick="mbOpenBoundaryImport()" style="font-size:10px;">Import Boundaries</button>
           <button class="btn btn-g btn-xs" id="mbUndoBtn" onclick="mbUndoPoint()" style="display:none;">&#x21A9; Undo</button>
           <button class="btn btn-g btn-xs" id="mbCancelZoneBtn" onclick="mbCancelZone()" style="display:none;">Cancel</button>
-          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbZoneCount">0 zones</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbZoneCount">0 zones</span>
         </div>
-        <div id="mbZoneGuidance" style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Aim for 12–20 zones. Keep them roughly equal in size (0.1–0.5 sq mi). Use natural boundaries like streets or rivers.</div>
+        <div id="mbZoneGuidance" style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Aim for 12–20 zones. Keep them roughly equal in size (0.1–0.5 sq mi). Use natural boundaries like streets or rivers.</div>
       </div>
       <div id="mbMapEl" style="flex:1;min-height:0;"></div>
       <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbZoneList"></div>
@@ -1334,13 +1346,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 3: Landmarks -->
     <div id="mbPanel-landmarks" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
-        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;">Tap the map to place a landmark. These become Featured Landmarks that teams race to find.</div>
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark. These become Featured Landmarks that teams race to find.</div>
         <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
-          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbLmCount">0 landmarks</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
         </div>
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Place 1–2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
+        <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Place 1–2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
       </div>
       <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
       <div style="padding:8px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;">
@@ -1350,15 +1362,15 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 4: Transit -->
     <div id="mbPanel-transit" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--board);flex-shrink:0;">
-        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.5;">Draw transit lines by tapping stops along the route. The app calculates which zones each line connects.</div>
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. The app calculates which zones each line connects.</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
           <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
           <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
-          <span style="font-family:var(--font-led);font-size:12px;color:var(--green);margin-left:auto;line-height:28px;letter-spacing:1px;" id="mbLineCount">0 lines</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
         </div>
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
+        <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
       </div>
       <div id="mbMapEl3" style="flex:1;min-height:0;"></div>
       <div style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;" id="mbLineList"></div>
@@ -1369,12 +1381,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 5: Shop Config -->
     <div id="mbPanel-shop" style="display:none;padding:0;overflow-y:auto;height:100%;box-sizing:border-box;">
-      <div class="mb-tip" style="background:var(--board);padding:14px 20px;">
+      <div class="mb-tip" style="background:var(--surface2);padding:14px 20px;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--green)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;">SHOP SETUP</span>
+          <svg viewBox="0 0 16 16" style="width:14px;height:14px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--accent)" stroke-width="1.5"/><path d="M8 4v5M8 11v1" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;">Shop Setup</span>
         </div>
-        <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;">Toggle items on/off and set costs. Higher costs make items rarer and more strategic. Transit-dependent items are hidden if your map has no lines.</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Toggle items on/off and set costs. Higher costs make items rarer and more strategic. Transit-dependent items are hidden if your map has no lines.</div>
       </div>
       <div style="padding:0 16px 16px;">
       <div id="mbShopConfigList"></div>
@@ -1487,7 +1499,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='1.99';
+const APP_VERSION='2.00';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2507,7 +2519,24 @@ function _mbInit(){
   _mbShopConfig=null;
   const pw=document.getElementById('mbPanelWrap');
   if(pw)pw.scrollTop=0;
+  _mbUpdateCreatorInfo();
   _mbShowLibrary();
+}
+
+function _mbUpdateCreatorInfo(){
+  const el=document.getElementById('mbCreatorInfo');
+  const input=document.getElementById('mbCreator');
+  if(!el) return;
+  if(_authUser){
+    const photo=_authUser.photoURL?'<img src="'+_authUser.photoURL+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\'">':'';
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:14px;border:1px solid var(--border);">'+
+      photo+
+      '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Publishing as</div>'+
+      '<div style="font-weight:700;font-size:14px;">'+esc(_authUser.displayName||_authUser.email||'Anonymous')+'</div></div></div>';
+    if(input) input.value=_authUser.displayName||_authUser.email||'';
+  } else {
+    el.innerHTML='<div style="padding:10px 12px;background:#fef9c3;border:1px solid #fde68a;border-radius:14px;font-size:12px;color:#92400e;line-height:1.5;">Sign in with Google to publish maps under your profile.</div>';
+  }
 }
 
 // HOST SETUP
@@ -2875,17 +2904,128 @@ function backToSetup(){
 }
 
 function renderLobby(){
-  const plist=document.getElementById('lobbyPlayerList'),players=Object.entries(G.players||{});
-  if(!players.length){plist.innerHTML='<div class="empty">Waiting for players to join…</div>';}
-  else plist.innerHTML=players.map(([pid,p])=>{
-    const t=p.teamIdx>=0?G.teams[p.teamIdx]:null;
-    return `<div class="player-card"><div><div class="player-name">${esc(p.name)}${p.isHost?' <span style="font-size:10px;color:var(--muted)">(host)</span>':''}</div>${t?`<div style="font-size:11px;font-weight:700;color:${t.color}">${esc(t.name)}</div>`:'<div style="font-size:11px;color:var(--muted)">Unassigned</div>'}</div>${LS.isHost?`<select class="team-assign-sel" onchange="assignPlayer('${pid}',this.value)"><option value="">Assign…</option>${G.teams.map((tt,i)=>`<option value="${i}"${p.teamIdx===i?' selected':''}>${esc(tt.name)}</option>`).join('')}</select>`:''}</div>`;
-  }).join('');
+  const plist=document.getElementById('lobbyPlayerList');
   const tlist=document.getElementById('lobbyTeamList');
+  const players=Object.entries(G.players||{});
+
+  if(!players.length){
+    plist.innerHTML='<div class="empty">Waiting for players to join…</div>';
+    tlist.innerHTML='';
+    _updateStartBtn();
+    return;
+  }
+
+  // Unassigned players section
+  const unassigned=players.filter(([_,p])=>p.teamIdx===undefined||p.teamIdx<0);
+  if(LS.isHost){
+    plist.innerHTML='<div class="lobby-unassigned"><h4>Unassigned Players'+(unassigned.length?' ('+unassigned.length+')':'')+'</h4><div class="chips" id="lobbyUnassignedChips">'+
+      (unassigned.length?unassigned.map(([pid,p])=>
+        '<span class="lobby-player-chip" draggable="true" data-pid="'+pid+'" ontouchstart="_lobbyTouchStart(event,\''+pid+'\')" ontouchmove="_lobbyTouchMove(event)" ontouchend="_lobbyTouchEnd(event,\''+pid+'\')" ondragstart="_lobbyDragStart(event,\''+pid+'\')" ondragend="_lobbyDragEnd(event)">'+
+        esc(p.name)+(p.isHost?' <span style="font-size:10px;color:var(--muted)">(host)</span>':'')+
+        '</span>'
+      ).join(''):'<span style="font-size:12px;color:var(--muted);padding:4px;">All players assigned!</span>')+
+    '</div></div>';
+  } else {
+    plist.innerHTML=players.map(([pid,p])=>{
+      const t=p.teamIdx>=0?G.teams[p.teamIdx]:null;
+      return '<div class="player-card"><div><div class="player-name">'+esc(p.name)+(p.isHost?' <span style="font-size:10px;color:var(--muted)">(host)</span>':'')+'</div>'+(t?'<div style="font-size:11px;font-weight:700;color:'+t.color+'">'+esc(t.name)+'</div>':'<div style="font-size:11px;color:var(--muted)">Unassigned</div>')+'</div></div>';
+    }).join('');
+  }
+
+  // Team drop zones
   tlist.innerHTML=G.teams.map((team,i)=>{
-    const members=Object.values(G.players||{}).filter(p=>p.teamIdx===i);
-    return `<div class="player-card"><div style="display:flex;align-items:center;gap:9px"><div style="width:12px;height:12px;border-radius:50%;background:${team.color}"></div><div><div style="font-weight:700;font-size:13px">${esc(team.name)}</div><div style="font-size:11px;color:var(--muted)">${members.length?members.map(p=>esc(p.name)).join(', '):'No members yet'}</div></div></div></div>`;
+    const members=players.filter(([_,p])=>p.teamIdx===i);
+    if(LS.isHost){
+      return '<div class="lobby-team-drop" data-team="'+i+'" ondragover="_lobbyDragOver(event)" ondragleave="_lobbyDragLeave(event)" ondrop="_lobbyDrop(event,'+i+')">'+
+        '<div class="team-header"><div class="team-dot" style="background:'+team.color+'"></div><div class="team-name">'+esc(team.name)+'</div></div>'+
+        '<div class="team-members">'+
+          (members.length?members.map(([pid,p])=>
+            '<span class="lobby-player-chip" draggable="true" data-pid="'+pid+'" style="background:'+team.color+'15;border-color:'+team.color+'40;color:'+team.color+'" ontouchstart="_lobbyTouchStart(event,\''+pid+'\')" ontouchmove="_lobbyTouchMove(event)" ontouchend="_lobbyTouchEnd(event,\''+pid+'\')" ondragstart="_lobbyDragStart(event,\''+pid+'\')" ondragend="_lobbyDragEnd(event)">'+
+            esc(p.name)+(p.isHost?' <span style="font-size:10px;opacity:.6">(host)</span>':'')+
+            '</span>'
+          ).join(''):'<span style="font-size:11px;color:var(--muted);padding:4px;">Drop players here</span>')+
+        '</div></div>';
+    } else {
+      return '<div class="player-card"><div style="display:flex;align-items:center;gap:9px"><div style="width:12px;height:12px;border-radius:50%;background:'+team.color+'"></div><div><div style="font-weight:700;font-size:13px">'+esc(team.name)+'</div><div style="font-size:11px;color:var(--muted)">'+(members.length?members.map(([_,p])=>esc(p.name)).join(', '):'No members yet')+'</div></div></div></div>';
+    }
   }).join('');
+
+  _updateStartBtn();
+}
+
+let _lobbyDragPid=null;
+function _lobbyDragStart(e,pid){
+  _lobbyDragPid=pid;
+  e.dataTransfer.setData('text/plain',pid);
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{if(e.target.classList)e.target.classList.add('dragging');},0);
+}
+function _lobbyDragEnd(e){
+  _lobbyDragPid=null;
+  document.querySelectorAll('.lobby-player-chip.dragging').forEach(c=>c.classList.remove('dragging'));
+  document.querySelectorAll('.lobby-team-drop.drag-over').forEach(d=>d.classList.remove('drag-over'));
+}
+function _lobbyDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.classList.add('drag-over');
+}
+function _lobbyDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+function _lobbyDrop(e,teamIdx){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const pid=e.dataTransfer.getData('text/plain')||_lobbyDragPid;
+  if(pid) assignPlayer(pid,teamIdx);
+}
+
+// Touch-based drag for mobile
+let _lobbyTouchClone=null;
+let _lobbyTouchPid=null;
+function _lobbyTouchStart(e,pid){
+  if(!LS.isHost) return;
+  _lobbyTouchPid=pid;
+  const touch=e.touches[0];
+  const chip=e.currentTarget;
+  _lobbyTouchClone=chip.cloneNode(true);
+  _lobbyTouchClone.style.cssText='position:fixed;z-index:9999;pointer-events:none;opacity:.85;transform:scale(1.1);'+chip.style.cssText;
+  _lobbyTouchClone.style.left=(touch.clientX-40)+'px';
+  _lobbyTouchClone.style.top=(touch.clientY-20)+'px';
+  document.body.appendChild(_lobbyTouchClone);
+  chip.classList.add('dragging');
+}
+function _lobbyTouchMove(e){
+  if(!_lobbyTouchClone) return;
+  e.preventDefault();
+  const touch=e.touches[0];
+  _lobbyTouchClone.style.left=(touch.clientX-40)+'px';
+  _lobbyTouchClone.style.top=(touch.clientY-20)+'px';
+  // Highlight drop target
+  document.querySelectorAll('.lobby-team-drop').forEach(d=>{
+    const rect=d.getBoundingClientRect();
+    if(touch.clientX>=rect.left&&touch.clientX<=rect.right&&touch.clientY>=rect.top&&touch.clientY<=rect.bottom){
+      d.classList.add('drag-over');
+    } else {
+      d.classList.remove('drag-over');
+    }
+  });
+}
+function _lobbyTouchEnd(e,pid){
+  if(!_lobbyTouchClone){return;}
+  const touch=e.changedTouches[0];
+  if(_lobbyTouchClone){_lobbyTouchClone.remove();_lobbyTouchClone=null;}
+  document.querySelectorAll('.lobby-player-chip.dragging').forEach(c=>c.classList.remove('dragging'));
+  // Find which team drop zone the touch ended on
+  document.querySelectorAll('.lobby-team-drop').forEach(d=>{
+    d.classList.remove('drag-over');
+    const rect=d.getBoundingClientRect();
+    if(touch.clientX>=rect.left&&touch.clientX<=rect.right&&touch.clientY>=rect.top&&touch.clientY<=rect.bottom){
+      const teamIdx=parseInt(d.dataset.team);
+      if(!isNaN(teamIdx)) assignPlayer(pid,teamIdx);
+    }
+  });
+  _lobbyTouchPid=null;
 }
 async function assignPlayer(pid,ti){
   const idx=parseInt(ti);
@@ -5238,7 +5378,7 @@ function _renderMapResults(maps){
     const div=document.createElement('div');
     div.className='mb-map-card'+(isSelected?' selected':'');
     div.innerHTML='<div class="mc-name">'+esc(m.name)+'</div>'+
-      '<div class="mc-meta">'+esc(m.cityName)+' &middot; by '+esc(m.creator||'Anonymous')+
+      '<div class="mc-meta">'+(m.creatorPhoto?'<img src="'+esc(m.creatorPhoto)+'" style="width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.remove()">':'')+esc(m.cityName)+' &middot; by '+esc(m.creator||'Anonymous')+
       (m.desc?' &middot; '+esc(m.desc):'')+
       '</div>'+
       '<div class="mc-stats">'+
@@ -5310,8 +5450,8 @@ async function _selectCommunityMap(id){
     card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'+
       '<svg viewBox="0 0 16 16" style="width:16px;height:16px;flex-shrink:0;"><circle cx="8" cy="8" r="7" fill="var(--green)"/><path d="M5 8l2 2 4-4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>'+
       '<span style="font-weight:700;font-size:14px;">'+esc(map.name)+'</span></div>'+
-      '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:2px;">'+esc(map.cityName)+' &middot; by '+esc(map.creator||'Anonymous')+'</div>'+
-      '<div style="font-family:var(--font-led);font-size:11px;color:var(--green);letter-spacing:1px;margin-top:4px;">'+zc+' ZONES &middot; '+lc+' LANDMARKS'+(lnc?' &middot; '+lnc+' LINES':'')+'</div>';
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:2px;">'+esc(map.cityName)+' &middot; by '+esc(map.creator||'Anonymous')+'</div>'+
+      '<div style="font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:1px;margin-top:4px;">'+zc+' zones &middot; '+lc+' landmarks'+(lnc?' &middot; '+lnc+' lines':'')+'</div>';
   }
 
   window._communityMapConfig = _selectedMapConfig;
@@ -5649,8 +5789,8 @@ function mbGotoStep(step){
     const stepBtn = document.getElementById('mbStep-'+s);
     if(panel) panel.style.display = s===step?(s==='zones'||s==='landmarks'||s==='transit'?'flex':'block'):'none';
     if(stepBtn){
-      stepBtn.style.borderBottomColor = s===step?'var(--green)':'transparent';
-      stepBtn.style.color = s===step?'white':'rgba(255,255,255,.4)';
+      stepBtn.style.borderBottomColor = s===step?'var(--accent)':'transparent';
+      stepBtn.style.color = s===step?'var(--text)':'var(--muted)';
     }
   });
   const pub = document.getElementById('mbPublishBtn');
@@ -6333,14 +6473,14 @@ function _renderMbReview(){
   const creator=document.getElementById('mbCreator')?.value.trim()||'Anonymous';
   const city=_mbCityData?_mbCityData.shortName:'Unknown City';
   const desc=document.getElementById('mbDesc')?.value.trim()||'';
-  el.innerHTML='<div style="background:var(--board);padding:16px 20px;margin-bottom:0;">'+
-    '<div style="font-family:var(--font-led);font-size:18px;color:white;letter-spacing:2px;margin-bottom:4px;">'+esc(name).toUpperCase()+'</div>'+
-    '<div style="font-size:12px;color:rgba(255,255,255,.6);">'+esc(city)+' &middot; by '+esc(creator)+'</div>'+
-    (desc?'<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;font-style:italic;">'+esc(desc)+'</div>':'')+
+  el.innerHTML='<div style="background:var(--surface);padding:16px 20px;margin-bottom:0;border-bottom:1px solid var(--border);">'+
+    '<div style="font-weight:800;font-size:18px;color:var(--text);margin-bottom:4px;">'+esc(name)+'</div>'+
+    '<div style="font-size:12px;color:var(--muted);">'+esc(city)+' &middot; by '+esc(creator)+'</div>'+
+    (desc?'<div style="font-size:12px;color:var(--faint);margin-top:4px;font-style:italic;">'+esc(desc)+'</div>':'')+
     '<div style="display:flex;gap:16px;margin-top:10px;">'+
-      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbZones.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">ZONES</div></div>'+
-      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbLandmarks.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">LANDMARKS</div></div>'+
-      '<div style="text-align:center;"><div style="font-family:var(--font-led);font-size:20px;color:var(--green);">'+_mbLines.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;">LINES</div></div>'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:20px;color:var(--accent);">'+_mbZones.length+'</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">ZONES</div></div>'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:20px;color:var(--accent);">'+_mbLandmarks.length+'</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">LANDMARKS</div></div>'+
+      '<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:20px;color:var(--accent);">'+_mbLines.length+'</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;">LINES</div></div>'+
     '</div></div>';
 
   // Render quality checklist
@@ -6403,7 +6543,7 @@ function _renderMbReview(){
 async function publishMap(){
   if(!_authUser){_requireAuth(()=>publishMap());return;}
   const name=(document.getElementById('mbName')?.value.trim())||'';
-  const creator=(document.getElementById('mbCreator')?.value.trim())||'Anonymous';
+  const creator=_authUser?(_authUser.displayName||_authUser.email||'Anonymous'):'Anonymous';
   const desc=(document.getElementById('mbDesc')?.value.trim())||'';
   const status=document.getElementById('mbPublishStatus');
   if(!name){showToast('Enter a map name.','warn');mbGotoStep('meta');return;}
@@ -6426,7 +6566,7 @@ async function publishMap(){
     const mapObj={
       id,name,cityName:_mbCityData.shortName,
       cityTag:_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-'),
-      desc,creator,creatorId,createdAt:Date.now(),playCount:0,
+      desc,creator,creatorId,createdAt:Date.now(),playCount:0,creatorPhoto:_authUser&&_authUser.photoURL?_authUser.photoURL:null,
       config:{
         cityName:_mbCityData.shortName,cityCenter:{lat:_mbCityData.lat,lng:_mbCityData.lng},
         transitMode:document.getElementById('mbTransitMode')?.value||'transit',
