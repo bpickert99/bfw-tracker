@@ -5484,7 +5484,7 @@ function _mbSaveDraft(){
       cityData: _mbCityData,
       zones: _mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,lines:z.lines,stops:z.stops||''})),
       landmarks: _mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint,lat:lm.lat,lng:lm.lng})),
-      lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[]})),
+      lines: _mbLines.map(ln=>({id:ln.id,name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[],imported:ln.imported||false,stations:ln.stations||[]})),
       shopConfig: _mbGetCleanShopConfig(),
       savedAt: Date.now(),
       publishedId: _mbCurrentDraftId.startsWith('draft_') ? null : _mbCurrentDraftId
@@ -5850,17 +5850,7 @@ function _mbInitBuildMap(){
     // Draw all existing layers onto the shared canvas
     _mbZones.forEach((z,i)=>{ if(z.poly&&z.poly.length>2) _mbDrawZoneOnMapNow(z,i); });
     _mbLandmarks.forEach((lm,i)=>{ lm.marker=_mbAddLmMarker(lm,i,map); });
-    _mbLines.forEach(ln=>{
-      if(ln.stops.length>1){
-        const pts=_mbSmoothLine(ln.stops,ln.smooth);
-        ln.polyLayer=L.polyline(pts,{color:ln.color,weight:4,opacity:.8}).addTo(map);
-        ln.stopMarkers=[];
-        ln.stops.forEach(s=>{
-          const icon=L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:'+ln.color+';border:2px solid white;"></div>',iconSize:[8,8],iconAnchor:[4,4]});
-          ln.stopMarkers.push(L.marker([s.lat,s.lng],{icon}).addTo(map));
-        });
-      }
-    });
+    _mbLines.forEach(ln=>{ if(ln.stops&&ln.stops.length>1) _mbDrawTransitLine(ln, map); });
 
     // Fit to existing content if any
     const allPts=[..._mbZones.flatMap(z=>z.poly||[]), ..._mbLandmarks.map(l=>[l.lat,l.lng])];
@@ -6203,22 +6193,39 @@ async function mbDiscoverLandmarks(){
   _mbZones.forEach(z => (z.poly||[]).forEach(p => { minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]); }));
   const bbox = minLat+','+minLng+','+maxLat+','+maxLng;
 
-  const q = `[out:json][timeout:30];(node["tourism"~"attraction|museum|artwork|viewpoint|gallery"](${bbox});node["historic"~"monument|memorial|castle|ruins|building"](${bbox});node["amenity"~"theatre|arts_centre|place_of_worship|fountain|library|townhall"](${bbox});node["leisure"~"park|stadium|garden"](${bbox});node["man_made"~"tower|lighthouse|bridge"](${bbox}););out body qt 80;`;
+  // nwr = node/way/relation; "out center" gives a representative point for
+  // ways/relations (parks, stadiums, museums) — not just point-mapped nodes.
+  const q = `[out:json][timeout:40];(`+
+    `nwr["tourism"~"attraction|museum|artwork|viewpoint|gallery|zoo|theme_park"](${bbox});`+
+    `nwr["historic"~"monument|memorial|castle|ruins|building|fort|archaeological_site"](${bbox});`+
+    `nwr["amenity"~"theatre|arts_centre|place_of_worship|fountain|library|townhall|marketplace"](${bbox});`+
+    `nwr["leisure"~"park|stadium|garden|sports_centre"](${bbox});`+
+    `nwr["man_made"~"tower|lighthouse|bridge|obelisk"](${bbox});`+
+    `);out center 150;`;
 
   try {
     let data;
-    try { data = await _overpass(q, {timeoutMs:30000}); }
+    try { data = await _overpass(q, {timeoutMs:40000}); }
     catch(e) { sug.innerHTML='<div style="padding:8px;font-size:11px;color:var(--orange);">POI service unavailable right now. Please try again in a moment.</div>'; return; }
 
     let pois = (data.elements||[]).filter(el => el.tags && el.tags.name);
-    pois = pois.filter(poi => _mbZones.some(z => z.poly && _pointInPoly([poi.lat, poi.lon], z.poly)));
+    // Normalize coords: ways/relations carry their point in .center
+    pois.forEach(p => { if(p.lat==null && p.center){ p.lat=p.center.lat; p.lon=p.center.lon; } });
+    pois = pois.filter(p => p.lat!=null && p.lon!=null);
+
+    // Prefer POIs inside the drawn zones; if none land inside, fall back to
+    // everything in the search area so the user still gets suggestions.
+    const inZone = pois.filter(poi => _mbZones.some(z => z.poly && _pointInPoly([poi.lat, poi.lon], z.poly)));
+    let list = inZone.length ? inZone : pois;
+
     const seen = new Set();
-    pois = pois.filter(p => { const n=p.tags.name; if(seen.has(n)) return false; seen.add(n); return true; });
+    list = list.filter(p => { const n=p.tags.name; if(seen.has(n)) return false; seen.add(n); return true; });
     const existing = new Set(_mbLandmarks.map(l => l.name.toLowerCase()));
-    pois = pois.filter(p => !existing.has(p.tags.name.toLowerCase()));
+    list = list.filter(p => !existing.has(p.tags.name.toLowerCase()));
+    pois = list;
 
     if(!pois.length) {
-      sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">No new POIs found in your zones. Try placing landmarks manually.</div>';
+      sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">No new points of interest found in this area. Try placing landmarks manually.</div>';
       return;
     }
 
@@ -6632,7 +6639,7 @@ async function publishMap(){
     const cleanZones=_mbZones.map(z=>({code:z.code,name:z.name,poly:z.poly,area:z.area,region:'GAME',lines:z.lines,stops:''}));
     const cleanLm=_mbLandmarks.map(lm=>({name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng,coins:0}));
     const cleanLines={};
-    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[]};});
+    _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[],imported:ln.imported||false,stations:ln.stations||[]};});
     const cleanShop=_mbGetCleanShopConfig();
     const mapObj={
       id,name,cityName:_mbCityData.shortName,
@@ -6643,7 +6650,7 @@ async function publishMap(){
         transitMode:document.getElementById('mbTransitMode')?.value||'transit',
         transitTypes:Object.keys(cleanLines).length>0?['transit']:[],
         zones:cleanZones,landmarks:cleanLm,
-        transitStops:_mbLines.flatMap(ln=>ln.stops),
+        transitStops:_mbLines.flatMap(ln=>(ln.imported&&ln.stations&&ln.stations.length)?ln.stations:ln.stops),
         transitLines:cleanLines,lineBonuses:[],
         shopConfig:cleanShop
       }
@@ -7413,8 +7420,10 @@ async function mbDoTransitImport(){
     catch(e) { status.textContent='Service unavailable — try again'; return; }
 
     let routes = (data.elements||[]).filter(el => el.tags && (el.tags.name || el.tags.ref));
+    // Collapse the two directional variants of the same line into one entry
+    // (e.g. there shouldn't be two DC Red Lines — it's the same track both ways).
     const seen = new Set();
-    routes = routes.filter(el => { const n = el.tags.name || el.tags.ref; if(seen.has(n)) return false; seen.add(n); return true; });
+    routes = routes.filter(el => { const k=_transitDedupeKey(el.tags); if(seen.has(k)) return false; seen.add(k); return true; });
     const existingNames = new Set(_mbLines.map(l => l.name.toLowerCase()));
     routes = routes.filter(el => !existingNames.has((el.tags.name||el.tags.ref).toLowerCase()));
 
@@ -7478,6 +7487,71 @@ function _mbUpdateTransitSelCount(){
   if(el) el.textContent = window._mbTransitSelected.size+' selected';
 }
 
+// Identity for collapsing forward/backward variants of the same line.
+// Prefer the line ref (e.g. "Red"); else the base name before any
+// direction/terminus marker. Scoped by route type so a bus 10 != train 10.
+function _transitDedupeKey(tags){
+  const route=(tags.route||'').toLowerCase();
+  if(tags.ref) return route+'|ref|'+tags.ref.toLowerCase().replace(/\s+/g,'');
+  let n=(tags.name||'').toLowerCase();
+  n=n.split(/[:→]|->|=>/)[0];                                   // drop "→ Glenmont" style suffix
+  n=n.replace(/\b(in|out)bound\b/g,'')
+     .replace(/\b(north|south|east|west)(bound)?\b/g,'')
+     .replace(/\bclockwise\b|\banticlockwise\b|\bloop\b/g,'')
+     .replace(/\s+/g,' ').trim();
+  return route+'|name|'+n;
+}
+
+// Join OSM route member ways into one continuous path. Route relations list
+// ways that must be ordered head-to-tail and sometimes reversed; concatenating
+// them blindly draws false connectors (the loop bug). This greedily stitches
+// the connected chain and drops disconnected stragglers.
+function _mbStitchWays(ways){
+  ways = ways.filter(w => w && w.length >= 2);
+  if(!ways.length) return [];
+  const eps = 1.5e-4; // ~15m tolerance for matching endpoints
+  const near = (a,b) => Math.abs(a[0]-b[0])<eps && Math.abs(a[1]-b[1])<eps;
+  const used = new Array(ways.length).fill(false);
+  // Seed with the longest way so we anchor on a substantial segment
+  let seed=0; for(let i=1;i<ways.length;i++) if(ways[i].length>ways[seed].length) seed=i;
+  let path = ways[seed].slice(); used[seed]=true;
+  let grew = true;
+  while(grew){
+    grew = false;
+    for(let i=0;i<ways.length;i++){
+      if(used[i]) continue;
+      const w=ways[i], ws=w[0], we=w[w.length-1];
+      const ps=path[0], pe=path[path.length-1];
+      if(near(pe,ws)){ path=path.concat(w.slice(1)); used[i]=true; grew=true; }
+      else if(near(pe,we)){ path=path.concat(w.slice(0,-1).reverse()); used[i]=true; grew=true; }
+      else if(near(ps,we)){ path=w.slice(0,-1).concat(path); used[i]=true; grew=true; }
+      else if(near(ps,ws)){ path=w.slice(1).reverse().concat(path); used[i]=true; grew=true; }
+    }
+  }
+  return path;
+}
+
+// Draw a transit line on a map. Imported lines render the detailed path plus
+// markers at real stations only (or endpoints); hand-drawn lines mark each stop.
+function _mbDrawTransitLine(line, map){
+  if(!map || !line.stops || line.stops.length<2) return;
+  const pts=_mbSmoothLine(line.stops, line.smooth);
+  line.polyLayer=L.polyline(pts,{color:line.color,weight:line.imported?3:4,opacity:0.85}).addTo(map);
+  line.polyLayer.bindTooltip(esc(line.name),{className:'zt',sticky:true});
+  line.stopMarkers=[];
+  let dots;
+  if(line.imported){
+    dots = (line.stations&&line.stations.length) ? line.stations
+         : [line.stops[0], line.stops[line.stops.length-1]]; // fall back to endpoints
+  } else {
+    dots = line.stops;
+  }
+  dots.forEach(s=>{
+    const m=L.circleMarker(L.latLng(s.lat,s.lng),{radius:3,color:line.color,fillColor:'#fff',fillOpacity:1,weight:1.5}).addTo(map);
+    line.stopMarkers.push(m);
+  });
+}
+
 async function mbDoTransitImportSelected(){
   const sel = window._mbTransitSelected;
   if(!sel || !sel.size){showToast('Select at least one route to import.','warn');return;}
@@ -7508,43 +7582,38 @@ async function mbDoTransitImportSelected(){
       const rels = (geoData.elements||[]).filter(e => e.members);
       if(!rels.length) continue;
 
-      const allPts = [];
-      rels[0].members.filter(m=>m.type==='way'&&m.geometry).forEach(m=>{
-        m.geometry.forEach(g => allPts.push([g.lat, g.lon]));
-      });
-      if(allPts.length < 2) continue;
+      // Gather member ways, then stitch into one continuous, correctly-ordered
+      // path so we don't draw connectors between unconnected ends (the loop bug).
+      const ways = rels[0].members
+        .filter(m=>m.type==='way' && m.geometry && m.geometry.length>=2)
+        .map(m=>m.geometry.map(g=>[g.lat,g.lon]));
+      let path = _mbStitchWays(ways);
+      if(path.length < 2) continue;
+      // Keep full shape but trim pathological sizes with shape-preserving DP
+      if(path.length > 400) path = _bdyDouglasPeucker(path, 0.00008);
 
-      let stops = allPts;
-      if(stops.length > 60){
-        const step = Math.ceil(stops.length / 60);
-        const simplified = [];
-        for(let i=0;i<stops.length;i+=step) simplified.push(stops[i]);
-        if(simplified.length>1) simplified.push(stops[stops.length-1]);
-        stops = simplified;
-      }
+      // Real stations = node members tagged stop/station/platform
+      const stations = rels[0].members
+        .filter(m=>m.type==='node' && m.lat!=null && /stop|station|halt|platform/.test(m.role||''))
+        .map(m=>({lat:m.lat,lng:m.lon}));
+
+      // Store stops in the standard {lat,lng} shape (matches hand-drawn lines)
+      const stops = path.map(p=>({lat:p[0],lng:p[1]}));
 
       const zonesServed = [];
       _mbZones.forEach((z,zi) => {
         if(!z.poly) return;
-        if(stops.some(s => _pointInPoly(s, z.poly))) zonesServed.push(zi);
+        if(path.some(p => _pointInPoly(p, z.poly))) zonesServed.push(zi);
       });
 
       const lineId = 'L'+(Date.now())+'-'+imported;
       const line = {
         id: lineId, name, type: typeMap[rtype]||'subway',
-        color, smooth: false, stops,
+        color, smooth: false, stops, stations, imported: true,
         zonesServed, polyLayer:null, stopMarkers:[]
       };
 
-      if(_mbMapTransit){
-        const latlngs = stops.map(s=>L.latLng(s[0],s[1]));
-        line.polyLayer = L.polyline(latlngs, {color, weight:3, opacity:0.8}).addTo(_mbMapTransit);
-        line.polyLayer.bindTooltip(esc(name),{className:'zt',sticky:true});
-        stops.forEach(s=>{
-          const m=L.circleMarker(L.latLng(s[0],s[1]),{radius:2.5,color,fillColor:'white',fillOpacity:1,weight:1.5}).addTo(_mbMapTransit);
-          line.stopMarkers.push(m);
-        });
-      }
+      if(_mbMapTransit) _mbDrawTransitLine(line, _mbMapTransit);
 
       _mbLines.push(line);
       imported++;
