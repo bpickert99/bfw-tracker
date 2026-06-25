@@ -6823,16 +6823,26 @@ async function _bdySelectResult(idx) {
     });
     const polyData = await polyR.json();
 
-    // Now fetch sub-areas using Overpass API
-    info.innerHTML = '<div style="color:var(--muted);">Searching for sub-divisions (neighborhoods, districts)...</div>';
+    // Fetch the parent's admin_level so we only show smaller subdivisions
+    info.innerHTML = '<div style="color:var(--muted);">Searching for neighborhoods &amp; districts...</div>';
+
+    // Get parent relation's admin_level
+    const parentQ = `[out:json][timeout:10];rel(${osmId});out tags;`;
+    const parentR = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'data=' + encodeURIComponent(parentQ)
+    });
+    const parentData = await parentR.json();
+    const parentLevel = parseInt((parentData.elements||[])[0]?.tags?.admin_level || '6');
 
     const overpassQuery = `[out:json][timeout:30];
 rel(${osmId});
 map_to_area->.parent;
 (
   rel(area.parent)["boundary"="administrative"];
-  rel(area.parent)["admin_level"];
-  rel(area.parent)["place"~"suburb|neighbourhood|quarter|borough"];
+  rel(area.parent)["place"~"suburb|neighbourhood|quarter|borough|village|town"];
+  node(area.parent)["place"~"suburb|neighbourhood|quarter|borough"];
 );
 out tags;`;
 
@@ -6843,7 +6853,15 @@ out tags;`;
     });
     const opData = await opR.json();
 
-    let subRelations = (opData.elements || []).filter(el => el.tags && el.tags.name);
+    let subRelations = (opData.elements || []).filter(el => {
+      if(!el.tags || !el.tags.name) return false;
+      // Filter out areas that are same level or larger than the parent
+      const lvl = parseInt(el.tags.admin_level || '99');
+      if(el.tags.admin_level && lvl <= parentLevel) return false;
+      // Filter out the parent itself
+      if(el.type === 'relation' && el.id == osmId) return false;
+      return true;
+    });
 
     // Deduplicate by name
     const seen = new Set();
@@ -6895,7 +6913,8 @@ function _bdyRenderSubList(){
   el.innerHTML = '';
   _bdySubAreas.forEach((sub, i) => {
     const name = sub.tags.name || 'Unnamed';
-    const type = sub.tags.admin_level ? 'Level ' + sub.tags.admin_level : (sub.tags.place || 'area');
+    const placeMap = {neighbourhood:'Neighborhood',suburb:'Neighborhood',quarter:'Quarter',borough:'Borough',village:'Village',town:'Town'};
+    const type = sub.tags.place ? (placeMap[sub.tags.place] || sub.tags.place) : (sub.tags.admin_level ? 'Level ' + sub.tags.admin_level : 'area');
     const isChecked = _bdySelectedSubs.has(i);
     const row = document.createElement('label');
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;' + (isChecked ? 'background:var(--surface2);' : '');
