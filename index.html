@@ -218,6 +218,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 /* MAP overlays */
 .leaflet-container{background:#F7F8FA !important;}
 .leaflet-interactive:focus{outline:none !important;}
+.bdy-tip{background:rgba(255,255,255,.9)!important;border:none!important;box-shadow:none!important;font-size:10px!important;font-weight:700!important;color:var(--text)!important;padding:1px 5px!important;}
+.bdy-tip:before{display:none!important;}
 #zonePopup{position:fixed;z-index:400;background:var(--surface);border:none;border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow);min-width:200px;max-width:260px;pointer-events:auto;}
 #zonePopup h4{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:4px;line-height:1.15;}
 #zonePopup .zp-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
@@ -1477,14 +1479,19 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <button class="btn btn-p btn-sm" onclick="mbBdyDoSearch()">Search</button>
     </div>
     <div id="mbBdyResults" style="overflow-y:auto;flex:1;min-height:0;"></div>
-    <div id="mbBdyPreview" style="display:none;flex-shrink:0;">
+    <div id="mbBdyPreview" style="display:none;flex-shrink:0;overflow-y:auto;">
       <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
         <div id="mbBdyPreviewInfo" style="font-size:12px;margin-bottom:8px;line-height:1.5;"></div>
-        <div id="mbBdySubList" style="max-height:200px;overflow-y:auto;margin-bottom:8px;"></div>
-        <div style="display:flex;gap:6px;align-items:center;">
+        <div id="mbBdySubList" style="max-height:160px;overflow-y:auto;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
           <button class="btn btn-g btn-sm" onclick="mbBdySelectAll()">Select All</button>
           <button class="btn btn-g btn-sm" onclick="mbBdySelectNone()">Deselect All</button>
           <span style="font-size:11px;color:var(--muted);margin-left:auto;" id="mbBdySelCount">0 selected</span>
+        </div>
+        <button class="btn btn-g btn-sm" id="mbBdyPreviewBtn" onclick="mbBdyPreview()" style="width:100%;margin-bottom:8px;">Preview selected on map</button>
+        <div id="mbBdyPreviewMapWrap" style="display:none;margin-bottom:8px;">
+          <div id="mbBdyPreviewMap" style="height:210px;border-radius:10px;overflow:hidden;border:1px solid var(--border);"></div>
+          <div id="mbBdyPreviewLegend" style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;"></div>
         </div>
       </div>
     </div>
@@ -6717,6 +6724,8 @@ function pointInPolyLL(lat,lng,poly){
 let _bdyResults = [];
 let _bdySubAreas = [];
 let _bdySelectedSubs = new Set();
+let _bdyPreviewMap = null;
+let _bdyPreviewLayers = [];
 
 function mbOpenBoundaryImport(){
   document.getElementById('mbBdyMo').classList.add('open');
@@ -6728,11 +6737,20 @@ function mbOpenBoundaryImport(){
   _bdyResults = [];
   _bdySubAreas = [];
   _bdySelectedSubs = new Set();
+  _bdyDestroyPreviewMap();
   setTimeout(() => input.focus(), 100);
 }
 
 function mbBdyClose(){
   document.getElementById('mbBdyMo').classList.remove('open');
+  _bdyDestroyPreviewMap();
+}
+
+function _bdyDestroyPreviewMap(){
+  if(_bdyPreviewMap){ try{ _bdyPreviewMap.remove(); }catch(e){} _bdyPreviewMap = null; }
+  _bdyPreviewLayers = [];
+  const wrap = document.getElementById('mbBdyPreviewMapWrap');
+  if(wrap) wrap.style.display = 'none';
 }
 
 async function mbBdyDoSearch(){
@@ -6759,7 +6777,7 @@ async function mbBdyDoSearch(){
       div.innerHTML = '<div style="font-weight:700;font-size:13px;margin-bottom:2px;">' + esc(item.display_name.split(',')[0]) + '</div>' +
         '<div style="font-size:11px;color:var(--muted);margin-bottom:3px;">' + esc(item.display_name) + '</div>' +
         '<div style="display:flex;gap:8px;font-size:10px;">' +
-          '<span style="background:var(--board);color:white;padding:2px 8px;border-radius:999px;">' + esc(type) + '</span>' +
+          '<span style="background:var(--surface2);color:var(--text);padding:2px 8px;border-radius:999px;">' + esc(type) + '</span>' +
           (item.osm_type === 'relation' ? '<span style="background:var(--green);color:white;padding:2px 8px;border-radius:999px;">Has boundary</span>' : '<span style="background:var(--surface2);color:var(--muted);padding:2px 8px;border-radius:999px;">Point only</span>') +
         '</div>';
       div.addEventListener('mouseover', () => div.style.background = 'var(--surface2)');
@@ -6878,27 +6896,31 @@ out tags;`;
       return (a.tags.name || '').localeCompare(b.tags.name || '');
     });
 
-    // If we got sub-areas, show them for selection
+    // Always offer the searched area itself as a single importable zone
+    const wholeName = item.display_name.split(',')[0];
+    const wholeEntry = polyData.geometry ? {
+      id: osmId,
+      tags: { name: wholeName },
+      _directGeo: polyData.geometry,
+      _isWhole: true
+    } : null;
+
     if(subRelations.length > 0) {
-      _bdySubAreas = subRelations;
-      info.innerHTML = '<div style="font-size:12px;line-height:1.5;"><strong>' + esc(item.display_name.split(',')[0]) + '</strong> has <strong>' + subRelations.length + '</strong> sub-divisions. Select which ones to import as zones:</div>';
+      // List the whole area first (default-selected), then its subdivisions
+      _bdySubAreas = wholeEntry ? [wholeEntry, ...subRelations] : subRelations;
+      _bdySelectedSubs = wholeEntry ? new Set([0]) : new Set();
+      info.innerHTML = '<div style="font-size:12px;line-height:1.5;"><strong>' + esc(wholeName) + '</strong> imports as one zone by default. Or pick from its <strong>' + subRelations.length + '</strong> neighborhoods &amp; districts below:</div>';
+      _bdyRenderSubList();
+      document.getElementById('mbBdyImportBtn').style.display = 'inline-block';
+    } else if(wholeEntry) {
+      // No sub-areas — just the whole boundary
+      _bdySubAreas = [wholeEntry];
+      _bdySelectedSubs = new Set([0]);
+      info.innerHTML = '<div style="font-size:12px;line-height:1.5;">No sub-divisions found inside <strong>' + esc(wholeName) + '</strong>. Import the whole boundary as a single zone, or try a more specific search.</div>';
       _bdyRenderSubList();
       document.getElementById('mbBdyImportBtn').style.display = 'inline-block';
     } else {
-      // No sub-areas — offer to import the whole boundary as one zone
-      if(polyData.geometry) {
-        _bdySubAreas = [{
-          id: osmId,
-          tags: { name: item.display_name.split(',')[0] },
-          _directGeo: polyData.geometry
-        }];
-        _bdySelectedSubs = new Set([0]);
-        info.innerHTML = '<div style="font-size:12px;line-height:1.5;">No sub-divisions found inside <strong>' + esc(item.display_name.split(',')[0]) + '</strong>. You can import the whole boundary as a single zone, or try a more specific search.</div>';
-        _bdyRenderSubList();
-        document.getElementById('mbBdyImportBtn').style.display = 'inline-block';
-      } else {
-        info.innerHTML = '<div style="font-size:12px;color:var(--orange);line-height:1.5;">No sub-divisions or boundary data found for this area. Try searching for a larger area (e.g. a city or county).</div>';
-      }
+      info.innerHTML = '<div style="font-size:12px;color:var(--orange);line-height:1.5;">No sub-divisions or boundary data found for this area. Try searching for a larger area (e.g. a city or county).</div>';
     }
   } catch(e) {
     info.innerHTML = '<div style="color:var(--red);font-size:12px;">Error loading boundaries: ' + e.message + '</div>';
@@ -6912,13 +6934,15 @@ function _bdyRenderSubList(){
   _bdySubAreas.forEach((sub, i) => {
     const name = sub.tags.name || 'Unnamed';
     const placeMap = {neighbourhood:'Neighborhood',suburb:'Neighborhood',quarter:'Quarter',borough:'Borough',village:'Village',town:'Town'};
-    const type = sub.tags.place ? (placeMap[sub.tags.place] || sub.tags.place) : (sub.tags.admin_level ? 'Level ' + sub.tags.admin_level : 'area');
+    const type = sub._isWhole ? 'Entire area' : (sub.tags.place ? (placeMap[sub.tags.place] || sub.tags.place) : (sub.tags.admin_level ? 'Level ' + sub.tags.admin_level : 'area'));
     const isChecked = _bdySelectedSubs.has(i);
     const row = document.createElement('label');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;' + (isChecked ? 'background:var(--surface2);' : '');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;' + (isChecked ? 'background:var(--surface2);' : '') + (sub._isWhole ? 'border:1px solid var(--border);margin-bottom:4px;' : '');
+    const badgeBg = sub._isWhole ? 'var(--accent)' : 'var(--surface2)';
+    const badgeCol = sub._isWhole ? 'white' : 'var(--muted)';
     row.innerHTML = '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' style="width:16px;height:16px;flex-shrink:0;cursor:pointer;">' +
-      '<span style="flex:1;font-weight:600;">' + esc(name) + '</span>' +
-      '<span style="font-size:10px;color:var(--muted);background:var(--surface2);padding:1px 6px;border-radius:999px;">' + esc(type) + '</span>';
+      '<span style="flex:1;font-weight:' + (sub._isWhole ? '700' : '600') + ';">' + esc(name) + '</span>' +
+      '<span style="font-size:10px;color:' + badgeCol + ';background:' + badgeBg + ';padding:1px 6px;border-radius:999px;">' + esc(type) + '</span>';
     const cb = row.querySelector('input');
     cb.addEventListener('change', () => {
       if(cb.checked) _bdySelectedSubs.add(i);
@@ -6945,6 +6969,148 @@ function mbBdySelectNone(){
   _bdyRenderSubList();
 }
 
+// Fetch + cache the polygon geometry for a sub-area
+async function _bdyEnsureGeo(sub){
+  if(sub._directGeo) return sub._directGeo;
+  if(sub._geo !== undefined) return sub._geo; // cached (possibly null)
+  if(sub.type === 'node'){ sub._geo = null; return null; } // place points have no boundary
+  const ot = sub.type === 'way' ? 'W' : 'R';
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=' + ot + '&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
+      headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
+    });
+    const d = await r.json();
+    sub._geo = d.geometry || null;
+  } catch(e){ sub._geo = null; }
+  return sub._geo;
+}
+
+function _bdyPolyCentroid(poly){
+  let la = 0, lo = 0;
+  poly.forEach(p => { la += p[0]; lo += p[1]; });
+  return [la / poly.length, lo / poly.length];
+}
+
+function _bdyBbox(poly){
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  poly.forEach(p => { minLat = Math.min(minLat, p[0]); maxLat = Math.max(maxLat, p[0]); minLng = Math.min(minLng, p[1]); maxLng = Math.max(maxLng, p[1]); });
+  return {minLat, maxLat, minLng, maxLng};
+}
+
+// Two polygons are "connected" if their borders nearly touch
+function _bdyPolysAdjacent(a, b){
+  const ab = _bdyBbox(a), bb = _bdyBbox(b);
+  const pad = 0.01; // ~1km — quick bbox reject
+  if(ab.maxLat + pad < bb.minLat || bb.maxLat + pad < ab.minLat || ab.maxLng + pad < bb.minLng || bb.maxLng + pad < ab.minLng) return false;
+  const TH = 300; // meters between border vertices
+  for(let i = 0; i < a.length; i++){
+    const la = L.latLng(a[i]);
+    for(let j = 0; j < b.length; j++){
+      if(la.distanceTo(L.latLng(b[j])) < TH) return true;
+    }
+  }
+  return false;
+}
+
+async function mbBdyPreview(){
+  const sel = [..._bdySelectedSubs];
+  if(!sel.length){ showToast('Select at least one area to preview.','warn'); return; }
+
+  const btn = document.getElementById('mbBdyPreviewBtn');
+  btn.disabled = true;
+  document.getElementById('mbBdyPreviewMapWrap').style.display = 'block';
+
+  const needFetch = sel.filter(i => { const s = _bdySubAreas[i]; return !s._directGeo && s._geo === undefined && s.type !== 'node'; }).length;
+  let fetched = 0;
+  let noBoundary = 0;
+  const cands = [];
+
+  for(const i of sel){
+    const sub = _bdySubAreas[i];
+    const wasCached = sub._directGeo || sub._geo !== undefined;
+    if(!wasCached && sub.type !== 'node') btn.textContent = 'Loading boundaries ' + (++fetched) + '/' + needFetch + '...';
+    const geo = await _bdyEnsureGeo(sub);
+    if(!wasCached && sub.type !== 'node') await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit
+    if(geo){
+      const polys = _bdyGeoToPolys(geo);
+      if(polys.length){
+        const main = polys.reduce((a, b) => a.length > b.length ? a : b);
+        cands.push({ name: sub.tags.name || 'Zone', poly: _bdySimplifyPoly(main, 80) });
+        continue;
+      }
+    }
+    noBoundary++;
+  }
+
+  btn.textContent = 'Preview selected on map';
+  btn.disabled = false;
+  _bdyDrawPreview(cands, noBoundary);
+}
+
+function _bdyDrawPreview(cands, noBoundary){
+  const legend = document.getElementById('mbBdyPreviewLegend');
+
+  // (Re)create the preview map fresh
+  if(_bdyPreviewMap){ try{ _bdyPreviewMap.remove(); }catch(e){} _bdyPreviewMap = null; }
+  const mapEl = document.getElementById('mbBdyPreviewMap');
+  mapEl.innerHTML = '';
+  _bdyPreviewMap = L.map(mapEl, {zoomControl: true, attributionControl: false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {maxZoom: 19, subdomains: 'abcd'}).addTo(_bdyPreviewMap);
+
+  const allPts = [];
+
+  // Zones already on your map (muted, dashed)
+  const existing = (_mbZones || []).filter(z => z.poly && z.poly.length).map(z => ({name: z.name || z.code, poly: z.poly}));
+  existing.forEach(z => {
+    L.polygon(z.poly, {color: '#9aa5b1', weight: 1.5, fillColor: '#cbd2d9', fillOpacity: 0.25, dashArray: '4,3'})
+      .addTo(_bdyPreviewMap).bindTooltip(z.name, {direction:'center', className:'bdy-tip'});
+    allPts.push(...z.poly);
+  });
+
+  // New candidate zones (accent blue)
+  cands.forEach(c => {
+    L.polygon(c.poly, {color: '#1A6DD4', weight: 2, fillColor: '#1A6DD4', fillOpacity: 0.22})
+      .addTo(_bdyPreviewMap).bindTooltip(c.name, {direction:'center', className:'bdy-tip'});
+    allPts.push(...c.poly);
+  });
+
+  // Connections: new↔existing (green solid) and new↔new (blue dashed)
+  let toExisting = 0, internal = 0;
+  cands.forEach((c, i) => {
+    const cc = _bdyPolyCentroid(c.poly);
+    existing.forEach(z => {
+      if(_bdyPolysAdjacent(c.poly, z.poly)){
+        L.polyline([cc, _bdyPolyCentroid(z.poly)], {color: '#00B66B', weight: 2.5, opacity: 0.9}).addTo(_bdyPreviewMap);
+        toExisting++;
+      }
+    });
+    for(let j = i + 1; j < cands.length; j++){
+      if(_bdyPolysAdjacent(c.poly, cands[j].poly)){
+        L.polyline([cc, _bdyPolyCentroid(cands[j].poly)], {color: '#1A6DD4', weight: 1.5, opacity: 0.6, dashArray: '5,4'}).addTo(_bdyPreviewMap);
+        internal++;
+      }
+    }
+  });
+
+  if(allPts.length){
+    _bdyPreviewMap.fitBounds(L.latLngBounds(allPts.map(p => L.latLng(p[0], p[1]))), {padding: [20, 20], maxZoom: 14});
+  }
+  setTimeout(() => { try{ _bdyPreviewMap.invalidateSize(); }catch(e){} }, 60);
+
+  // Legend / summary
+  let html = '<span style="display:inline-block;width:10px;height:10px;background:#1A6DD4;border-radius:2px;margin-right:4px;"></span>' + cands.length + ' new zone' + (cands.length !== 1 ? 's' : '');
+  if(existing.length) html += ' &nbsp;·&nbsp; <span style="display:inline-block;width:10px;height:10px;background:#cbd2d9;border:1px dashed #9aa5b1;border-radius:2px;margin-right:4px;"></span>' + existing.length + ' already on map';
+  html += '<br>';
+  if(existing.length){
+    html += '<span style="display:inline-block;width:14px;border-top:2.5px solid #00B66B;margin-right:4px;vertical-align:middle;"></span>' + toExisting + ' connection' + (toExisting !== 1 ? 's' : '') + ' to your map';
+    html += ' &nbsp;·&nbsp; ';
+  }
+  html += '<span style="display:inline-block;width:14px;border-top:2px dashed #1A6DD4;margin-right:4px;vertical-align:middle;"></span>' + internal + ' between new zones';
+  if(noBoundary) html += '<br><span style="color:var(--orange);">' + noBoundary + ' selected area' + (noBoundary !== 1 ? 's have' : ' has') + ' no boundary data (skipped).</span>';
+  if(existing.length && !toExisting) html += '<br><span style="color:var(--orange);">⚠ None of the new zones touch your existing map — they may be disconnected.</span>';
+  legend.innerHTML = html;
+}
+
 async function mbBdyImportSelected(){
   if(!_bdySelectedSubs.size){ showToast('Select at least one area to import.','warn'); return; }
 
@@ -6966,13 +7132,18 @@ async function mbBdyImportSelected(){
 
       if(sub._directGeo) {
         geo = sub._directGeo;
-      } else {
+      } else if(sub._geo !== undefined) {
+        // Reuse geometry already fetched during preview
+        geo = sub._geo;
+      } else if(sub.type !== 'node') {
         // Fetch polygon from Nominatim
-        const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=R&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
+        const ot = sub.type === 'way' ? 'W' : 'R';
+        const r = await fetch('https://nominatim.openstreetmap.org/details.php?osmtype=' + ot + '&osmid=' + sub.id + '&polygon_geojson=1&format=json', {
           headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
         });
         const data = await r.json();
         geo = data.geometry;
+        sub._geo = geo || null;
 
         // Rate limit: Nominatim requires 1 req/sec
         await new Promise(resolve => setTimeout(resolve, 1100));
