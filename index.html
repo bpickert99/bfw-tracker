@@ -59,8 +59,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .hbtn:hover{opacity:.87;transform:translateY(-1px);}.hbtn:active{transform:scale(.98);}
 
 /* HOST SETUP */
-#screenHostSetup{padding:20px;overflow-y:auto;background:var(--bg);}
-.setup-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:24px;width:100%;max-width:480px;margin:0 auto;box-shadow:none;}
+#screenHostSetup{padding:0;overflow-y:auto;background:var(--bg);padding-bottom:80px;}
+.setup-header{background:var(--header-bg);color:white;padding:16px 20px;display:flex;align-items:center;gap:12px;}
+.setup-header h2{font-family:var(--font);font-weight:700;font-size:20px;margin:0;flex:1;}
+.setup-section{border-bottom:1px solid var(--border);}
+.setup-section-head{background:var(--board);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.setup-section-head:active{opacity:.85;}
+.setup-section-head .ss-icon{width:28px;height:28px;border-radius:var(--r-badge);background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.setup-section-head .ss-title{font-weight:700;font-size:14px;flex:1;}
+.setup-section-head .ss-meta{font-size:11px;color:rgba(255,255,255,.5);font-family:var(--font-mono);}
+.setup-section-head .ss-arrow{font-size:12px;color:rgba(255,255,255,.4);transition:transform .2s;margin-left:4px;}
+.setup-section.open .ss-arrow{transform:rotate(180deg);}
+.setup-section-body{display:none;padding:16px 20px;background:var(--surface);}
+.setup-section.open .setup-section-body{display:block;}
+.setup-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+.setup-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.setup-row label{margin:0;flex:1;font-size:13px;color:var(--text);}
+.setup-row input[type="checkbox"]{width:auto;margin:0;transform:scale(1.3);}
+.setup-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.setup-toggle:last-child{border-bottom:none;}
+.setup-toggle label{margin:0;font-size:13px;color:var(--text);flex:1;}
+.setup-bottom{position:fixed;bottom:0;left:0;right:0;padding:12px 20px;background:var(--bg);border-top:2px solid var(--border);z-index:100;display:flex;gap:8px;}
+.setup-form{background:var(--surface);border:none;border-radius:0;padding:0;width:100%;max-width:100%;margin:0;box-shadow:none;}
 .setup-form h2{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:18px;line-height:1.15;}
 .team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 12px;margin-bottom:7px;}
 .tcd{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);}
@@ -520,114 +540,147 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 <!-- HOST SETUP -->
 <div class="screen" id="screenHostSetup">
-  <div class="setup-form" style="margin:20px auto;">
-    <h2>Host Setup</h2>
-    <label>Your Name</label>
-    <input type="text" id="hostName" placeholder="Your name">
-    <div class="divider"></div>
-    <label>Game Times</label>
-    <div class="fr">
-      <div><label>Game Start</label><input type="time" id="cfgStart" value="10:00"></div>
-      <div><label>Game End</label><input type="time" id="cfgEnd" value="18:00"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <label style="margin:0;flex:1;">Lunch Break</label>
-      <input type="checkbox" id="cfgLunchEnabled" checked onchange="toggleLunchFields()" style="width:auto;margin:0;transform:scale(1.3);">
-    </div>
-    <div id="lunchFields">
-    <div class="fr">
-      <div><label>Lunch Start</label><input type="time" id="cfgLunchStart" value="12:00"></div>
-      <div><label>Lunch End</label><input type="time" id="cfgLunchEnd" value="13:00"></div>
-    </div>
-    </div>
+  <div class="setup-header">
+    <button class="btn btn-g btn-xs" onclick="showScreen('screenHome')" style="background:rgba(255,255,255,.15);border:none;color:white;padding:6px 10px;">&#x2190;</button>
+    <h2>New Game</h2>
+  </div>
 
-    <div class="divider"></div>
-    <label>The Flop</label>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <label style="margin:0;flex:1;font-size:13px;color:var(--muted);">Auto-refresh after inactivity?</label>
-      <input type="checkbox" id="cfgFlopRefresh" onchange="toggleFlopFields()" style="width:auto;margin:0;transform:scale(1.3);">
-    </div>
-    <div id="flopRefreshFields" style="display:none;">
-      <label>Refresh after (minutes)</label>
-      <input type="number" id="cfgFlopMins" value="45" min="5" max="240" style="max-width:120px;">
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <label style="margin:0;flex:1;font-size:13px;color:var(--muted);">Auto-replace unclaimed Flop items after 1 hour?</label>
-      <input type="checkbox" id="cfgFlopItemExpiry" style="width:auto;margin:0;transform:scale(1.3);">
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;margin-top:8px;">
-      <label style="margin:0;flex:1;font-size:13px;color:var(--muted);">Photo vote auto-accept timeout</label>
-    </div>
-    <div class="fr" style="margin-bottom:0;">
-      <div><label style="font-size:12px;">Minutes</label><input type="number" id="cfgVoteTimeout" value="5" min="1" max="30" style="max-width:100px;"></div>
-      <div><label style="font-size:12px;">Starting Coins (per team)</label><input type="number" id="cfgStartCoins" value="10" min="0" max="100" style="max-width:100px;"></div>
-    </div>
+  <!-- SECTION 1: HOST NAME -->
+  <div style="padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);">
+    <span class="setup-label">Your Name</span>
+    <input type="text" id="hostName" placeholder="Enter your name" style="margin:0;font-size:16px;">
+  </div>
 
-
-    <div style="margin-top:10px;">
-      <button class="btn btn-g btn-sm" onclick="toggleFlopCustomizer()" id="flopCustomizerToggle">Customize Challenges</button>
-      <div id="flopCustomizerPanel" style="display:none;margin-top:10px;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:14px;padding:10px;">
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <button class="btn btn-g btn-xs" onclick="flopSelectAll(true)">All</button>
-          <button class="btn btn-g btn-xs" onclick="flopSelectAll(false)">None</button>
-          <span id="flopSelectedCount" style="font-size:11px;color:var(--muted);margin-left:auto;align-self:center;"></span>
-        </div>
-        <div id="flopChallengeList"></div>
-      </div>
+  <!-- SECTION 2: MAP -->
+  <div class="setup-section open" id="setupSecMap">
+    <div class="setup-section-head" onclick="toggleSetupSection('setupSecMap')">
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 3l4 1.5V13l-4-1.5V3zm4 1.5l4-1.5v8.5l-4 1.5V4.5zm4-1.5l4 1.5V13l-4-1.5V3z" fill="white" opacity=".8"/></svg></div>
+      <div class="ss-title">Map</div>
+      <div class="ss-meta" id="setupMapMeta">Community Maps</div>
+      <div class="ss-arrow">&#x25BC;</div>
     </div>
-
-    <div class="divider"></div>
-    <label>Map &amp; Transit</label>
-    <div id="mapSelectionSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:8px;font-size:12px;line-height:1.5;"></div>
-
-    <div style="margin-bottom:10px;">
-      <label style="font-size:12px;color:var(--muted);">Game Preset</label>
-      <select id="cfgMapPreset" onchange="onMapPresetChange()" style="margin-bottom:8px;">
+    <div class="setup-section-body">
+      <div id="mapSelectionSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.5;"></div>
+      <span class="setup-label">Game Preset</span>
+      <select id="cfgMapPreset" onchange="onMapPresetChange()" style="margin-bottom:12px;">
         <option value="community">Community Maps (browse by city)</option>
         <option value="dc">Washington DC — built-in</option>
         <option value="custom">Generate from OpenStreetMap</option>
       </select>
-    </div>
-
-    <!-- COMMUNITY MAP BROWSER -->
-    <div id="cfgMapCommunitySection" style="margin-bottom:10px;">
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()" onfocus="if(!_allMaps.length)loadCommunityMaps()">
-        <button class="btn btn-g btn-sm" onclick="loadCommunityMaps()">Browse</button>
+      <!-- COMMUNITY MAP BROWSER -->
+      <div id="cfgMapCommunitySection">
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="cfgMapSearch" placeholder="Search by city (e.g. Kansas City)" style="flex:1;margin:0;" oninput="_filterMapResults()" onfocus="if(!_allMaps.length)loadCommunityMaps()">
+          <button class="btn btn-g btn-sm" onclick="loadCommunityMaps()">Browse</button>
+        </div>
+        <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
+        <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface2);border:2px solid var(--accent);border-radius:14px;font-size:12px;line-height:1.6;"></div>
       </div>
-      <div id="cfgMapResults" style="max-height:280px;overflow-y:auto;"><div style="font-size:12px;color:var(--muted);padding:8px 0;">Tap Browse to load available maps.</div></div>
-      <div id="cfgSelectedMapCard" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface2);border:2px solid var(--accent);border-radius:20px;font-size:12px;line-height:1.6;"></div>
-    </div>
-
-    <div id="cfgMapCustomSection" style="display:none;">
-      <label style="font-size:12px;color:var(--muted);">City or Play Area</label>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="cfgCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
-        <button class="btn btn-g btn-sm" onclick="searchCity()" id="citySearchBtn">Search</button>
-      </div>
-      <div id="cfgCityResults" style="margin-bottom:8px;"></div>
-
-      <div id="cfgZoneSection" style="display:none;">
-        <div id="cfgZoneStatus" style="font-size:12px;padding:8px 10px;border-radius:14px;background:var(--surface2);margin-bottom:10px;line-height:1.5;"></div>
-        <label style="font-size:12px;color:var(--muted);">Zones — tap to include or exclude</label>
-        <div id="cfgZoneCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span id="cfgZoneCount" style="font-size:12px;color:var(--muted);"></span>
-          <button class="btn btn-g btn-xs" onclick="resetZoneSelection()">Reset</button>
+      <div id="cfgMapCustomSection" style="display:none;">
+        <span class="setup-label">City or Play Area</span>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="cfgCitySearch" placeholder="e.g. Kansas City, MO" style="flex:1;margin:0;">
+          <button class="btn btn-g btn-sm" onclick="searchCity()" id="citySearchBtn">Search</button>
+        </div>
+        <div id="cfgCityResults" style="margin-bottom:8px;"></div>
+        <div id="cfgZoneSection" style="display:none;">
+          <div id="cfgZoneStatus" style="font-size:12px;padding:8px 10px;border-radius:14px;background:var(--surface2);margin-bottom:10px;line-height:1.5;"></div>
+          <span class="setup-label">Zones — tap to include or exclude</span>
+          <div id="cfgZoneCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span id="cfgZoneCount" style="font-size:12px;color:var(--muted);"></span>
+            <button class="btn btn-g btn-xs" onclick="resetZoneSelection()">Reset</button>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-
-    <div class="divider"></div>
-    <label>Teams</label>
-    <div id="teamSetupList" style="margin-bottom:10px;"></div>
-    <button class="btn btn-g btn-sm" onclick="addTeam()" style="margin-bottom:16px;">+ Add Team</button>
-    <div class="divider"></div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-g" onclick="showScreen('screenHome')">← Back</button>
-      <button class="btn btn-p" style="flex:1" onclick="createGame()">Generate Game Code →</button>
+  <!-- SECTION 3: TEAMS -->
+  <div class="setup-section open" id="setupSecTeams">
+    <div class="setup-section-head" onclick="toggleSetupSection('setupSecTeams')">
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="5" cy="6" r="3" fill="white" opacity=".8"/><circle cx="11" cy="6" r="3" fill="white" opacity=".6"/><path d="M1 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".8"/><path d="M7 14c0-2.2 1.8-4 4-4s4 1.8 4 4" fill="white" opacity=".6"/></svg></div>
+      <div class="ss-title">Teams</div>
+      <div class="ss-meta" id="setupTeamMeta">3 teams</div>
+      <div class="ss-arrow">&#x25BC;</div>
     </div>
+    <div class="setup-section-body">
+      <div id="teamSetupList"></div>
+      <button class="btn btn-g btn-sm" onclick="addTeam()" style="margin-top:4px;">+ Add Team</button>
+    </div>
+  </div>
+
+  <!-- SECTION 4: SCHEDULE -->
+  <div class="setup-section" id="setupSecSchedule">
+    <div class="setup-section-head" onclick="toggleSetupSection('setupSecSchedule')">
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="8" cy="8" r="7" fill="none" stroke="white" stroke-width="1.5" opacity=".8"/><path d="M8 4v4l3 2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="ss-title">Schedule</div>
+      <div class="ss-meta" id="setupTimeMeta">10:00 – 18:00</div>
+      <div class="ss-arrow">&#x25BC;</div>
+    </div>
+    <div class="setup-section-body">
+      <div class="fr" style="margin-bottom:12px;">
+        <div><span class="setup-label">Game Start</span><input type="time" id="cfgStart" value="10:00" onchange="updateSetupMetas()"></div>
+        <div><span class="setup-label">Game End</span><input type="time" id="cfgEnd" value="18:00" onchange="updateSetupMetas()"></div>
+      </div>
+      <div class="setup-toggle">
+        <label>Lunch Break</label>
+        <input type="checkbox" id="cfgLunchEnabled" checked onchange="toggleLunchFields()" style="width:auto;margin:0;transform:scale(1.3);">
+      </div>
+      <div id="lunchFields" style="margin-top:10px;">
+        <div class="fr">
+          <div><span class="setup-label">Lunch Start</span><input type="time" id="cfgLunchStart" value="12:00"></div>
+          <div><span class="setup-label">Lunch End</span><input type="time" id="cfgLunchEnd" value="13:00"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: THE FLOP -->
+  <div class="setup-section" id="setupSecFlop">
+    <div class="setup-section-head" onclick="toggleSetupSection('setupSecFlop')">
+      <div class="ss-icon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="8" cy="8" r="7" fill="var(--gold)" opacity=".8"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".6"/></svg></div>
+      <div class="ss-title">The Flop</div>
+      <div class="ss-meta" id="setupFlopMeta">10 starting coins</div>
+      <div class="ss-arrow">&#x25BC;</div>
+    </div>
+    <div class="setup-section-body">
+      <div class="fr" style="margin-bottom:12px;">
+        <div><span class="setup-label">Starting Coins</span><input type="number" id="cfgStartCoins" value="10" min="0" max="100" onchange="updateSetupMetas()"></div>
+        <div><span class="setup-label">Vote Timeout (min)</span><input type="number" id="cfgVoteTimeout" value="5" min="1" max="30"></div>
+      </div>
+      <div class="setup-toggle">
+        <label>Auto-refresh after inactivity</label>
+        <input type="checkbox" id="cfgFlopRefresh" onchange="toggleFlopFields()" style="width:auto;margin:0;transform:scale(1.3);">
+      </div>
+      <div id="flopRefreshFields" style="display:none;margin-top:8px;">
+        <span class="setup-label">Refresh after (minutes)</span>
+        <input type="number" id="cfgFlopMins" value="45" min="5" max="240" style="max-width:120px;">
+      </div>
+      <div class="setup-toggle">
+        <label>Auto-replace unclaimed items (1 hr)</label>
+        <input type="checkbox" id="cfgFlopItemExpiry" style="width:auto;margin:0;transform:scale(1.3);">
+      </div>
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span class="setup-label" style="margin:0;">Challenges</span>
+          <span id="flopSelectedCount" style="font-size:11px;color:var(--muted);font-family:var(--font-mono);"></span>
+        </div>
+        <button class="btn btn-g btn-sm" onclick="toggleFlopCustomizer()" id="flopCustomizerToggle" style="width:100%;margin-bottom:6px;">Browse &amp; Customize Challenges</button>
+        <div id="flopCustomizerPanel" style="display:none;margin-top:8px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:14px;padding:10px;">
+          <div style="display:flex;gap:6px;margin-bottom:8px;position:sticky;top:0;background:var(--surface);padding:4px 0;">
+            <button class="btn btn-g btn-xs" onclick="flopSelectAll(true)">Select All</button>
+            <button class="btn btn-g btn-xs" onclick="flopSelectAll(false)">Deselect All</button>
+          </div>
+          <div id="flopChallengeList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STICKY BOTTOM BAR -->
+  <div class="setup-bottom">
+    <button class="btn btn-p" style="flex:1;font-size:16px;padding:14px;" onclick="createGame()">Generate Game Code</button>
   </div>
 </div>
 
@@ -2387,6 +2440,7 @@ function renderTeamSetup(){
     row.innerHTML=`<div class="tcd" style="background:${team.color}" onclick="openCP(${i},this)"></div><input type="text" value="${esc(team.name)}" oninput="setupTeams[${i}].name=this.value" style="margin:0" placeholder="Team name">${setupTeams.length>2?`<button class="btn btn-g btn-xs" onclick="rmTeam(${i})">✕</button>`:'<div></div>'}`;
     list.appendChild(row);
   });
+  updateSetupMetas();
 }
 function addTeam(){if(setupTeams.length>=8)return;setupTeams.push({name:TEAM_NAMES[setupTeams.length]||('Team '+(setupTeams.length+1)),color:PAL[setupTeams.length%PAL.length]});renderTeamSetup();}
 function rmTeam(i){if(setupTeams.length<=2)return;setupTeams.splice(i,1);renderTeamSetup();}
@@ -2412,6 +2466,18 @@ function _flopToggle(i,checked){if(checked)_flopExcluded.delete(i);else _flopExc
 function flopSelectAll(on){if(on)_flopExcluded.clear();else FLOP_CHALLENGES.forEach((_,i)=>_flopExcluded.add(i));renderFlopCustomizer();}
 function _updateFlopCount(){const el=document.getElementById('flopSelectedCount');if(el)el.textContent=(FLOP_CHALLENGES.length-_flopExcluded.size)+'/'+FLOP_CHALLENGES.length+' enabled';}
 
+function toggleSetupSection(id){
+  const sec=document.getElementById(id);
+  if(sec)sec.classList.toggle('open');
+}
+function updateSetupMetas(){
+  const tm=document.getElementById('setupTimeMeta');
+  if(tm){const s=document.getElementById('cfgStart')?.value||'10:00',e=document.getElementById('cfgEnd')?.value||'18:00';tm.textContent=s+' – '+e;}
+  const fm=document.getElementById('setupFlopMeta');
+  if(fm){const c=document.getElementById('cfgStartCoins')?.value||'10';fm.textContent=c+' starting coins';}
+  const tmm=document.getElementById('setupTeamMeta');
+  if(tmm)tmm.textContent=setupTeams.length+' team'+(setupTeams.length!==1?'s':'');
+}
 function toggleLunchFields(){
   const on=document.getElementById('cfgLunchEnabled')?.checked;
   const f=document.getElementById('lunchFields');
