@@ -1350,10 +1350,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div id="mbPanel-landmarks" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:11px;color:var(--muted);line-height:1.5;">Tap the map to place a landmark. These become Featured Landmarks that teams race to find.</div>
-        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
           <button class="btn btn-p btn-xs" id="mbAddLmBtn" onclick="mbStartLandmark()">+ Place Landmark</button>
+          <button class="btn btn-g btn-xs" onclick="mbDiscoverLandmarks()">&#x2728; Discover POIs</button>
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLmCount">0 landmarks</span>
         </div>
+        <div id="mbLmSuggestions" style="display:none;margin-top:6px;max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);"></div>
         <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Place 1–2 landmarks per zone. Choose recognizable places: statues, murals, historic buildings, unique storefronts.</div>
       </div>
       <div id="mbMapEl2" style="flex:1;min-height:0;"></div>
@@ -1365,12 +1367,32 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <!-- Step 4: Transit -->
     <div id="mbPanel-transit" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
       <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines by tapping stops along the route. The app calculates which zones each line connects.</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">Draw transit lines manually or import real-world routes from OpenStreetMap.</div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-p btn-xs" id="mbNewLineBtn" onclick="mbStartLine()">+ New Line</button>
+          <button class="btn btn-g btn-xs" onclick="mbImportTransit()">&#x1F687; Import Routes</button>
           <button class="btn btn-g btn-xs" id="mbFinishLineBtn" onclick="mbFinishLine()" style="display:none;">&#x2713; Done Drawing</button>
           <button class="btn btn-g btn-xs" id="mbUndoStopBtn" onclick="mbUndoStop()" style="display:none;">&#x21A9; Undo Stop</button>
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-left:auto;line-height:28px;" id="mbLineCount">0 lines</span>
+        </div>
+        <div id="mbTransitImport" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:hidden;">
+          <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:700;margin-bottom:6px;">Select transit types to import:</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;" id="mbTransitTypes">
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="subway" style="width:14px;height:14px;">&#x1F687; Subway</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="light_rail" style="width:14px;height:14px;">&#x1F688; Light Rail</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="tram" style="width:14px;height:14px;">&#x1F68B; Streetcar</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="bus" style="width:14px;height:14px;">&#x1F68C; Bus</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" checked data-type="monorail" style="width:14px;height:14px;">&#x1F69D; Monorail</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface2);"><input type="checkbox" data-type="ferry" style="width:14px;height:14px;">&#x26F4;&#xFE0F; Ferry</label>
+            </div>
+          </div>
+          <div style="padding:6px 10px;display:flex;gap:6px;align-items:center;">
+            <button class="btn btn-p btn-xs" onclick="mbDoTransitImport()">Search &amp; Import</button>
+            <button class="btn btn-g btn-xs" onclick="document.getElementById('mbTransitImport').style.display='none';">Cancel</button>
+            <span style="font-size:10px;color:var(--muted);margin-left:auto;" id="mbTransitStatus"></span>
+          </div>
+          <div id="mbTransitResults" style="display:none;max-height:180px;overflow-y:auto;border-top:1px solid var(--border);"></div>
         </div>
         <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.4;">Lines that pass through 3+ zones unlock line bonuses. Add real transit routes for the most authentic gameplay.</div>
       </div>
@@ -6208,6 +6230,87 @@ function mbDeleteLandmark(){
   if(el) el.textContent=_mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
 }
 
+// ── Landmark Discovery (OSM POIs) ────────────────────────────
+async function mbDiscoverLandmarks(){
+  if(!_mbZones.length){showToast('Add zones first so we can find landmarks inside them.','warn');return;}
+  const sug = document.getElementById('mbLmSuggestions');
+  sug.style.display = 'block';
+  sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">Searching for points of interest...</div>';
+
+  let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
+  _mbZones.forEach(z => (z.poly||[]).forEach(p => { minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]); }));
+  const bbox = minLat+','+minLng+','+maxLat+','+maxLng;
+
+  const q = `[out:json][timeout:30];(node["tourism"~"attraction|museum|artwork|viewpoint|gallery"](${bbox});node["historic"~"monument|memorial|castle|ruins|building"](${bbox});node["amenity"~"theatre|arts_centre|place_of_worship|fountain|library|townhall"](${bbox});node["leisure"~"park|stadium|garden"](${bbox});node["man_made"~"tower|lighthouse|bridge"](${bbox}););out body qt 80;`;
+
+  try {
+    const r = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)});
+    const t = await r.text();
+    let data;
+    try { data = JSON.parse(t); } catch(e) { sug.innerHTML='<div style="padding:8px;font-size:11px;color:var(--orange);">POI service unavailable. Try again shortly.</div>'; return; }
+
+    let pois = (data.elements||[]).filter(el => el.tags && el.tags.name);
+    pois = pois.filter(poi => _mbZones.some(z => z.poly && _pointInPoly([poi.lat, poi.lon], z.poly)));
+    const seen = new Set();
+    pois = pois.filter(p => { const n=p.tags.name; if(seen.has(n)) return false; seen.add(n); return true; });
+    const existing = new Set(_mbLandmarks.map(l => l.name.toLowerCase()));
+    pois = pois.filter(p => !existing.has(p.tags.name.toLowerCase()));
+
+    if(!pois.length) {
+      sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted);text-align:center;">No new POIs found in your zones. Try placing landmarks manually.</div>';
+      return;
+    }
+
+    const catMap = {museum:'Museum',attraction:'Attraction',artwork:'Public Art',viewpoint:'Viewpoint',gallery:'Gallery',
+      monument:'Monument',memorial:'Memorial',castle:'Castle',ruins:'Ruins',theatre:'Theater',arts_centre:'Arts',
+      place_of_worship:'Worship',fountain:'Fountain',library:'Library',townhall:'City Hall',park:'Park',stadium:'Stadium',
+      garden:'Garden',tower:'Tower',lighthouse:'Lighthouse',bridge:'Bridge'};
+
+    sug.innerHTML = '<div style="padding:4px 8px;font-size:10px;color:var(--muted);font-weight:700;">Tap to add · '+pois.length+' POIs found</div>';
+    pois.forEach(poi => {
+      const name = poi.tags.name;
+      const rawCat = poi.tags.tourism || poi.tags.historic || poi.tags.amenity || poi.tags.leisure || poi.tags.man_made || '';
+      const cat = catMap[rawCat] || rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+      const zone = _mbZones.find(z => z.poly && _pointInPoly([poi.lat, poi.lon], z.poly));
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border);';
+      row.innerHTML = '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(name)+'</div>' +
+        '<div style="font-size:10px;color:var(--muted);">'+esc(cat)+(zone?' · '+esc(zone.name||zone.code):'')+'</div></div>' +
+        '<button class="btn btn-p btn-xs" style="flex-shrink:0;font-size:10px;padding:2px 8px;">+ Add</button>';
+      row.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        _mbAddDiscoveredLandmark(poi);
+        row.querySelector('button').textContent = '✓';
+        row.querySelector('button').disabled = true;
+        row.style.opacity = '0.5';
+      });
+      row.addEventListener('mouseover', () => row.style.background='var(--surface2)');
+      row.addEventListener('mouseout', () => row.style.background='');
+      sug.appendChild(row);
+    });
+  } catch(e) {
+    sug.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--orange);">Failed to search for POIs: '+e.message+'</div>';
+  }
+}
+
+function _mbAddDiscoveredLandmark(poi){
+  const lm = {name:poi.tags.name, hint:poi.tags['addr:street']||poi.tags.description||'', lat:poi.lat, lng:poi.lon, coins:0, marker:null};
+  const idx = _mbLandmarks.length;
+  if(_mbMapLm) lm.marker = _mbAddLmMarker(lm, idx, _mbMapLm);
+  _mbLandmarks.push(lm);
+  const el = document.getElementById('mbLmCount');
+  if(el) el.textContent = _mbLandmarks.length+' landmark'+(_mbLandmarks.length!==1?'s':'');
+}
+
+function _pointInPoly(pt, poly){
+  let inside = false;
+  for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
+    if(((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
 // ── Transit lines ─────────────────────────────────────────────────
 function mbStartLine(){
   if(!_mbMapTransit){showToast('Map not ready yet — wait a moment and try again.','warn');return;}
@@ -6841,33 +6944,29 @@ async function _bdySelectResult(idx) {
     });
     const polyData = await polyR.json();
 
-    // Fetch parent info + sub-areas in a single Overpass call
+    // Fetch parent info + sub-areas from Overpass (with bbox fallback)
     info.innerHTML = '<div style="color:var(--muted);">Searching for neighborhoods &amp; districts...</div>';
 
-    const overpassQuery = `[out:json][timeout:45];
-rel(${osmId})->.parent;
-.parent out tags;
-.parent map_to_area->.parentArea;
-(
-  rel(area.parentArea)["boundary"="administrative"];
-  rel(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough|village|town"];
-  node(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough"];
-);
-out tags;`;
-
-    const opR = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: 'data=' + encodeURIComponent(overpassQuery)
-    });
-    const opText = await opR.text();
-    let opData;
-    try { opData = JSON.parse(opText); } catch(e) {
-      console.error('Overpass returned non-JSON:', opText.substring(0, 200));
-      throw new Error('Boundary service temporarily unavailable. Please try again in a moment.');
+    async function _bdyOP(q){
+      const r = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)});
+      const t = await r.text();
+      return JSON.parse(t);
     }
 
-    const allEls = opData.elements || [];
+    let opData;
+    try {
+      opData = await _bdyOP(`[out:json][timeout:45];rel(${osmId})->.parent;.parent out tags;.parent map_to_area->.parentArea;(rel(area.parentArea)["boundary"="administrative"];rel(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough|village|town"];node(area.parentArea)["place"~"suburb|neighbourhood|quarter|borough"];);out tags;`);
+    } catch(e1) {
+      console.warn('Area query failed, trying bbox fallback:', e1);
+      const bb = item.boundingbox;
+      if(bb && bb.length === 4) {
+        try {
+          opData = await _bdyOP(`[out:json][timeout:45];rel(${osmId});out tags;(rel["boundary"="administrative"](${bb[0]},${bb[2]},${bb[1]},${bb[3]});node["place"~"suburb|neighbourhood|quarter|borough"](${bb[0]},${bb[2]},${bb[1]},${bb[3]}););out tags;`);
+        } catch(e2) { console.error('Both Overpass queries failed:', e2); }
+      }
+    }
+
+    const allEls = opData ? (opData.elements || []) : [];
     const parentEl = allEls.find(el => el.type === 'relation' && el.id == osmId);
     const parentLevel = parseInt(parentEl?.tags?.admin_level || '6');
 
@@ -7222,6 +7321,201 @@ function _bdySimplifyPoly(poly, maxPts) {
     result.push([...result[0]]);
   }
   return result;
+}
+
+// ── Transit Import (OSM) ─────────────────────────────────────────────────────
+function mbImportTransit(){
+  document.getElementById('mbTransitImport').style.display = 'block';
+  document.getElementById('mbTransitResults').style.display = 'none';
+  document.getElementById('mbTransitResults').innerHTML = '';
+  document.getElementById('mbTransitStatus').textContent = '';
+}
+
+async function mbDoTransitImport(){
+  if(!_mbZones.length && !_mbCityData){showToast('Set a city or add zones first.','warn');return;}
+
+  const checks = document.querySelectorAll('#mbTransitTypes input[type=checkbox]');
+  const types = [];
+  checks.forEach(cb => { if(cb.checked) types.push(cb.dataset.type); });
+  if(!types.length){showToast('Select at least one transit type.','warn');return;}
+
+  const status = document.getElementById('mbTransitStatus');
+  status.textContent = 'Searching...';
+  const resultsEl = document.getElementById('mbTransitResults');
+
+  let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
+  if(_mbZones.length){
+    _mbZones.forEach(z=>(z.poly||[]).forEach(p=>{minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]);}));
+  } else if(_mbCityData && _mbCityData.bb){
+    const bb = _mbCityData.bb;
+    minLat=parseFloat(bb[0]);maxLat=parseFloat(bb[1]);minLng=parseFloat(bb[2]);maxLng=parseFloat(bb[3]);
+  } else {
+    minLat=_mbCityData.lat-0.1;maxLat=_mbCityData.lat+0.1;minLng=_mbCityData.lng-0.1;maxLng=_mbCityData.lng+0.1;
+  }
+  const pad=0.005;
+  const bbox=(minLat-pad)+','+(minLng-pad)+','+(maxLat+pad)+','+(maxLng+pad);
+
+  const q = `[out:json][timeout:45];(${types.map(t=>'relation["route"="'+t+'"]('+bbox+');').join('')});out tags;`;
+
+  try {
+    const r = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)});
+    const t = await r.text();
+    let data;
+    try { data = JSON.parse(t); } catch(e) { status.textContent='Service unavailable'; return; }
+
+    let routes = (data.elements||[]).filter(el => el.tags && (el.tags.name || el.tags.ref));
+    const seen = new Set();
+    routes = routes.filter(el => { const n = el.tags.name || el.tags.ref; if(seen.has(n)) return false; seen.add(n); return true; });
+    const existingNames = new Set(_mbLines.map(l => l.name.toLowerCase()));
+    routes = routes.filter(el => !existingNames.has((el.tags.name||el.tags.ref).toLowerCase()));
+
+    if(!routes.length){
+      resultsEl.style.display='block';
+      resultsEl.innerHTML='<div style="padding:10px;font-size:11px;color:var(--muted);text-align:center;">No new routes found for the selected types in this area.</div>';
+      status.textContent='0 found';
+      return;
+    }
+
+    const typeIcons={subway:'\u{1F687}',light_rail:'\u{1F688}',tram:'\u{1F68B}',bus:'\u{1F68C}',monorail:'\u{1F69D}',ferry:'⛴️',train:'\u{1F686}'};
+    const typeNames={subway:'Subway',light_rail:'Light Rail',tram:'Streetcar',bus:'Bus',monorail:'Monorail',ferry:'Ferry',train:'Commuter'};
+
+    status.textContent = routes.length+' route'+(routes.length!==1?'s':'')+' found';
+    resultsEl.style.display='block';
+    resultsEl.innerHTML = '<div style="padding:4px 8px;display:flex;gap:6px;border-bottom:1px solid var(--border);"><button class="btn btn-g btn-xs" onclick="mbTransitSelectAll()">Select All</button><button class="btn btn-g btn-xs" onclick="mbTransitSelectNone()">Deselect All</button><span style="font-size:10px;color:var(--muted);margin-left:auto;line-height:28px;" id="mbTransitSelCount">0 selected</span></div>';
+
+    window._mbTransitCandidates = routes;
+    window._mbTransitSelected = new Set();
+
+    routes.forEach((rel, i) => {
+      const name = rel.tags.name || rel.tags.ref;
+      const rtype = rel.tags.route || 'transit';
+      const icon = typeIcons[rtype]||'\u{1F683}';
+      const tname = typeNames[rtype]||rtype;
+      const row = document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;';
+      row.innerHTML='<input type="checkbox" data-idx="'+i+'" style="width:14px;height:14px;flex-shrink:0;cursor:pointer;">'+
+        '<span style="flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+icon+' '+esc(name)+'</span>'+
+        '<span style="font-size:10px;color:var(--muted);background:var(--surface2);padding:1px 6px;border-radius:999px;flex-shrink:0;">'+esc(tname)+'</span>';
+      const cb = row.querySelector('input');
+      cb.addEventListener('change', () => {
+        if(cb.checked) window._mbTransitSelected.add(i); else window._mbTransitSelected.delete(i);
+        _mbUpdateTransitSelCount();
+      });
+      resultsEl.appendChild(row);
+    });
+
+    const importRow = document.createElement('div');
+    importRow.style.cssText='padding:8px;text-align:center;';
+    importRow.innerHTML='<button class="btn btn-p btn-sm" onclick="mbDoTransitImportSelected()">Import Selected Routes</button>';
+    resultsEl.appendChild(importRow);
+
+  } catch(e) {
+    status.textContent='Search failed';
+    console.error('Transit search error', e);
+  }
+}
+
+function mbTransitSelectAll(){
+  document.querySelectorAll('#mbTransitResults input[type=checkbox]').forEach(cb=>{cb.checked=true; if(cb.dataset.idx) window._mbTransitSelected.add(parseInt(cb.dataset.idx));});
+  _mbUpdateTransitSelCount();
+}
+function mbTransitSelectNone(){
+  document.querySelectorAll('#mbTransitResults input[type=checkbox]').forEach(cb=>{cb.checked=false;});
+  window._mbTransitSelected.clear();
+  _mbUpdateTransitSelCount();
+}
+function _mbUpdateTransitSelCount(){
+  const el=document.getElementById('mbTransitSelCount');
+  if(el) el.textContent = window._mbTransitSelected.size+' selected';
+}
+
+async function mbDoTransitImportSelected(){
+  const sel = window._mbTransitSelected;
+  if(!sel || !sel.size){showToast('Select at least one route to import.','warn');return;}
+  const cands = window._mbTransitCandidates;
+  if(!cands) return;
+
+  const status = document.getElementById('mbTransitStatus');
+  const typeColors={subway:'#3b82f6',light_rail:'#8b5cf6',tram:'#8b5cf6',bus:'#f59e0b',monorail:'#06b6d4',ferry:'#0ea5e9',train:'#6b7280'};
+  const typeMap={subway:'subway',light_rail:'light_rail',tram:'streetcar',bus:'bus',monorail:'commuter',ferry:'ferry',train:'commuter'};
+
+  let imported=0, total=sel.size, processed=0;
+
+  for(const idx of sel){
+    const rel = cands[idx];
+    if(!rel) continue;
+    processed++;
+    status.textContent = 'Importing '+processed+'/'+total+'...';
+
+    const name = rel.tags.name || rel.tags.ref || 'Route';
+    const rtype = rel.tags.route || 'subway';
+    const color = rel.tags.colour || rel.tags.color || typeColors[rtype] || '#3b82f6';
+
+    try {
+      const geoQ = `[out:json][timeout:30];rel(${rel.id});out geom;`;
+      const r = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(geoQ)});
+      const t = await r.text();
+      let geoData;
+      try { geoData = JSON.parse(t); } catch(e) { continue; }
+
+      const rels = (geoData.elements||[]).filter(e => e.members);
+      if(!rels.length) continue;
+
+      const allPts = [];
+      rels[0].members.filter(m=>m.type==='way'&&m.geometry).forEach(m=>{
+        m.geometry.forEach(g => allPts.push([g.lat, g.lon]));
+      });
+      if(allPts.length < 2) continue;
+
+      let stops = allPts;
+      if(stops.length > 60){
+        const step = Math.ceil(stops.length / 60);
+        const simplified = [];
+        for(let i=0;i<stops.length;i+=step) simplified.push(stops[i]);
+        if(simplified.length>1) simplified.push(stops[stops.length-1]);
+        stops = simplified;
+      }
+
+      const zonesServed = [];
+      _mbZones.forEach((z,zi) => {
+        if(!z.poly) return;
+        if(stops.some(s => _pointInPoly(s, z.poly))) zonesServed.push(zi);
+      });
+
+      const lineId = 'L'+(Date.now())+'-'+imported;
+      const line = {
+        id: lineId, name, type: typeMap[rtype]||'subway',
+        color, smooth: false, stops,
+        zonesServed, polyLayer:null, stopMarkers:[]
+      };
+
+      if(_mbMapTransit){
+        const latlngs = stops.map(s=>L.latLng(s[0],s[1]));
+        line.polyLayer = L.polyline(latlngs, {color, weight:3, opacity:0.8}).addTo(_mbMapTransit);
+        line.polyLayer.bindTooltip(esc(name),{className:'zt',sticky:true});
+        stops.forEach(s=>{
+          const m=L.circleMarker(L.latLng(s[0],s[1]),{radius:2.5,color,fillColor:'white',fillOpacity:1,weight:1.5}).addTo(_mbMapTransit);
+          line.stopMarkers.push(m);
+        });
+      }
+
+      _mbLines.push(line);
+      imported++;
+
+      if(processed < total) await new Promise(r=>setTimeout(r,1200));
+    } catch(e) {
+      console.warn('Failed to import route', name, e);
+    }
+  }
+
+  status.textContent = imported+' imported';
+  document.getElementById('mbLineCount').textContent = _mbLines.length+' line'+(_mbLines.length!==1?'s':'');
+  _mbRenderLineList();
+
+  if(imported) showToast(imported+' transit route'+(imported!==1?'s':'')+' imported!','ok',4000);
+  else showToast('No routes could be imported. Try different types or a larger area.','warn');
+
+  setTimeout(()=>{ document.getElementById('mbTransitImport').style.display='none'; }, 1500);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
