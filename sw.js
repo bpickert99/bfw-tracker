@@ -1,7 +1,7 @@
-// BFW Service Worker v2.0
-// Bump this comment with every deploy to ensure SW updates
+// BFW Service Worker v3.0
+// Bump CACHE with every deploy
 const CACHE = 'bfw-v28';
-const STATIC_ASSETS = [
+const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
@@ -11,59 +11,59 @@ const STATIC_ASSETS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(cache => cache.addAll(CDN_ASSETS))
       .catch(() => {})
   );
-  // Take over immediately — don't wait for old SW to die
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    // Delete ALL old caches
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
-  // Claim all open tabs immediately
   self.clients.claim();
 });
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
-  // NEVER cache these — always fetch fresh
+  // Skip non-GET requests
+  if (e.request.method !== 'GET') return;
+
+  // Cache-first ONLY for CDN assets (fonts, leaflet)
   if (
-    url.includes('firebaseio.com') ||
-    url.includes('cloudinary.com') ||
-    url.includes('overpass') ||
-    url.includes('nominatim') ||
-    url.endsWith('/') ||
-    url.includes('index.html') ||
-    url.endsWith('manifest.json') ||
-    url.endsWith('sw.js')
+    url.includes('fonts.googleapis.com') ||
+    url.includes('fonts.gstatic.com') ||
+    url.includes('cdnjs.cloudflare.com') ||
+    url.includes('DepartureMono')
   ) {
     e.respondWith(
-      fetch(e.request, { cache: 'no-store' })
-        .catch(() => caches.match(e.request))
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          return res;
+        });
+      })
     );
     return;
   }
 
-  // Cache-first for stable CDN assets (fonts, Leaflet)
+  // Everything else: network-first (always try fresh, fall back to cache)
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
+    fetch(e.request, { cache: 'no-store' })
+      .then(res => {
         const clone = res.clone();
         caches.open(CACHE).then(cache => cache.put(e.request, clone));
         return res;
-      });
-    })
+      })
+      .catch(() => caches.match(e.request))
   );
 });
 
-// Accept skip-waiting message from page
 self.addEventListener('message', e => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
