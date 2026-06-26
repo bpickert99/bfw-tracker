@@ -317,12 +317,12 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 /* ── HOME SCREEN ─────────────────────────────────────────── */
 #screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;}
 .home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
-.home-hero{text-align:center;padding:48px 20px 32px;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--green);}
+.home-hero{text-align:center;padding:48px 20px 32px;padding-top:calc(48px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg);}
 .home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
-.home-title{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:white;line-height:1.05;}
-.home-tagline{font-size:14px;color:rgba(255,255,255,.7);font-weight:500;letter-spacing:.01em;}
+.home-title{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--fg);line-height:1.05;}
+.home-tagline{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.01em;}
 .home-auth-wrap{padding:0 20px 4px;}
-.home-auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px 24px;box-shadow:none;}
+.home-auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px 24px;box-shadow:none;text-align:center;}
 .home-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-bottom:16px;}
 .hben{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);font-weight:500;pointer-events:none;user-select:none;}
 .hben .hbicon{width:28px;height:28px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
@@ -342,8 +342,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .home-actions{padding:18px 20px 0;display:flex;flex-direction:column;gap:8px;}
 .home-join-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;margin-bottom:6px;}
 .home-join-title{font-family:var(--font);font-weight:700;font-size:18px;margin-bottom:14px;}
-.home-showcase{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;margin:0 20px;}
-.home-showcase .hgcard-anim{aspect-ratio:5/2;}
 .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px;}
 @media(max-width:520px){.home-cards{grid-template-columns:1fr;}.home-benefits{grid-template-columns:1fr;}.home-title{font-size:36px;}}
 .hgcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;box-shadow:none;}
@@ -443,46 +441,23 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div id="joinVersion" style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted);font-family:var(--font-mono);opacity:.55;"></div>
     </div>
 
-    <!-- Showcase -->
+    <!-- How it works -->
     <div class="home-section-label">How It Works</div>
-    <div class="home-showcase">
-      <div class="hgcard-anim"><svg id="hzc-svg" viewBox="0 0 240 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="hfg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <rect width="240" height="160" fill="#dde8d8"/>
-            <!--
-              8 zones, 4-col × 2-row grid. All zone edges share exact vertex lists
-              so zones tessellate with zero gaps. Vertical spines use rectilinear
-              right-angle jogs (like street/county lines). River runs horizontally
-              at y≈68 and is drawn on top to cover the seam.
-
-              Spine 1 (between col 0/1): 58,0→58,22→62,22→62,45→56,45→56,68
-                                        56,68→56,88→62,88→62,115→58,115→58,160
-              Spine 2 (between col 1/2): 120,0→120,25→116,25→116,48→124,48→124,68
-                                        124,68→124,90→118,90→118,118→122,118→122,160
-              Spine 3 (between col 2/3): 178,0→178,20→182,20→182,44→176,44→176,66
-                                        176,66→176,88→180,88→180,112→174,112→174,160
-              River seam: 0,70 — 56,68 — 124,68 — 176,66 — 240,70
-            -->
-            <!-- Top row -->
-            <polygon id="hz0" class="hz" points="0,0 58,0 58,22 62,22 62,45 56,45 56,68 0,70"/>
-            <polygon id="hz1" class="hz" points="58,0 120,0 120,25 116,25 116,48 124,48 124,68 56,68 56,45 62,45 62,22 58,22"/>
-            <polygon id="hz2" class="hz" points="120,0 178,0 178,20 182,20 182,44 176,44 176,66 124,68 124,48 116,48 116,25 120,25"/>
-            <polygon id="hz3" class="hz" points="178,0 240,0 240,70 176,66 176,44 182,44 182,20 178,20"/>
-            <!-- Bottom row -->
-            <polygon id="hz4" class="hz" points="0,70 56,68 56,88 62,88 62,115 58,115 58,160 0,160"/>
-            <polygon id="hz5" class="hz" points="56,68 124,68 124,90 118,90 118,118 122,118 122,160 58,160 58,115 62,115 62,88 56,88"/>
-            <polygon id="hz6" class="hz" points="124,68 176,66 176,88 180,88 180,112 174,112 174,160 122,160 122,118 118,118 118,90 124,90"/>
-            <polygon id="hz7" class="hz" points="176,66 240,70 240,160 174,160 174,112 180,112 180,88 176,88"/>
-            <!-- River — horizontal band following the seam at y≈68, drawn on top -->
-            <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#bfdbfe" stroke-width="22" stroke-linecap="round" opacity=".9"/>
-            <path d="M 0,70 C 20,64 38,72 56,68 C 80,64 100,72 124,68 C 148,64 162,68 176,66 C 200,63 220,70 240,70" fill="none" stroke="#60a5fa" stroke-width="9" stroke-linecap="round" opacity=".75"/>
-            <path d="M 0,67 C 20,61 38,69 56,65 C 80,61 100,69 124,65 C 148,61 162,65 176,63 C 200,60 220,67 240,67" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>
-          </svg></div>
-      <div style="padding:16px 20px;">
-        <div class="hgcard-title" style="color:var(--accent);font-size:20px;">Zone Capture</div>
-        <div class="hgcard-desc" style="margin-top:4px;">Race across the city, complete challenges to earn coins, then deposit them to claim territory. Hold the most zones when time runs out to win.</div>
+    <div style="padding:0 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:16px 14px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">&#x1F5FA;&#xFE0F;</div>
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:4px;">Pick a Map</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4;">Choose a city or build your own zones</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:16px 14px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">&#x1F3C3;</div>
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:4px;">Race &amp; Earn</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4;">Complete challenges to earn coins across the city</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:16px 14px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">&#x1F3C6;</div>
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:4px;">Claim Zones</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.4;">Deposit coins to capture territory and win</div>
       </div>
     </div>
   </div><!-- /home-inner -->
@@ -1265,7 +1240,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
     <!-- Step 2: Build (single canvas: zones + landmarks + transit) -->
     <div id="mbPanel-build" style="display:none;flex-direction:column;position:absolute;top:0;left:0;right:0;bottom:0;">
-      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:1;overflow-y:auto;max-height:55vh;">
         <div class="mb-modebar">
           <button class="mb-modebtn active" id="mbMode-zones" onclick="mbSetMode('zones')">Zones <span class="mb-modecount" id="mbZoneCount">0</span></button>
           <button class="mb-modebtn" id="mbMode-landmarks" onclick="mbSetMode('landmarks')">Landmarks <span class="mb-modecount" id="mbLmCount">0</span></button>
@@ -1334,7 +1309,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <div class="mb-progress-track"><div class="mb-progress-fill" id="mbProgressFill"></div></div>
       </div>
 
-      <div id="mbMapEl" style="flex:1;min-height:0;"></div>
+      <div id="mbMapEl" style="flex:1;min-height:180px;"></div>
 
       <!-- contextual chip lists (zones / transit) -->
       <div id="mbZoneList" style="padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;"></div>
@@ -7826,90 +7801,8 @@ function showVersionBanner(){
   if(b)b.style.display='flex';
 }
 
-// ── HOME SCREEN ANIMATIONS ───────────────────────────────────────────────────
-const _H_COLORS={teal:'#1A6DD4',orange:'#F0801A',purple:'#8b5cf6',emerald:'#00B66B',neutral:'#E5E7EB',winDark:'#0B2C61'};
-
-// ── Zone Capture: 8 zones, 4 teams progressively claim territory ──
-// Zones 0-3 = top row; 4-7 = bottom row
-const _HZC_TEAMS=['teal','orange','purple','emerald','orange','teal','purple','teal'];
-let _hzcIdx=0,_hzcTimer=null;
-
-function _hzcTick(){
-  const z=document.getElementById('hz'+_hzcIdx);
-  if(!z) return;
-  z.style.fill=_H_COLORS[_HZC_TEAMS[_hzcIdx]];
-  _hzcIdx++;
-  if(_hzcIdx<8) _hzcTimer=setTimeout(_hzcTick,510);
-  else _hzcTimer=setTimeout(_hzcReset,2400);
-}
-function _hzcReset(){
-  for(let i=0;i<8;i++){const z=document.getElementById('hz'+i);if(z)z.style.fill=_H_COLORS.neutral;}
-  _hzcIdx=0;
-  _hzcTimer=setTimeout(_hzcTick,900);
-}
-
-// ── Connect 4: teal/purple contest top row while orange quietly builds bottom row ──
-// Win condition: orange captures bottom row hc4→hc5→hc6→hc7
-const _HC4_SEQ=[
-  [0,'teal'],    // teal opens top-left
-  [4,'orange'],  // orange starts bottom-left  ← 1 in a row
-  [2,'purple'],  // purple takes top-center-right
-  [5,'orange'],  // orange bottom-center-left  ← 2 in a row
-  [3,'teal'],    // teal grabs top-right
-  [6,'orange'],  // orange bottom-center-right ← 3 in a row
-  [1,'purple'],  // purple top-center (looks like blocking)
-  [7,'orange'],  // orange bottom-right        ← 4 IN A ROW — WIN!
-];
-let _hc4Step=0,_hc4Timer=null;
-
-function _hc4Tick(){
-  if(_hc4Step>=_HC4_SEQ.length) return;
-  const [zi,team]=_HC4_SEQ[_hc4Step];
-  const z=document.getElementById('hc'+zi);
-  if(z) z.style.fill=_H_COLORS[team];
-  _hc4Step++;
-  if(_hc4Step===_HC4_SEQ.length) _hc4Timer=setTimeout(_hc4Win,420);
-  else _hc4Timer=setTimeout(_hc4Tick,560);
-}
-function _hc4Win(){
-  const wl=document.getElementById('hc4-win');
-  if(!wl) return;
-  wl.style.opacity='1';
-  wl.style.transition='none';
-  wl.setAttribute('stroke-dashoffset','208');
-  void wl.getBoundingClientRect();
-  wl.style.transition='stroke-dashoffset .85s cubic-bezier(.35,0,.2,1)';
-  wl.setAttribute('stroke-dashoffset','0');
-  // Darken the 4 winning zones as the line completes
-  setTimeout(()=>{[4,5,6,7].forEach(i=>{const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.winDark;});},480);
-  _hc4Timer=setTimeout(_hc4Reset,2800);
-}
-function _hc4Reset(){
-  const wl=document.getElementById('hc4-win');
-  if(wl){wl.style.transition='opacity .28s';wl.style.opacity='0';setTimeout(()=>{wl.setAttribute('stroke-dashoffset','208');},310);}
-  for(let i=0;i<8;i++){const z=document.getElementById('hc'+i);if(z)z.style.fill=_H_COLORS.neutral;}
-  _hc4Step=0;
-  _hc4Timer=setTimeout(_hc4Tick,1050);
-}
-
-function _homeAnimStart(){
-  clearTimeout(_hzcTimer); clearTimeout(_hc4Timer);
-  for(let i=0;i<8;i++){
-    const a=document.getElementById('hz'+i); if(a) a.style.fill=_H_COLORS.neutral;
-    const b=document.getElementById('hc'+i); if(b) b.style.fill=_H_COLORS.neutral;
-  }
-  const wl=document.getElementById('hc4-win');
-  if(wl){wl.style.opacity='0';wl.setAttribute('stroke-dashoffset','208');}
-  _hzcIdx=0; _hc4Step=0;
-  _hzcTimer=setTimeout(_hzcTick,600);
-  _hc4Timer=setTimeout(_hc4Tick,1200);
-}
-function _homeAnimStop(){
-  clearTimeout(_hzcTimer); clearTimeout(_hc4Timer);
-}
-
-// Start animations immediately on page load (home is the initial active screen)
-_homeAnimStart();
+function _homeAnimStart(){}
+function _homeAnimStop(){}
 
 </script>
 
