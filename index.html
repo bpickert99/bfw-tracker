@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#00B66B">
@@ -37,7 +37,7 @@
 .mc-stat svg{width:12px;height:12px;}
 .mb-draft-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;}
 .mb-modebar{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.mb-modebtn{flex:1;padding:9px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.mb-modebtn{flex:1;padding:12px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .mb-modebtn.active{background:var(--accent);color:#fff;}
 .mb-modebtn .mb-modecount{font-family:var(--font-mono);font-size:10px;opacity:.7;}
 .mb-progress{display:none;margin-top:8px;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);padding:6px 10px;}
@@ -62,7 +62,7 @@
   font-feature-settings:"tnum" 1;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;font-variant-numeric:tabular-nums;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-tap-highlight-color:transparent;overflow-anchor:none;font-variant-numeric:tabular-nums;overscroll-behavior:none;}
 .screen{display:none;}
 .screen.active{display:flex;flex-direction:column;position:fixed;inset:0;overflow:hidden;}
 
@@ -103,7 +103,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .setup-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
 .setup-toggle:last-child{border-bottom:none;}
 .setup-toggle label{margin:0;font-size:13px;color:var(--text);flex:1;}
-.setup-bottom{position:fixed;bottom:0;left:0;right:0;padding:12px 20px;background:var(--bg);border-top:2px solid var(--border);z-index:100;display:flex;gap:8px;}
+.setup-bottom{position:fixed;bottom:0;left:0;right:0;padding:12px 20px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:2px solid var(--border);z-index:100;display:flex;gap:8px;}
 .setup-form{background:var(--surface);border:none;border-radius:0;padding:0;width:100%;max-width:100%;margin:0;box-shadow:none;}
 .setup-form h2{font-family:var(--font);font-weight:700;font-size:24px;letter-spacing:0;margin-bottom:18px;line-height:1.15;}
 .team-setup-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface2);border-radius:var(--r-input);padding:9px 12px;margin-bottom:7px;}
@@ -145,7 +145,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 /* MAIN APP */
 #screenApp{background:var(--bg);}
-header{background:var(--header-bg);border-bottom:none;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
+header{background:var(--header-bg);border-bottom:none;padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
 .logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:white;}
 .logo span{color:white;}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
@@ -311,6 +311,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 @media(max-width:480px){.fr{grid-template-columns:1fr;}.scg{grid-template-columns:repeat(2,1fr);}.mzl{display:none;}}
 @media(max-width:480px){.mo{align-items:flex-end;}.md{border-radius:var(--r-feat) var(--r-feat) 0 0;max-height:85vh;margin:0;width:100%;max-width:100%;}}
+@media(max-width:480px){.mb-modebtn{padding:14px 10px;font-size:11px;}.mb-modebar{flex-wrap:wrap;}.btn.btn-sm{min-height:40px;padding:10px 14px;}}
 @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
 
 /* ── HOME SCREEN ─────────────────────────────────────────── */
@@ -955,102 +956,102 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 
 <!-- ZONE CHALLENGE OVERLAY -->
-<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,#1a0a0a 0%,#3d1515 100%);flex-direction:column;overflow-y:auto;color:white;text-align:center;padding:24px;">
+<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);flex-direction:column;overflow-y:auto;color:var(--fg);text-align:center;padding:24px;">
   <div style="margin-bottom:8px;"><svg viewBox="0 0 40 40" style="width:40px;height:40px"><path d="M10 30l8-8m4-4l8-8M30 10l-8 8m-4 4l-8 8" stroke="var(--red)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="20" r="4" fill="var(--red)" opacity=".6"/></svg></div>
   <div id="challengeTitle" style="font-family:var(--font);font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
-  <div id="challengeSubtitle" style="font-size:13px;opacity:.7;margin-bottom:16px;"></div>
+  <div id="challengeSubtitle" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
   <!-- Pending phase: challenger waiting / defender accept-decline -->
   <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chPendingChallenger" style="display:none;">
-      <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px;margin-bottom:12px;">
-        <div style="font-size:13px;opacity:.7;">Waiting for defender to respond...</div>
+      <div style="background:var(--surface2);border-radius:20px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--muted);">Waiting for defender to respond...</div>
         <div id="chPendingTimer" style="font-family:var(--font);font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
       </div>
-      <div style="font-size:12px;opacity:.5;">Challenge will be voided if not accepted within 3 minutes.</div>
+      <div style="font-size:12px;color:var(--muted);">Challenge will be voided if not accepted within 3 minutes.</div>
     </div>
     <div id="chPendingDefender" style="display:none;">
-      <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:16px;margin-bottom:12px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;margin-bottom:12px;">
         <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
-        <div style="font-size:12px;opacity:.7;margin-bottom:12px;">You must match their wager to accept.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">You must match their wager to accept.</div>
         <div id="chDefenderTimer" style="font-family:var(--font);font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
         <div style="display:flex;gap:10px;">
           <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
-          <button class="btn" style="flex:1;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
+          <button class="btn" style="flex:1;background:var(--surface2);color:var(--fg);border:1px solid var(--border);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
         </div>
       </div>
     </div>
   </div>
   <!-- Active phase: challenge text, timer, photo upload -->
   <div id="chPhaseActive" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="background:rgba(255,255,255,.12);border-radius:20px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
-    <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:12px;margin-bottom:12px;">
-      <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
+    <div style="background:var(--surface2);border-radius:20px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
       <div id="chActiveTimer" style="font-family:var(--font);font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
     </div>
     <div id="chActiveSubmitSection">
       <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
-      <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;margin-bottom:8px;padding:12px;font-size:14px;" onclick="document.getElementById('chActivePhoto').click()">📷 Take Photo</button>
-      <div id="chActivePhotoStatus" style="font-size:11px;opacity:.6;margin-bottom:8px;"></div>
+      <button class="btn" style="background:var(--surface2);color:var(--fg);border:1px solid var(--border);width:100%;margin-bottom:8px;padding:12px;font-size:14px;" onclick="document.getElementById('chActivePhoto').click()">📷 Take Photo</button>
+      <div id="chActivePhotoStatus" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
       <button id="chActiveSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:15px;padding:14px;" onclick="submitZoneChallengePhoto()" disabled>Submit Photo</button>
     </div>
     <div id="chActiveSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Photo submitted — waiting for opponent…</div>
-    <div id="chActiveStatus" style="margin-top:10px;font-size:12px;opacity:.7;"></div>
+    <div id="chActiveStatus" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
   </div>
   <!-- Voting phase -->
   <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div style="font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
     <div id="chVoteContent" style="margin-bottom:12px;">
-      <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:20px;background:rgba(255,255,255,.08);margin-bottom:10px;">
-      <div id="chVoteNoPhoto" style="display:none;background:rgba(255,255,255,.08);border-radius:20px;padding:20px;margin-bottom:10px;font-size:13px;opacity:.7;">No photo submitted by opponent.</div>
+      <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:20px;background:var(--surface2);margin-bottom:10px;">
+      <div id="chVoteNoPhoto" style="display:none;background:var(--surface2);border-radius:20px;padding:20px;margin-bottom:10px;font-size:13px;color:var(--muted);">No photo submitted by opponent.</div>
     </div>
     <div id="chVoteButtons" style="display:flex;gap:10px;margin-bottom:10px;">
       <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="voteOnZoneChallenge(true)">Approve</button>
       <button class="btn" style="flex:1;background:#dc2626;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="showZoneChallengeRejectForm()">❌ Reject</button>
     </div>
     <div id="chVoteRejectForm" style="display:none;margin-bottom:10px;">
-      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:white;border-radius:14px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
+      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--fg);border-radius:14px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
       <button class="btn" style="background:#dc2626;color:white;border:none;width:100%;padding:10px;" onclick="voteOnZoneChallenge(false)">Confirm Rejection</button>
     </div>
     <div id="chVoteWaiting" style="display:none;font-size:13px;color:#4ade80;">✓ Vote submitted — waiting for opponent's vote…</div>
-    <div id="chVoteAutoTimer" style="font-size:11px;opacity:.5;margin-top:8px;"></div>
+    <div id="chVoteAutoTimer" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
   </div>
   <!-- Result phase -->
   <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
     <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
     <div id="chResultTitle" style="font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
-    <div id="chResultDetail" style="font-size:13px;opacity:.8;margin-bottom:20px;line-height:1.6;"></div>
-    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
+    <div id="chResultDetail" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;"></div>
+    <button class="btn" style="background:var(--surface2);color:var(--fg);border:1px solid var(--border);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
   </div>
 </div>
 
 
 <!-- LUNCH OVERLAY -->
-<div id="lunchOverlay" style="display:none;position:fixed;inset:0;z-index:950;background:linear-gradient(135deg,#1a1d2e 0%,#2d3561 100%);flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:32px;">
+<div id="lunchOverlay" style="display:none;position:fixed;inset:0;z-index:950;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);flex-direction:column;align-items:center;justify-content:center;color:var(--fg);text-align:center;padding:32px;">
   <div style="font-size:56px;margin-bottom:16px;">🍽️</div>
   <div style="font-family:var(--font);font-weight:800;font-size:36px;letter-spacing:3px;margin-bottom:8px;">LUNCH BREAK</div>
-  <div style="font-size:14px;opacity:.7;margin-bottom:24px;">All game activity is paused. Enjoy your break!</div>
-  <div style="background:rgba(255,255,255,.1);border-radius:16px;padding:20px 32px;margin-bottom:24px;">
-    <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Resuming in</div>
+  <div style="font-size:14px;color:var(--muted);margin-bottom:24px;">All game activity is paused. Enjoy your break!</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 32px;margin-bottom:24px;">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Resuming in</div>
     <div id="lunchCountdown" style="font-family:var(--font);font-weight:800;font-size:52px;letter-spacing:4px;">00:00</div>
   </div>
-  <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
-    <div style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Current Standings</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px 20px;margin-bottom:24px;width:100%;max-width:360px;">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Current Standings</div>
     <div id="lunchStandings"></div>
   </div>
   <div id="lunchHostControls" style="width:100%;max-width:360px;display:none;flex-direction:column;gap:8px;">
-    <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);" onclick="confirmEndLunchEarly()">⏩ End Lunch Early</button>
-    <button class="btn" style="background:rgba(231,57,70,.3);color:white;border:1px solid rgba(231,57,70,.5);" onclick="confirmEndGame()">End Game</button>
+    <button class="btn" style="background:var(--surface2);color:var(--fg);border:1px solid var(--border);" onclick="confirmEndLunchEarly()">⏩ End Lunch Early</button>
+    <button class="btn" style="background:rgba(231,57,70,.1);color:#dc2626;border:1px solid rgba(231,57,70,.4);" onclick="confirmEndGame()">End Game</button>
   </div>
   <div style="margin-top:16px;">
-    <button class="btn" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);font-size:13px;padding:10px 24px;" onclick="lunchOpenChat()">💬 Open Chat</button>
+    <button class="btn" style="background:var(--surface);color:var(--fg);border:1px solid var(--border);font-size:13px;padding:10px 24px;" onclick="lunchOpenChat()">💬 Open Chat</button>
   </div>
 </div>
 
 <!-- LUNCH CHAT PANEL (slides over lunch overlay) -->
 <div id="lunchChatPanel" style="display:none;position:fixed;inset:0;z-index:955;background:var(--surface);flex-direction:column;">
-  <div style="background:var(--text);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);color:var(--fg);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
     <div style="font-family:var(--font);font-weight:800;font-size:18px;letter-spacing:1.5px;">LUNCH CHAT</div>
-    <button onclick="lunchCloseChat()" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:14px;padding:6px 14px;font-family:var(--font);font-size:13px;cursor:pointer;">← Back to Lunch</button>
+    <button onclick="lunchCloseChat()" style="background:var(--surface2);color:var(--fg);border:none;border-radius:14px;padding:6px 14px;font-family:var(--font);font-size:13px;cursor:pointer;">← Back to Lunch</button>
   </div>
   <div id="lunchChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;"></div>
   <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
@@ -1207,10 +1208,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
   <!-- Step indicator -->
   <div id="mbSteps" style="display:flex;background:var(--surface);border-bottom:1px solid var(--border);height:40px;">
-    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
-    <div class="mb-step" id="mbStep-build" onclick="mbGotoStep('build')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Build</div>
-    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Shop</div>
-    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Publish</div>
+    <div class="mb-step active" id="mbStep-meta" onclick="mbGotoStep('meta')" style="flex:1;padding:12px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">1. Info</div>
+    <div class="mb-step" id="mbStep-build" onclick="mbGotoStep('build')" style="flex:1;padding:12px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">2. Build</div>
+    <div class="mb-step" id="mbStep-shop" onclick="mbGotoStep('shop')" style="flex:1;padding:12px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">3. Shop</div>
+    <div class="mb-step" id="mbStep-review" onclick="mbGotoStep('review')" style="flex:1;padding:12px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);">4. Publish</div>
   </div>
 
   <div style="position:absolute;top:90px;left:0;right:0;bottom:0;overflow:hidden;" id="mbPanelWrap">
@@ -5348,7 +5349,13 @@ function _renderMapResults(maps){
     const isSelected=_selectedMapId===m.id;
     const div=document.createElement('div');
     div.className='mb-map-card'+(isSelected?' selected':'');
-    div.innerHTML='<div class="mc-name">'+esc(m.name)+'</div>'+
+    div.innerHTML=(m.thumbnail?'<img src="'+m.thumbnail+'" style="width:100%;height:80px;object-fit:cover;border-radius:0;margin-bottom:8px;background:#f0f4f8;" onerror="this.remove()">':'')+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">'+
+        '<div class="mc-name">'+esc(m.name)+'</div>'+
+        '<div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">'+
+          '<svg viewBox="0 0 16 16" style="width:14px;height:14px;"><path d="M3 3v10l10-5z" fill="currentColor"/></svg>'+plays+
+        '</div>'+
+      '</div>'+
       '<div class="mc-meta">'+(m.creatorPhoto?'<img src="'+esc(m.creatorPhoto)+'" style="width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.remove()">':'')+esc(m.cityName)+' &middot; by '+esc(m.creator||'Anonymous')+
       (m.desc?' &middot; '+esc(m.desc):'')+
       '</div>'+
@@ -5356,12 +5363,9 @@ function _renderMapResults(maps){
         '<span class="mc-stat"><svg viewBox="0 0 16 16"><rect x="1" y="4" width="4" height="8" rx="1" fill="currentColor" opacity=".5"/><rect x="6" y="2" width="4" height="10" rx="1" fill="currentColor" opacity=".7"/><rect x="11" y="6" width="4" height="6" rx="1" fill="currentColor" opacity=".3"/></svg>'+zoneCount+' zones</span>'+
         '<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M8 1l2 4h4l-3 3 1 5-4-2-4 2 1-5-3-3h4z" fill="currentColor" opacity=".5"/></svg>'+lmCount+' landmarks</span>'+
         (lineCount?'<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M2 12h12M4 8h8M6 4h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'+lineCount+' lines</span>':'')+
-        '<span class="mc-stat"><svg viewBox="0 0 16 16"><path d="M8 2a5 5 0 00-5 5c0 4 5 8 5 8s5-4 5-8a5 5 0 00-5-5z" fill="currentColor" opacity=".4"/><circle cx="8" cy="7" r="2" fill="white"/></svg>'+plays+' plays</span>'+
       '</div>';
     div.addEventListener('click',()=>{
       _selectCommunityMap(m.id);
-      res.querySelectorAll('.mb-map-card').forEach(c=>c.classList.remove('selected'));
-      div.classList.add('selected');
     });
     res.appendChild(div);
   });
@@ -5407,6 +5411,47 @@ function _mbNewMap(){
 }
 
 async function _selectCommunityMap(id){
+  const map = _allMaps.find(m=>m.id===id);
+  if(!map) return;
+  const zc=map.config&&map.config.zones?map.config.zones.length:0;
+  const lc=map.config&&map.config.landmarks?map.config.landmarks.length:0;
+  const lnc=map.config&&map.config.transitLines?Object.keys(map.config.transitLines).length:0;
+  const plays=map.playCount||0;
+
+  // Show preview modal
+  let overlay=document.getElementById('mapPreviewOverlay');
+  if(overlay) overlay.remove();
+  overlay=document.createElement('div');
+  overlay.id='mapPreviewOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const panel=document.createElement('div');
+  panel.style.cssText='background:var(--bg);border:1px solid var(--border);border-radius:8px;max-width:340px;width:100%;padding:0;overflow:hidden;';
+  panel.innerHTML=(map.thumbnail?'<img src="'+map.thumbnail+'" style="width:100%;height:120px;object-fit:cover;background:#f0f4f8;" onerror="this.remove()">':'')+
+    '<div style="padding:16px;">'+
+    '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">'+esc(map.name)+'</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+(map.creatorPhoto?'<img src="'+esc(map.creatorPhoto)+'" style="width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.remove()">':'')+esc(map.cityName)+' &middot; by '+esc(map.creator||'Anonymous')+'</div>'+
+    (map.desc?'<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+esc(map.desc)+'</div>':'')+
+    '<div style="display:flex;gap:16px;font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:4px;">'+
+      '<span>'+zc+' zones</span><span>'+lc+' landmarks</span>'+(lnc?'<span>'+lnc+' lines</span>':'')+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:16px;">'+
+      '<svg viewBox="0 0 16 16" style="width:14px;height:14px;"><path d="M3 3v10l10-5z" fill="currentColor"/></svg>'+plays+' plays'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<button id="mapPreviewCancel" class="btn" style="flex:1;">Cancel</button>'+
+      '<button id="mapPreviewConfirm" class="btn btn-g" style="flex:1;">Use This Map</button>'+
+    '</div></div>';
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay) overlay.remove();});
+  document.getElementById('mapPreviewCancel').addEventListener('click',()=>overlay.remove());
+  document.getElementById('mapPreviewConfirm').addEventListener('click',()=>{
+    overlay.remove();
+    _confirmSelectCommunityMap(id);
+  });
+}
+
+function _confirmSelectCommunityMap(id){
   _selectedMapId = id;
   const map = _allMaps.find(m=>m.id===id);
   if(!map) return;
@@ -5426,6 +5471,9 @@ async function _selectCommunityMap(id){
   }
 
   window._communityMapConfig = _selectedMapConfig;
+  // Update card selection styling
+  const res=document.getElementById('cfgMapResults');
+  if(res) res.querySelectorAll('.mb-map-card').forEach(c=>c.classList.remove('selected'));
 }
 
 // DC map seeded manually — see seed-dc.js
@@ -6632,6 +6680,35 @@ function _renderMbReview(){
   },0);
 }
 
+function _generateMapThumbnail(zones){
+  try{
+    const c=document.createElement('canvas');c.width=200;c.height=150;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,200,150);
+    const allPts=[];
+    zones.forEach(z=>{if(z.poly&&z.poly.length>2) z.poly.forEach(p=>allPts.push(p));});
+    if(allPts.length===0) return null;
+    let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
+    allPts.forEach(p=>{minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]);});
+    const pad=16,dw=200-pad*2,dh=150-pad*2;
+    const latR=maxLat-minLat||0.01,lngR=maxLng-minLng||0.01;
+    const scale=Math.min(dw/lngR,dh/latR);
+    const ox=pad+(dw-lngR*scale)/2,oy=pad+(dh-latR*scale)/2;
+    function tx(lng){return ox+(lng-minLng)*scale;}
+    function ty(lat){return oy+(maxLat-lat)*scale;}
+    zones.forEach(z=>{
+      if(!z.poly||z.poly.length<3) return;
+      ctx.beginPath();
+      ctx.moveTo(tx(z.poly[0][1]),ty(z.poly[0][0]));
+      for(let i=1;i<z.poly.length;i++) ctx.lineTo(tx(z.poly[i][1]),ty(z.poly[i][0]));
+      ctx.closePath();
+      ctx.fillStyle='rgba(26,109,212,0.4)';ctx.fill();
+      ctx.strokeStyle='#1A6DD4';ctx.lineWidth=1.5;ctx.stroke();
+    });
+    return c.toDataURL('image/jpeg',0.6);
+  }catch(e){console.warn('Thumbnail gen failed:',e);return null;}
+}
+
 async function publishMap(){
   if(!_authUser){_requireAuth(()=>publishMap());return;}
   const name=(document.getElementById('mbName')?.value.trim())||'';
@@ -6655,10 +6732,11 @@ async function publishMap(){
     const cleanLines={};
     _mbLines.forEach(ln=>{cleanLines[ln.id]={name:ln.name,type:ln.type,color:ln.color,smooth:ln.smooth||false,stops:ln.stops,zonesServed:ln.zonesServed||[],imported:ln.imported||false,stations:ln.stations||[]};});
     const cleanShop=_mbGetCleanShopConfig();
+    const thumbnail=_generateMapThumbnail(_mbZones);
     const mapObj={
       id,name,cityName:_mbCityData.shortName,
       cityTag:_mbCityData.shortName.toLowerCase().replace(/[^a-z0-9]/g,'-'),
-      desc,creator,creatorId,createdAt:Date.now(),playCount:0,creatorPhoto:_authUser&&_authUser.photoURL?_authUser.photoURL:null,
+      desc,creator,creatorId,createdAt:Date.now(),playCount:0,creatorPhoto:_authUser&&_authUser.photoURL?_authUser.photoURL:null,thumbnail:thumbnail||null,
       config:{
         cityName:_mbCityData.shortName,cityCenter:{lat:_mbCityData.lat,lng:_mbCityData.lng},
         transitMode:document.getElementById('mbTransitMode')?.value||'transit',
