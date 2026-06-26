@@ -386,6 +386,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </svg>
       <div class="home-title">Transit Tournament</div>
       <div class="home-tagline">Capture the city. Outwit your crew.</div>
+      <div style="font-size:10px;color:var(--faint);margin-top:2px;">v2.01</div>
     </div>
 
     <!-- Auth -->
@@ -5345,7 +5346,8 @@ function _renderMapResults(maps){
     const isSelected=_selectedMapId===m.id;
     const div=document.createElement('div');
     div.className='mb-map-card'+(isSelected?' selected':'');
-    div.innerHTML=(m.thumbnail?'<img src="'+m.thumbnail+'" style="width:100%;height:80px;object-fit:cover;border-radius:0;margin-bottom:8px;background:#f0f4f8;" onerror="this.remove()">':'')+
+    const thumb=m.thumbnail||_generateMapThumbnail(m.config&&m.config.zones||[], m.config&&m.config.transitLines?Object.values(m.config.transitLines):[], m.config&&m.config.landmarks||[]);
+    div.innerHTML=(thumb?'<img src="'+thumb+'" style="width:100%;height:80px;object-fit:cover;border-radius:0;margin-bottom:8px;background:#f0f4f8;" onerror="this.remove()">':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">'+
         '<div class="mc-name">'+esc(m.name)+'</div>'+
         '<div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">'+
@@ -5422,7 +5424,8 @@ async function _selectCommunityMap(id){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
   const panel=document.createElement('div');
   panel.style.cssText='background:var(--bg);border:1px solid var(--border);border-radius:8px;max-width:340px;width:100%;padding:0;overflow:hidden;';
-  panel.innerHTML=(map.thumbnail?'<img src="'+map.thumbnail+'" style="width:100%;height:120px;object-fit:cover;background:#f0f4f8;" onerror="this.remove()">':'')+
+  const pThumb=map.thumbnail||_generateMapThumbnail(map.config&&map.config.zones||[], map.config&&map.config.transitLines?Object.values(map.config.transitLines):[], map.config&&map.config.landmarks||[]);
+  panel.innerHTML=(pThumb?'<img src="'+pThumb+'" style="width:100%;height:120px;object-fit:cover;background:#f0f4f8;" onerror="this.remove()">':'')+
     '<div style="padding:16px;">'+
     '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">'+esc(map.name)+'</div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+(map.creatorPhoto?'<img src="'+esc(map.creatorPhoto)+'" style="width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:3px;" onerror="this.remove()">':'')+esc(map.cityName)+' &middot; by '+esc(map.creator||'Anonymous')+'</div>'+
@@ -6677,15 +6680,17 @@ function _renderMbReview(){
   },0);
 }
 
-function _generateMapThumbnail(zones){
+function _generateMapThumbnail(zones, lines, landmarks){
   try{
     const c=document.createElement('canvas');c.width=200;c.height=150;
     const ctx=c.getContext('2d');
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,200,150);
     const allPts=[];
     zones.forEach(z=>{if(z.poly&&z.poly.length>2) z.poly.forEach(p=>allPts.push(p));});
-    if(typeof _mbLines!=='undefined') _mbLines.forEach(ln=>(ln.stops||[]).forEach(s=>{if(s.lat&&s.lng)allPts.push([s.lat,s.lng]);}));
-    if(typeof _mbLandmarks!=='undefined') _mbLandmarks.forEach(lm=>{if(lm.lat&&lm.lng)allPts.push([lm.lat,lm.lng]);});
+    const _lines=lines||(typeof _mbLines!=='undefined'?_mbLines:[]);
+    const _lms=landmarks||(typeof _mbLandmarks!=='undefined'?_mbLandmarks:[]);
+    _lines.forEach(ln=>(ln.stops||[]).forEach(s=>{if(s.lat&&s.lng)allPts.push([s.lat,s.lng]);}));
+    _lms.forEach(lm=>{if(lm.lat&&lm.lng)allPts.push([lm.lat,lm.lng]);});
     if(allPts.length===0) return null;
     let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
     allPts.forEach(p=>{minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]);});
@@ -6704,25 +6709,21 @@ function _generateMapThumbnail(zones){
       ctx.fillStyle='rgba(26,109,212,0.4)';ctx.fill();
       ctx.strokeStyle='#1A6DD4';ctx.lineWidth=1.5;ctx.stroke();
     });
-    if(typeof _mbLines!=='undefined'){
-      _mbLines.forEach(ln=>{
-        if(!ln.stops||ln.stops.length<2) return;
-        ctx.beginPath();
-        const pts=ln.stops;
-        ctx.moveTo(tx(pts[0].lng),ty(pts[0].lat));
-        for(let i=1;i<pts.length;i++) ctx.lineTo(tx(pts[i].lng),ty(pts[i].lat));
-        ctx.strokeStyle=ln.color||'#3b82f6';ctx.lineWidth=2;ctx.stroke();
-      });
-    }
-    if(typeof _mbLandmarks!=='undefined'){
-      _mbLandmarks.forEach(lm=>{
+    _lines.forEach(ln=>{
+      if(!ln.stops||ln.stops.length<2) return;
+      ctx.beginPath();
+      const pts=ln.stops;
+      ctx.moveTo(tx(pts[0].lng),ty(pts[0].lat));
+      for(let i=1;i<pts.length;i++) ctx.lineTo(tx(pts[i].lng),ty(pts[i].lat));
+      ctx.strokeStyle=ln.color||'#3b82f6';ctx.lineWidth=2;ctx.stroke();
+    });
+    _lms.forEach(lm=>{
         if(!lm.lat||!lm.lng) return;
         ctx.beginPath();
         ctx.arc(tx(lm.lng),ty(lm.lat),3,0,Math.PI*2);
         ctx.fillStyle='#f59e0b';ctx.fill();
         ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.stroke();
       });
-    }
     return c.toDataURL('image/jpeg',0.6);
   }catch(e){console.warn('Thumbnail gen failed:',e);return null;}
 }
