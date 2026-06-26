@@ -511,7 +511,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <span class="setup-label">Game Preset</span>
       <select id="cfgMapPreset" onchange="onMapPresetChange()" style="margin-bottom:12px;">
         <option value="community">Community Maps (browse by city)</option>
-        <option value="dc">Washington DC — built-in</option>
         <option value="custom">Generate from OpenStreetMap</option>
       </select>
       <!-- COMMUNITY MAP BROWSER -->
@@ -1563,7 +1562,7 @@ function getLandmarkPool(){
     // Custom map but no landmarks fetched yet — return empty
     return [];
   }
-  return LANDMARKS; // DC
+  return []; // no hardcoded fallback
 }
 
 function pickNewLandmark(announce){
@@ -1577,7 +1576,7 @@ function pickNewLandmark(announce){
   if(G.landmark&&G.landmark.idx===idx)idx=(idx+1)%pool.length;
   const lm=pool[idx];
   const coins=lm.coins||_landmarkCoins(lm.lat,lm.lng);
-  G.landmark={idx,assignedAt:Date.now(),claimedBy:null,coins,name:lm.name,hint:lm.hint||''};
+  G.landmark={idx,assignedAt:Date.now(),claimedBy:null,coins,name:lm.name,hint:lm.hint||'',lat:lm.lat,lng:lm.lng};
   if(G.flopClaims&&G.flopClaims['landmark'])delete G.flopClaims['landmark'];
   if(announce)logEv('\u{1F5FA}\uFE0F New Landmark: <b>'+esc(lm.name)+'</b> — <b>'+coins+' coins</b> to get there!');
 }
@@ -2225,8 +2224,8 @@ const MLINE_PATHS = {
 
 // ── DYNAMIC MAP HELPERS ───────────────────────────────────────────
 // Falls back to hardcoded DC data when no custom map is configured.
-function getZones(){return(G.config&&G.config.map&&G.config.map.zones&&G.config.map.zones.length)?G.config.map.zones:ZONES;}
-function getTransitStops(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitStops)||[];return METRO_STATIONS;}
+function getZones(){return(G.config&&G.config.map&&G.config.map.zones&&G.config.map.zones.length)?G.config.map.zones:[];}
+function getTransitStops(){if(G.config&&G.config.map!==null&&G.config.map!==undefined)return(G.config.map&&G.config.map.transitStops)||[];return [];}
 function getTransitLines(){
   if(G.config&&G.config.map!==null&&G.config.map!==undefined){
     const raw=(G.config.map&&G.config.map.transitLines)||{};
@@ -2243,9 +2242,9 @@ function getTransitLines(){
     });
     return out;
   }
-  return MLINES;
+  return {};
 }
-function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:LINE_BONUSES;}
+function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:[];}
 function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
 function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
 function isCustomMap(){return !!(G.config&&G.config.map);}
@@ -3552,7 +3551,7 @@ function computeScores(){
 function renderScores(){
   const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses),rk=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t),ro={};rk.forEach((r,p)=>ro[r.i]=p+1);
   const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
-  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.style.background=team.color;card.innerHTML=`<div class="route-badge" style="background:rgba(0,0,0,.2)">${esc(team.name[0])}</div><div class="tsn2">${esc(team.name)}</div><div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:auto;"><div class="bsc">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div></div><div class="tsrk">#${ro[i]}</div>`;g.appendChild(card);});
+  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.style.borderLeft='4px solid '+team.color;card.innerHTML=`<div class="route-badge" style="background:${team.color}">${esc(team.name[0])}</div><div class="tsn2">${esc(team.name)}</div><div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:auto;"><div class="bsc">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div></div><div class="tsrk">#${ro[i]}</div>`;g.appendChild(card);});
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
   // Momentum bonus display
   const scoreTime2=_parseTimeToMs(G.config?.score||'18:00');
@@ -3708,6 +3707,18 @@ function initMap(){
       .addTo(bfwMap);
   });
   } // end DC-only stations
+  if(isCustomMap() && G.config.map.transitLines){
+    Object.values(G.config.map.transitLines).forEach(ln=>{
+      const color=ln.color||'#3b82f6';
+      (ln.stations||ln.stops||[]).forEach(s=>{
+        if(!s.lat||!s.lng) return;
+        const icon=L.divIcon({className:'',html:`<div style="width:8px;height:8px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>`,iconSize:[8,8],iconAnchor:[4,4]});
+        L.marker([s.lat,s.lng],{icon,interactive:true})
+          .bindTooltip(s.name||'Stop',{className:'zt',direction:'top'})
+          .addTo(bfwMap);
+      });
+    });
+  }
 }
 function renderMapColors(){
   if(!mapReady)return;
@@ -4070,10 +4081,10 @@ async function submitDep(){
 
   logEv('<b>'+esc(G.teams[teamIdx]?.name)+'</b> deposited <b>'+amount+' coins</b> in <b>'+z.code+' '+z.name+'</b> — total '+tot+(leader===teamIdx?' ▲ now leads':''));
 
+  closeDep();
   await pushState();
   renderAll();
   showToast(amount+' coin'+(amount!==1?'s':'')+' deposited in '+z.code+' '+z.name+'!','ok',3000);
-  closeDep();
   _depSubmitting=false;
   if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}
 }
@@ -6242,10 +6253,11 @@ async function mbDiscoverLandmarks(){
   // nwr = node/way/relation; "out center" gives a representative point for
   // ways/relations (parks, stadiums, museums) — not just point-mapped nodes.
   const q = `[out:json][timeout:40];(`+
-    `nwr["tourism"~"attraction|museum|artwork|viewpoint|gallery|zoo|theme_park"](${bbox});`+
+    `nwr["tourism"~"attraction|museum|artwork|viewpoint|gallery|zoo|theme_park|hotel|information"](${bbox});`+
     `nwr["historic"~"monument|memorial|castle|ruins|building|fort|archaeological_site"](${bbox});`+
-    `nwr["amenity"~"theatre|arts_centre|place_of_worship|fountain|library|townhall|marketplace"](${bbox});`+
-    `nwr["leisure"~"park|stadium|garden|sports_centre"](${bbox});`+
+    `nwr["amenity"~"theatre|arts_centre"](${bbox});`+
+    `nwr["leisure"~"stadium|sports_centre"](${bbox});`+
+    `nwr["shop"~"department_store"](${bbox});`+
     `nwr["man_made"~"tower|lighthouse|bridge|obelisk"](${bbox});`+
     `);out center 150;`;
 
@@ -6278,8 +6290,8 @@ async function mbDiscoverLandmarks(){
 
     const catMap = {museum:'Museum',attraction:'Attraction',artwork:'Public Art',viewpoint:'Viewpoint',gallery:'Gallery',
       monument:'Monument',memorial:'Memorial',castle:'Castle',ruins:'Ruins',theatre:'Theater',arts_centre:'Arts',
-      place_of_worship:'Worship',fountain:'Fountain',library:'Library',townhall:'City Hall',park:'Park',stadium:'Stadium',
-      garden:'Garden',tower:'Tower',lighthouse:'Lighthouse',bridge:'Bridge'};
+      hotel:'Hotel',information:'Info Center',department_store:'Dept Store',stadium:'Stadium',
+      tower:'Tower',lighthouse:'Lighthouse',bridge:'Bridge',zoo:'Zoo',theme_park:'Theme Park'};
 
     sug.innerHTML = '<div style="padding:4px 8px;font-size:10px;color:var(--muted);font-weight:700;">Tap to add · '+pois.length+' POIs found</div>';
     pois.forEach(poi => {
@@ -6672,6 +6684,8 @@ function _generateMapThumbnail(zones){
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,200,150);
     const allPts=[];
     zones.forEach(z=>{if(z.poly&&z.poly.length>2) z.poly.forEach(p=>allPts.push(p));});
+    if(typeof _mbLines!=='undefined') _mbLines.forEach(ln=>(ln.stops||[]).forEach(s=>{if(s.lat&&s.lng)allPts.push([s.lat,s.lng]);}));
+    if(typeof _mbLandmarks!=='undefined') _mbLandmarks.forEach(lm=>{if(lm.lat&&lm.lng)allPts.push([lm.lat,lm.lng]);});
     if(allPts.length===0) return null;
     let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
     allPts.forEach(p=>{minLat=Math.min(minLat,p[0]);maxLat=Math.max(maxLat,p[0]);minLng=Math.min(minLng,p[1]);maxLng=Math.max(maxLng,p[1]);});
@@ -6690,6 +6704,25 @@ function _generateMapThumbnail(zones){
       ctx.fillStyle='rgba(26,109,212,0.4)';ctx.fill();
       ctx.strokeStyle='#1A6DD4';ctx.lineWidth=1.5;ctx.stroke();
     });
+    if(typeof _mbLines!=='undefined'){
+      _mbLines.forEach(ln=>{
+        if(!ln.stops||ln.stops.length<2) return;
+        ctx.beginPath();
+        const pts=ln.stops;
+        ctx.moveTo(tx(pts[0].lng),ty(pts[0].lat));
+        for(let i=1;i<pts.length;i++) ctx.lineTo(tx(pts[i].lng),ty(pts[i].lat));
+        ctx.strokeStyle=ln.color||'#3b82f6';ctx.lineWidth=2;ctx.stroke();
+      });
+    }
+    if(typeof _mbLandmarks!=='undefined'){
+      _mbLandmarks.forEach(lm=>{
+        if(!lm.lat||!lm.lng) return;
+        ctx.beginPath();
+        ctx.arc(tx(lm.lng),ty(lm.lat),3,0,Math.PI*2);
+        ctx.fillStyle='#f59e0b';ctx.fill();
+        ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.stroke();
+      });
+    }
     return c.toDataURL('image/jpeg',0.6);
   }catch(e){console.warn('Thumbnail gen failed:',e);return null;}
 }
