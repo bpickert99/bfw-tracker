@@ -7160,8 +7160,9 @@ async function _bdyEnsureGeo(sub){
   const clat = sub.lat ?? sub.center?.lat;
   const clon = sub.lon ?? sub.center?.lon;
   if(name) {
+    // 2a: bounded search (strict, within viewbox)
     try {
-      let searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=3&q=' + encodeURIComponent(name);
+      let searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=5&q=' + encodeURIComponent(name);
       if(clat && clon) searchUrl += '&viewbox=' + (clon-0.15) + ',' + (clat+0.15) + ',' + (clon+0.15) + ',' + (clat-0.15) + '&bounded=1';
       const r = await fetch(searchUrl, {
         headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
@@ -7173,6 +7174,29 @@ async function _bdyEnsureGeo(sub){
         return sub._geo;
       }
     } catch(e){}
+    // 2b: unbounded search, pick closest result with polygon data
+    if(clat && clon) {
+      try {
+        await new Promise(r => setTimeout(r, 1100));
+        const r2 = await fetch('https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=10&q=' + encodeURIComponent(name), {
+          headers: {'Accept-Language':'en', 'User-Agent':'TransitTournament/1.0'}
+        });
+        const res2 = await r2.json();
+        const withPoly = res2.filter(r => r.geojson && (r.geojson.type === 'Polygon' || r.geojson.type === 'MultiPolygon'));
+        if(withPoly.length) {
+          const closest = withPoly.reduce((best, cur) => {
+            const d = Math.abs(parseFloat(cur.lat)-clat) + Math.abs(parseFloat(cur.lon)-clon);
+            const bd = Math.abs(parseFloat(best.lat)-clat) + Math.abs(parseFloat(best.lon)-clon);
+            return d < bd ? cur : best;
+          });
+          const dist = Math.abs(parseFloat(closest.lat)-clat) + Math.abs(parseFloat(closest.lon)-clon);
+          if(dist < 0.5) {
+            sub._geo = closest.geojson;
+            return sub._geo;
+          }
+        }
+      } catch(e){}
+    }
   }
 
   // Strategy 3: generate a circular approximation around the point
