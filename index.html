@@ -386,7 +386,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </svg>
       <div class="home-title">Transit Tournament</div>
       <div class="home-tagline">Capture the city. Outwit your crew.</div>
-      <div style="font-size:10px;color:var(--faint);margin-top:2px;">v2.01</div>
+      <div style="font-size:10px;color:var(--faint);margin-top:2px;">v2.02</div>
     </div>
 
     <!-- Auth -->
@@ -7243,7 +7243,36 @@ async function _bdyEnsureGeo(sub){
     }
   }
 
-  // Strategy 3: generate a circular approximation around the point
+  // Strategy 3: Overpass polygon query — search for a way/relation with the same name near the point
+  if(name && (clat || sub.lat) && (clon || sub.lon)) {
+    const qlat = clat || sub.lat, qlon = clon || sub.lon;
+    const r = 0.06;
+    const obbox = (qlat-r)+','+(qlon-r)+','+(qlat+r)+','+(qlon+r);
+    try {
+      const opq = `[out:json][timeout:20];(way["name"="${name.replace(/"/g,'\\"')}"](${obbox});rel["name"="${name.replace(/"/g,'\\"')}"](${obbox}););out geom;`;
+      const opRes = await _overpass(opq, {timeoutMs:20000});
+      const els = (opRes.elements||[]).filter(el=>{
+        if(el.type==='way'&&el.geometry&&el.geometry.length>3) return true;
+        if(el.type==='relation'&&el.members) return true;
+        return false;
+      });
+      if(els.length) {
+        const el = els[0];
+        if(el.type==='way'&&el.geometry) {
+          const ring = el.geometry.map(p=>[p.lon, p.lat]);
+          if(ring.length>3){ring.push(ring[0]);sub._geo={type:'Polygon',coordinates:[ring]};return sub._geo;}
+        } else if(el.type==='relation'&&el.members) {
+          const outers = el.members.filter(m=>m.role==='outer'&&m.geometry);
+          if(outers.length) {
+            const ring = outers[0].geometry.map(p=>[p.lon,p.lat]);
+            if(ring.length>3){ring.push(ring[0]);sub._geo={type:'Polygon',coordinates:[ring]};return sub._geo;}
+          }
+        }
+      }
+    } catch(e){}
+  }
+
+  // Strategy 4: generate a circular approximation around the point
   const flat = clat || sub.lat;
   const flon = clon || sub.lon;
   if(flat && flon) {
