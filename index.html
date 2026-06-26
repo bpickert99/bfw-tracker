@@ -56,7 +56,7 @@
   --red:#E23B3B;--silver:#94A3B4;
   --shadow:0 2px 10px rgba(11,44,97,.06);
   --rl:#E23B3B;--bl:#2563EB;--ol:#EA8A1E;--gl:#15A34A;--sl:#94A3B4;--yl:#F4B400;
-  --header-bg:#00B66B;--tab-bg:#F7F8FA;
+  --header-bg:var(--surface);--tab-bg:#F7F8FA;
   --font:'Hanken Grotesk',sans-serif;--font-mono:'DM Mono',monospace;--font-led:'Departure Mono',monospace;
   --r-card:20px;--r-feat:24px;--r-btn:999px;--r-input:14px;--r-chip:999px;--r-badge:8px;
   font-feature-settings:"tnum" 1;
@@ -145,19 +145,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 /* MAIN APP */
 #screenApp{background:var(--bg);}
-header{background:var(--header-bg);border-bottom:none;padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
-.logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:white;}
-.logo span{color:white;}
+header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
+.logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:var(--fg);}
+.logo span{color:var(--accent);}
 .hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
-.clock{font-family:var(--font-led);font-size:11px;color:rgba(255,255,255,.9);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
+.clock{font-family:var(--font-led);font-size:11px;color:var(--fg);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
 .clock.lunch{color:rgba(255,255,255,.7);}.clock.ended{color:rgba(255,255,255,.5);}
-.gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:rgba(0,0,0,.15);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.25);}
+.gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
 @keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
-.gpill.live{background:var(--green);color:white;border-color:rgba(255,255,255,.3);}
-.gpill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:white;margin-right:4px;animation:livepulse 1.5s ease-in-out infinite;}
+.gpill.live{background:#dcfce7;color:#16a34a;border-color:#bbf7d0;}
+.gpill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;margin-right:4px;animation:livepulse 1.5s ease-in-out infinite;}
 .go-arc{display:inline-block;width:14px;height:14px;margin-right:3px;vertical-align:middle;}
-.gpill.lunch{background:rgba(240,128,26,.3);color:white;border-color:rgba(240,128,26,.4);}
-.gpill.ended{background:rgba(0,0,0,.15);color:rgba(255,255,255,.5);}
+.gpill.lunch{background:#fef3c7;color:#d97706;border-color:#fde68a;}
+.gpill.ended{background:var(--surface2);color:var(--muted);border-color:var(--border);}
 .myteam-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:var(--r-chip);color:white;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
 
 /* TABS */
@@ -211,13 +211,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 /* SCORES */
 .scg{display:flex;flex-direction:column;margin-bottom:16px;}
-.tscc{background:var(--navy);color:white;border:none;border-radius:0;padding:14px 20px;text-align:left;position:relative;overflow:hidden;box-shadow:none;display:flex;align-items:center;gap:14px;}
-.tscc+.tscc{border-top:2px solid rgba(255,255,255,.15);}
+.tscc{background:var(--surface);color:var(--fg);border:none;border-radius:0;padding:14px 20px;text-align:left;position:relative;overflow:hidden;box-shadow:none;display:flex;align-items:center;gap:14px;}
+.tscc+.tscc{border-top:1px solid var(--border);}
 .tscc .route-badge{width:30px;height:30px;border-radius:var(--r-badge);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-weight:800;font-size:14px;color:white;flex-shrink:0;}
-.tsrk{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,255,255,.15);border-radius:var(--r-chip);padding:2px 8px;}
-.tsn2{font-size:14px;font-weight:700;color:white;flex:1;min-width:0;}
-.bsc{font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums;color:white;text-align:right;margin-left:auto;}
-.brkd{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
+.tsrk{font-size:10px;font-weight:700;color:var(--muted);background:var(--surface2);border-radius:var(--r-chip);padding:2px 8px;}
+.tsn2{font-size:14px;font-weight:700;color:var(--fg);flex:1;min-width:0;}
+.bsc{font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums;color:var(--fg);text-align:right;margin-left:auto;}
+.brkd{font-size:10px;color:var(--muted);font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
 .btbl{width:100%;border-collapse:collapse;font-size:12px;}
 .btbl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border);}
 .btbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -3993,11 +3993,16 @@ function updateDepSummary(){
 }
 function closeDep(){document.getElementById('depMo').classList.remove('open');curZone=null;}
 
+let _depSubmitting=false;
 async function submitDep(){
+  if(_depSubmitting)return;
   if(!curZone)return;
   const z=getZones().find(z=>z.code===curZone);
   const amount=parseInt(document.getElementById('dmCoinAmount').value)||0;
   if(amount<=0){showToast('Enter a number of coins to deposit.','warn');return;}
+  _depSubmitting=true;
+  const depBtn=document.querySelector('#depMo .btn-p');
+  if(depBtn){depBtn.disabled=true;depBtn.textContent='Depositing...';}
 
   // Fetch fresh state to reduce race conditions with other teams
   const fresh=await fetchState(FB_URL,LS.gameCode);
@@ -4015,10 +4020,10 @@ async function submitDep(){
     const last=G.emergencyDeps[key]||0;
     if(Date.now()-last<3600000){
       const mins=Math.ceil((3600000-(Date.now()-last))/60000);
-      showToast('Emergency deposit already used in '+curZone+'. Available again in '+mins+'m.','warn');closeDep();return;
+      showToast('Emergency deposit already used in '+curZone+'. Available again in '+mins+'m.','warn');closeDep();_depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;
     }
     isEmergencyDep=true;
-  } else if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();return;}
+  } else if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();_depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;}
 
   // Check Interstate Travellers (blocks a metro line)
   const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
@@ -4067,7 +4072,10 @@ async function submitDep(){
 
   await pushState();
   renderAll();
+  showToast(amount+' coin'+(amount!==1?'s':'')+' deposited in '+z.code+' '+z.name+'!','ok',3000);
   closeDep();
+  _depSubmitting=false;
+  if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}
 }
 
 
@@ -4786,9 +4794,9 @@ async function endGame(){
   document.getElementById('endGameMo').classList.remove('open');
   G.ended=true;G.started=false;
   logEv('🏁 Game ended! Final scores locked.');
-  await pushState();
+  try{ await pushState(); }catch(e){ console.warn('pushState failed during endGame:', e); }
   showFinalScores();
-  sendPN('Transit Tournament','The game has ended! Check the final scores.');
+  try{ sendPN('Transit Tournament','The game has ended! Check the final scores.'); }catch(e){}
 }
 
 function showFinalScores(){
