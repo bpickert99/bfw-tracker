@@ -3242,7 +3242,7 @@ function enterApp(){
   renderAll();
   _updateHeaderVar();
   switchTab('status'); // ensure clean tab/panel/scroll state
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration().then(r=>{if(r)r.update();});
   startGpsWatch(); // start immediately so permission is pre-granted
 }
 function updateMyTeamBadge(){
@@ -7873,19 +7873,22 @@ document.addEventListener('click', e => {
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').then(reg=>{
-      // Check for waiting SW update and activate it immediately
-      if(reg.waiting){reg.waiting.postMessage({type:'SKIP_WAITING'});}
+      // If a waiting SW exists, activate it and reload to get fresh assets
+      if(reg.waiting){
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
+        return;
+      }
       reg.addEventListener('updatefound',()=>{
         const newSW=reg.installing;
         newSW.addEventListener('statechange',()=>{
           if(newSW.state==='installed'&&navigator.serviceWorker.controller){
-            // New version available — show reload banner
-            showVersionBanner();
+            newSW.postMessage({type:'SKIP_WAITING'});
           }
         });
       });
+      // Also proactively check for updates every 5 minutes
+      setInterval(()=>{reg.update();},300000);
     }).catch(()=>{});
-    // If controlled by new SW, reload to get fresh page
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(!_reloading){_reloading=true;window.location.reload();}
     });
