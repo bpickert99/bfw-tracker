@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Transit Tournament</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#00B66B">
+<meta name="theme-color" content="#F7F8FA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Transit Tournament">
@@ -248,6 +248,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 .mznm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;}
 .loc-pulse{width:16px;height:16px;border-radius:50%;border:2px solid white;animation:locpulse 1.5s infinite;}
 @keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 
 /* ZONES */
 .zone-region-header{font-family:var(--font);font-weight:500;font-size:13px;letter-spacing:.08em;color:var(--muted);margin:24px 0 12px;text-transform:uppercase;}
@@ -7797,6 +7799,36 @@ if(LS.gameCode&&LS.playerId){
     showToast('Could not reach server. Check your connection.','warn',5000);
   });
 }
+// ── PWA Install Prompt ───────────────────────────────────────────────────────
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  if(localStorage.getItem('tt_install_dismissed')) return;
+  setTimeout(() => {
+    const b = document.getElementById('installBanner');
+    if(b) b.style.display = 'block';
+  }, 3000);
+});
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  const b = document.getElementById('installBanner');
+  if(b) b.style.display = 'none';
+});
+document.addEventListener('click', e => {
+  if(e.target.id === 'installBtn' && _deferredInstallPrompt) {
+    _deferredInstallPrompt.prompt();
+    _deferredInstallPrompt.userChoice.then(() => {
+      _deferredInstallPrompt = null;
+      document.getElementById('installBanner').style.display = 'none';
+    });
+  }
+  if(e.target.id === 'installDismiss') {
+    document.getElementById('installBanner').style.display = 'none';
+    localStorage.setItem('tt_install_dismissed', '1');
+  }
+});
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').then(reg=>{
@@ -7832,5 +7864,25 @@ function _homeAnimStop(){}
 
 
 <div id="toastContainer"></div>
+
+<!-- Install prompt banner -->
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1050;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;padding-bottom:calc(14px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.08);animation:slideUp .3s ease;">
+  <div style="display:flex;align-items:center;gap:14px;max-width:440px;margin:0 auto;">
+    <div style="flex-shrink:0;width:44px;height:44px;border-radius:12px;background:var(--accent);display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 60 60" fill="none" style="width:28px;height:28px;"><rect x="2" y="2" width="25" height="25" rx="4" fill="white"/><rect x="33" y="2" width="25" height="25" rx="4" fill="white" opacity=".5"/><rect x="2" y="33" width="25" height="25" rx="4" fill="white" opacity=".5"/><rect x="33" y="33" width="25" height="25" rx="4" fill="#F0801A"/></svg>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;font-size:14px;color:var(--fg);">Install Transit Tournament</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Add to your home screen for the full experience</div>
+    </div>
+    <button id="installBtn" style="flex-shrink:0;background:var(--accent);color:white;border:none;border-radius:var(--r-btn);padding:10px 18px;font-family:var(--font);font-weight:700;font-size:13px;cursor:pointer;">Install</button>
+    <button id="installDismiss" style="flex-shrink:0;background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:4px;">&times;</button>
+  </div>
+</div>
+
+<!-- Version update banner -->
+<div id="versionBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1050;background:var(--accent);color:white;padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));text-align:center;font-size:13px;font-weight:600;cursor:pointer;animation:slideDown .3s ease;" onclick="window.location.reload()">
+  A new version is available. Tap to update.
+</div>
 </body>
 </html>

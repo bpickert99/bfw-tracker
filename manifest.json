@@ -1,12 +1,13 @@
 {
-  "name": "Battle for Washington",
-  "short_name": "BFW",
-  "description": "Real-time game tracker for Battle for Washington",
+  "name": "Transit Tournament",
+  "short_name": "Transit",
+  "description": "Capture the city. Outwit your crew. A real-life city strategy game.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#F7F8FA",
-  "theme_color": "#00B66B",
+  "theme_color": "#F7F8FA",
   "orientation": "any",
+  "categories": ["games", "entertainment"],
   "icons": [
     {
       "src": "icon-192.png",
