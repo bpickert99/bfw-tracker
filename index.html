@@ -1447,7 +1447,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.02';
+const APP_VERSION='2.03';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2684,6 +2684,74 @@ async function pushState(){
 async function fetchState(fu,code){
   try{const r=await fetch(`${FB_URL}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return rest;}catch(e){return null;}
 }
+// Push an explicit state object (used by the offline sync queue)
+async function pushStateObj(obj){
+  if(!LS.gameCode)return false;
+  try{const{gpsLocs:_gps,...stateToWrite}=obj;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});return r.ok;}catch(e){return false;}
+}
+
+// ── OFFLINE RESILIENCE ────────────────────────────────────────────
+// Persist last-known game state so reopening the app while offline
+// (e.g. underground on the subway) shows the real board, not a blank.
+function saveGameState(){
+  try{const{gpsLocs:_g,...rest}=G;localStorage.setItem('bfw5G',JSON.stringify({G:rest,lastTs,savedAt:Date.now()}));}catch(e){}
+}
+function loadGameState(){
+  try{const d=localStorage.getItem('bfw5G');return d?JSON.parse(d):null;}catch(e){return null;}
+}
+
+// Offline deposit queue: deposits made without a connection are stored
+// here and replayed onto fresh server state when the connection returns.
+let _depQueue=[];
+try{_depQueue=JSON.parse(localStorage.getItem('bfw5DepQ')||'[]');}catch(e){_depQueue=[];}
+function _persistDepQueue(){try{localStorage.setItem('bfw5DepQ',JSON.stringify(_depQueue));}catch(e){}}
+function _enqueueDep(item){_depQueue.push(item);_persistDepQueue();_updateConnBanner();}
+
+// Apply a single deposit delta onto a state object (server or local).
+function _applyDeposit(state,d){
+  if(!state.zones)state.zones={};if(!state.zones[d.zone])state.zones[d.zone]={};
+  if(!state.coins)state.coins={};
+  if(d.isEmergency){if(!state.emergencyDeps)state.emergencyDeps={};state.emergencyDeps[d.teamIdx+'_'+d.zone]=d.ts||Date.now();}
+  else{state.coins[d.teamIdx]=Math.max(0,(state.coins[d.teamIdx]||0)-d.amount);}
+  state.zones[d.zone][d.teamIdx]=(parseInt(state.zones[d.zone][d.teamIdx])||0)+d.amount;
+  if(d.penalty)state.coins[d.teamIdx]=Math.max(0,(state.coins[d.teamIdx]||0)-d.penalty);
+  if(!state.locs)state.locs={};
+  state.locs[d.teamIdx]={zone:d.zone,notes:'',time:d.ts||Date.now()};
+}
+
+// Replay all queued deposits onto fresh server state in one batched push.
+let _flushing=false;
+async function flushDepQueue(){
+  if(_flushing||!_depQueue.length)return true;
+  if(!navigator.onLine)return false;
+  _flushing=true;
+  try{
+    const fresh=await fetchState(FB_URL,LS.gameCode);
+    if(!fresh){_flushing=false;return false;}
+    _depQueue.forEach(d=>_applyDeposit(fresh,d));
+    const ok=await pushStateObj(fresh);
+    if(ok){Object.assign(G,fresh);_depQueue=[];_persistDepQueue();saveGameState();_updateConnBanner();_flushing=false;return true;}
+  }catch(e){}
+  _flushing=false;return false;
+}
+
+// Connectivity banner — tells players when they're viewing stale data
+let _connLost=false;
+function _updateConnBanner(){
+  const b=document.getElementById('connBanner');if(!b)return;
+  const offline=!navigator.onLine||_connLost;
+  const pending=_depQueue.length;
+  if(offline){
+    b.style.display='block';
+    b.textContent=pending?('Offline — '+pending+' deposit'+(pending!==1?'s':'')+' will sync when reconnected'):'Offline — showing last known state';
+  } else if(pending){
+    b.style.display='block';b.textContent='Reconnecting — syncing '+pending+' deposit'+(pending!==1?'s':'')+'…';
+  } else {
+    b.style.display='none';
+  }
+}
+window.addEventListener('online',()=>{_connLost=false;_updateConnBanner();flushDepQueue().then(()=>poll());});
+window.addEventListener('offline',()=>{_connLost=true;_updateConnBanner();});
 // POLL_SLOW/POLL_FAST hoisted
 
 function needsFastPoll(){
@@ -2733,6 +2801,8 @@ function startPoll(){
 let _pollFailCount=0;
 async function poll(){
   if(!LS.gameCode)return;
+  // Push any deposits made while offline before pulling fresh state
+  if(_depQueue.length&&navigator.onLine)await flushDepQueue();
   try{
     const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`);if(!r.ok)return;
     const d=await r.json();if(!d||d._ts===lastTs)return;lastTs=d._ts;
@@ -2833,9 +2903,14 @@ async function poll(){
       });
     }
     _pollFailCount=0;
+    if(_connLost){_connLost=false;_updateConnBanner();}
+    // Re-apply any deposits still queued (failed to flush) for optimistic display
+    if(_depQueue.length)_depQueue.forEach(d=>_applyDeposit(G,d));
+    saveGameState();
     updateUI();
   }catch(e){
     _pollFailCount++;
+    _connLost=true;_updateConnBanner();
     if(_pollFailCount>=3)showNotif('No connection — retrying…',5000);
   }
 }
@@ -2848,6 +2923,7 @@ function backToSetup(){
   G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   saveL();
+  try{localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
   renderTeamSetup();
   showScreen('screenHostSetup');
 }
@@ -3212,7 +3288,7 @@ async function cancelGame(){
   if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
   if(_preMap){ _preMap.remove(); _preMap=null; }
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-  try{localStorage.removeItem('bfw5L');}catch(e){}
+  try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
   G={config:{start:'10:00',end:'19:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
   showScreen('screenHome');
 }
@@ -4042,14 +4118,14 @@ async function submitDep(){
   if(itCurse&&z.lines.some(l=>itCurse.notes.toLowerCase().includes(l))){
     const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
     showToast('Interstate Travellers — you cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
-    return;
+    _depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;
   }
   // Check Line Lockdown
   const lockCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Line Lockdown'&&c.expiresAt&&c.expiresAt>Date.now());
   if(lockCurse&&z.lines.some(l=>lockCurse.notes.toLowerCase().includes(l))){
     const rem=Math.ceil((lockCurse.expiresAt-Date.now())/60000);
     showToast('🔒 Line Lockdown active — no deposits on that line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
-    return;
+    _depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;
   }
 
   if(!G.zones)G.zones={};if(!G.zones[curZone])G.zones[curZone]={};
@@ -4082,10 +4158,19 @@ async function submitDep(){
 
   logEv('<b>'+esc(G.teams[teamIdx]?.name)+'</b> deposited <b>'+amount+' coins</b> in <b>'+z.code+' '+z.name+'</b> — total '+tot+(leader===teamIdx?' ▲ now leads':''));
 
+  const zCode=curZone;
   closeDep();
-  await pushState();
   renderAll();
-  showToast(amount+' coin'+(amount!==1?'s':'')+' deposited in '+z.code+' '+z.name+'!','ok',3000);
+  const ok=await pushState();
+  if(ok){
+    saveGameState();
+    showToast(amount+' coin'+(amount!==1?'s':'')+' deposited in '+z.code+' '+z.name+'!','ok',3000);
+  } else {
+    // Offline or server unreachable — queue for sync, keep optimistic local state
+    _enqueueDep({zone:zCode,teamIdx,amount,isEmergency:isEmergencyDep,penalty,ts:Date.now()});
+    saveGameState();
+    showToast('Saved offline — will sync when reconnected.','warn',4000);
+  }
   _depSubmitting=false;
   if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}
 }
@@ -4709,7 +4794,7 @@ function clearSession(){
   if(pollIv){clearInterval(pollIv);pollIv=null;}
   stopGpsWatch();
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-  try{localStorage.removeItem('bfw5L');}catch(e){}
+  try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
   if(bfwMap){bfwMap.remove();bfwMap=null;}
   mapReady=false;zPolys={};locMarkers={};
   showScreen('screenHome');
@@ -4789,7 +4874,7 @@ function returnToHome(){
   if(pollIv){clearInterval(pollIv);pollIv=null;}
   stopGpsWatch();
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-  try{localStorage.removeItem('bfw5L');}catch(e){}
+  try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
   G={config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
   if(bfwMap){bfwMap.remove();bfwMap=null;}
   mapReady=false;zPolys={};locMarkers={};
@@ -7835,22 +7920,31 @@ async function mbDoTransitImportSelected(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadL();
+_updateConnBanner();
 renderTeamSetup();
 if(LS.gameCode&&LS.playerId){
   fetchState(FB_URL,LS.gameCode).then(state=>{
     if(!state){
-      // Firebase unreachable on load — keep session silently
+      // Firebase unreachable on load (offline) — restore last-known board from cache
+      const saved=loadGameState();
+      if(saved&&saved.G&&saved.G.started&&!saved.G.ended){
+        G={...saved.G};if(!G.gpsLocs)G.gpsLocs={};if(!G.chat)G.chat=[];if(!G.flop)G.flop=[];
+        if(!G.coins)G.coins={};if(!G.detours)G.detours={};if(!G.flopClaims)G.flopClaims={};
+        lastTs=saved.lastTs||0;
+        _connLost=true;
+        enterApp();startPoll();_updateConnBanner();
+      }
       return;
     }
     if(state.ended){
       LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-      try{localStorage.removeItem('bfw5L');}catch(e){}
+      try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
       return;
     }
     const playerExists=state.players&&state.players[LS.playerId];
     if(!playerExists&&!LS.isHost){
       LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
-      try{localStorage.removeItem('bfw5L');}catch(e){}
+      try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
       return;
     }
     G={...state};if(!G.gpsLocs)G.gpsLocs={};if(!G.chat)G.chat=[];if(!G.flop)G.flop=[];
@@ -7958,5 +8052,7 @@ function _homeAnimStop(){}
 <div id="versionBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1050;background:var(--accent);color:white;padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));text-align:center;font-size:13px;font-weight:600;cursor:pointer;animation:slideDown .3s ease;" onclick="window.location.reload()">
   A new version is available. Tap to update.
 </div>
+<!-- Connectivity / offline banner -->
+<div id="connBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1045;background:#d97706;color:white;padding:8px 16px;padding-bottom:calc(8px + env(safe-area-inset-bottom));text-align:center;font-size:12px;font-weight:600;"></div>
 </body>
 </html>
