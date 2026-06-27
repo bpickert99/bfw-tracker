@@ -386,7 +386,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </svg>
       <div class="home-title">Transit Tournament</div>
       <div class="home-tagline">Capture the city. Outwit your crew.</div>
-      <div style="font-size:10px;color:var(--faint);margin-top:2px;">v2.02</div>
+      <div id="homeVersion" style="font-size:10px;color:var(--faint);margin-top:2px;"></div>
     </div>
 
     <!-- Auth -->
@@ -1447,8 +1447,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.00';
-(function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;})();
+const APP_VERSION='2.02';
+(function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
 let _freshLat=null,_freshLng=null;
