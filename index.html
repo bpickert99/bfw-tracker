@@ -406,9 +406,9 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           <div class="home-benefits">
             <div class="hben unlocked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><rect x="2" y="4" width="12" height="8" rx="2" fill="var(--green)"/><circle cx="6" cy="8" r="1.5" fill="white"/><circle cx="10" cy="8" r="1.5" fill="white"/></svg></div>Join any game</div>
             <div class="hben unlocked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M8 1C5.2 1 3 3.2 3 6c0 3.5 5 9 5 9s5-5.5 5-9c0-2.8-2.2-5-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z" fill="var(--green)"/></svg></div>Track your zones</div>
+            <div class="hben unlocked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 3l4 1.5V13l-4-1.5V3zm4 1.5l4-1.5v8.5l-4 1.5V4.5zm4-1.5l4 1.5V13l-4-1.5V3z" fill="var(--green)" opacity=".8"/></svg></div>Build &amp; save map drafts</div>
             <div class="hben locked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M8 2L2 7h2v5h3V9h2v3h3V7h2L8 2z" fill="var(--green)"/></svg></div>Host a game<span class="hbadge"><svg viewBox="0 0 12 12" style="width:10px;height:10px;vertical-align:middle"><rect x="2" y="5" width="8" height="6" rx="1" fill="var(--muted)"/><path d="M4 5V3.5a2 2 0 014 0V5" fill="none" stroke="var(--muted)" stroke-width="1.2"/></svg> Sign in</span></div>
-            <div class="hben locked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 3l4 1.5V13l-4-1.5V3zm4 1.5l4-1.5v8.5l-4 1.5V4.5zm4-1.5l4 1.5V13l-4-1.5V3z" fill="var(--green)" opacity=".8"/></svg></div>Build &amp; publish maps<span class="hbadge"><svg viewBox="0 0 12 12" style="width:10px;height:10px;vertical-align:middle"><rect x="2" y="5" width="8" height="6" rx="1" fill="var(--muted)"/><path d="M4 5V3.5a2 2 0 014 0V5" fill="none" stroke="var(--muted)" stroke-width="1.2"/></svg> Sign in</span></div>
-            <div class="hben locked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M12 4a5 5 0 00-8 1H2l2.5 3L7 5H5.5a3 3 0 015.5 0" fill="none" stroke="var(--green)" stroke-width="1.5"/><path d="M4 12a5 5 0 008-1h2l-2.5-3L9 11h1.5a3 3 0 01-5.5 0" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg></div>Rejoin in-progress games<span class="hbadge"><svg viewBox="0 0 12 12" style="width:10px;height:10px;vertical-align:middle"><rect x="2" y="5" width="8" height="6" rx="1" fill="var(--muted)"/><path d="M4 5V3.5a2 2 0 014 0V5" fill="none" stroke="var(--muted)" stroke-width="1.2"/></svg> Sign in</span></div>
+            <div class="hben locked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M8 1v8m0-8L5 4m3-3l3 3M3 10v3a1 1 0 001 1h8a1 1 0 001-1v-3" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg></div>Publish to community<span class="hbadge"><svg viewBox="0 0 12 12" style="width:10px;height:10px;vertical-align:middle"><rect x="2" y="5" width="8" height="6" rx="1" fill="var(--muted)"/><path d="M4 5V3.5a2 2 0 014 0V5" fill="none" stroke="var(--muted)" stroke-width="1.2"/></svg> Sign in</span></div>
             <div class="hben locked"><div class="hbicon"><svg viewBox="0 0 16 16" style="width:16px;height:16px"><path d="M2 4h4l2 2h6v7H2V4z" fill="var(--green)" opacity=".8"/></svg></div>Your map library<span class="hbadge"><svg viewBox="0 0 12 12" style="width:10px;height:10px;vertical-align:middle"><rect x="2" y="5" width="8" height="6" rx="1" fill="var(--muted)"/><path d="M4 5V3.5a2 2 0 014 0V5" fill="none" stroke="var(--muted)" stroke-width="1.2"/></svg> Sign in</span></div>
           </div>
           <hr class="home-divider">
@@ -1357,6 +1357,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div style="padding:16px 20px;">
         <div id="mbReviewChecklist" style="margin-bottom:12px;"></div>
         <div id="mbPublishStatus" style="font-size:12px;color:var(--muted);text-align:center;min-height:20px;margin-bottom:8px;"></div>
+        <div id="mbPublishAuthNote" style="font-size:12px;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;"></div>
         <button class="btn btn-p" style="width:100%;" onclick="publishMap()">Publish to Community Library</button>
         <button class="btn btn-g" style="width:100%;margin-top:8px;" onclick="_mbSaveDraft();showToast('Draft saved.','ok');showScreen('screenHome')">Save Draft &amp; Exit</button>
       </div>
@@ -1458,7 +1459,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.06';
+const APP_VERSION='2.07';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -6848,6 +6849,18 @@ function mbDeleteLine(i){
 
 // ── Review & Publish ──────────────────────────────────────────────
 function _renderMbReview(){
+  const note=document.getElementById('mbPublishAuthNote');
+  const pubBtn=document.querySelector('#mbPanel-review .btn-p[onclick="publishMap()"]');
+  if(note){
+    if(_authUser){
+      note.style.display='none';
+      if(pubBtn)pubBtn.textContent='Publish to Community Library';
+    } else {
+      note.style.display='';
+      note.innerHTML='You can build and save drafts without an account. <b>Sign in to publish</b> this map to the community library — you’ll be prompted when you tap below.';
+      if(pubBtn)pubBtn.textContent='Sign in & Publish';
+    }
+  }
   const el=document.getElementById('mbReviewContent'); if(!el) return;
   const name=document.getElementById('mbName')?.value.trim()||'Unnamed Map';
   const creator=document.getElementById('mbCreator')?.value.trim()||'Anonymous';
@@ -8192,7 +8205,10 @@ function _homeBuildNodes(w,h,gap){
 }
 function _homeRoute(ha){
   if(!ha.nodes.length)return null;
-  let cur=ha.nodes[(Math.random()*ha.nodes.length)|0];
+  // Bias new routes to begin at a node an active line already touches, so
+  // multiple differently-coloured lines converge at the same node.
+  const active=ha.nodes.filter(n=>n.a>0.25);
+  let cur=(active.length&&Math.random()<0.65)?active[(Math.random()*active.length)|0]:ha.nodes[(Math.random()*ha.nodes.length)|0];
   const pts=[{x:cur.x,y:cur.y}],ends=[cur],steps=1+((Math.random()*2)|0);
   for(let s=0;s<steps;s++){
     const cand=ha.nodes.filter(n=>n!==cur&&Math.hypot(n.x-cur.x,n.y-cur.y)<ha.gap*1.9);
@@ -8206,11 +8222,14 @@ function _homeRoute(ha){
   if(pts.length<2)return null;
   let len=0;const segLen=[];
   for(let i=1;i<pts.length;i++){const l=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);segLen.push(l);len+=l;}
-  return {pts,segLen,len:len||1,color:_TT_LINE_COLORS[(Math.random()*3)|0],phase:'draw',p:0,hold:0.7+Math.random()*1.4,ends,dead:false};
+  // Prefer a colour not already meeting at the start node, so the meeting reads
+  const touching=ha.routes.filter(rt=>rt.ends.includes(ends[0])).map(rt=>rt.color);
+  let color,tries=0;do{color=_TT_LINE_COLORS[(Math.random()*3)|0];tries++;}while(touching.includes(color)&&tries<6);
+  return {pts,segLen,len:len||1,color,phase:'draw',p:0,hold:1.0+Math.random()*1.6,ends,dead:false};
 }
 function _homeUpdateRoute(rt,dt){
   const sp=0.5;
-  if(rt.phase==='draw'){rt.p+=dt*sp;if(rt.p>=1){rt.p=1;rt.phase='hold';rt.ends.forEach(n=>{n.a=1;});}}
+  if(rt.phase==='draw'){rt.p+=dt*sp;if(rt.p>=1){rt.p=1;rt.phase='hold';}}
   else if(rt.phase==='hold'){rt.hold-=dt;if(rt.hold<=0)rt.phase='erase';}
   else{rt.p-=dt*sp;if(rt.p<=0){rt.p=0;rt.dead=true;}}
 }
@@ -8253,8 +8272,22 @@ function _homeAnimStart(){
     const dt=Math.min(50,ts-_ha.last)/1000;_ha.last=ts;
     ctx.clearRect(0,0,_ha.w,_ha.h);
     for(let i=_ha.routes.length-1;i>=0;i--){const rt=_ha.routes[i];_homeUpdateRoute(rt,dt);_homeDrawRoute(ctx,rt);if(rt.dead)_ha.routes.splice(i,1);}
-    while(_ha.routes.length<3){const rt=_homeRoute(_ha);if(rt)_ha.routes.push(rt);else break;}
-    _ha.nodes.forEach(n=>{if(n.a>0.01){ctx.beginPath();ctx.arc(n.x,n.y,3.4*n.a,0,Math.PI*2);ctx.fillStyle=_hexA('#1A6DD4',0.45*n.a);ctx.fill();n.a-=dt*0.45;}});
+    while(_ha.routes.length<4){const rt=_homeRoute(_ha);if(rt)_ha.routes.push(rt);else break;}
+    // A node is "lit" while any line touches it; light up as the line reaches it
+    _ha.nodes.forEach(n=>n._t=0);
+    _ha.routes.forEach(rt=>{
+      const tgt=(rt.phase==='draw')?rt.p:1; // grow in as the line draws, full once held/erasing
+      rt.ends.forEach(n=>{if(tgt>n._t)n._t=tgt;});
+    });
+    _ha.nodes.forEach(n=>{
+      n.a+=((n._t||0)-n.a)*Math.min(1,dt*5);
+      if(n.a>0.02){
+        const r=5.2*Math.min(1,n.a);
+        ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);
+        ctx.fillStyle=_hexA('#F7F8FA',0.85*n.a);ctx.fill();   // punch a hole so the ring reads as hollow
+        ctx.lineWidth=1.8;ctx.strokeStyle=_hexA('#1A6DD4',0.5*n.a);ctx.stroke();
+      }
+    });
     _ha.raf=requestAnimationFrame(step);
   };
   _ha.raf=requestAnimationFrame(step);
