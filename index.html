@@ -322,11 +322,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
 
 /* ── HOME SCREEN ─────────────────────────────────────────── */
-#screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;}
-.home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;}
-.home-hero{text-align:center;padding:48px 20px 32px;padding-top:calc(48px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg);}
-.home-hero-logomark{width:60px;height:60px;margin-bottom:2px;}
+#screenHome{background:var(--bg);overflow-y:auto;align-items:stretch;justify-content:flex-start;flex-direction:column;position:relative;}
+#homeBg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+.home-inner{max-width:680px;margin:0 auto;width:100%;padding:0 0 60px;position:relative;z-index:1;}
+.home-hero{text-align:center;padding:48px 20px 32px;padding-top:calc(48px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:8px;}
+.home-hero-logomark{width:64px;height:64px;margin-bottom:2px;}
 .home-title{font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-0.005em;color:var(--fg);line-height:1.05;}
+.home-title .ht-t{color:var(--green);}
 .home-tagline{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.01em;}
 .home-auth-wrap{padding:0 20px 4px;}
 .home-auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px 24px;box-shadow:none;text-align:center;}
@@ -379,18 +381,20 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 <!-- HOME -->
 <div class="screen active" id="screenHome">
+  <canvas id="homeBg"></canvas>
   <div class="home-inner">
 
     <!-- Hero -->
     <div class="home-hero">
       <svg class="home-hero-logomark" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2"  y="2"  width="25" height="25" rx="4" fill="#1A6DD4"/>
-        <rect x="33" y="2"  width="25" height="25" rx="4" fill="#1A6DD4" opacity=".38"/>
-        <rect x="2"  y="33" width="25" height="25" rx="4" fill="#1A6DD4" opacity=".38"/>
-        <rect x="33" y="33" width="25" height="25" rx="4" fill="#F0801A"/>
+        <path d="M30 26 Q18 36 18 54" stroke="#F0801A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <line x1="8" y1="26" x2="52" y2="26" stroke="#1A6DD4" stroke-width="5" stroke-linecap="round"/>
+        <line x1="30" y1="6" x2="30" y2="34" stroke="#10A05A" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="30" cy="26" r="8" fill="#10A05A"/>
+        <circle cx="30" cy="26" r="3.6" fill="#fff"/>
       </svg>
-      <div class="home-title">Transit Tournament</div>
-      <div class="home-tagline">Capture the city. Outwit your crew.</div>
+      <div class="home-title">Transit <span class="ht-t">Tournament</span></div>
+      <div class="home-tagline">Play. Race. Explore.</div>
       <div id="homeVersion" style="font-size:10px;color:var(--faint);margin-top:2px;"></div>
     </div>
 
@@ -1454,7 +1458,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.04';
+const APP_VERSION='2.05';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -8176,8 +8180,94 @@ function showVersionBanner(){
   if(b)b.style.display='flex';
 }
 
-function _homeAnimStart(){}
-function _homeAnimStop(){}
+// ── HOME BACKGROUND: transit lines drawn & erased, meeting at nodes ──
+const _TT_LINE_COLORS=['#1A6DD4','#10A05A','#F0801A'];
+let _ha=null;
+function _hexA(hex,a){const n=parseInt(hex.slice(1),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+function _homeBuildNodes(w,h,gap){
+  const ns=[];
+  for(let x=gap*0.5;x<w+gap;x+=gap)for(let y=gap*0.5;y<h+gap;y+=gap)
+    ns.push({x:x+(Math.random()-.5)*gap*0.35,y:y+(Math.random()-.5)*gap*0.35,a:0});
+  return ns;
+}
+function _homeRoute(ha){
+  if(!ha.nodes.length)return null;
+  let cur=ha.nodes[(Math.random()*ha.nodes.length)|0];
+  const pts=[{x:cur.x,y:cur.y}],ends=[cur],steps=1+((Math.random()*2)|0);
+  for(let s=0;s<steps;s++){
+    const cand=ha.nodes.filter(n=>n!==cur&&Math.hypot(n.x-cur.x,n.y-cur.y)<ha.gap*1.9);
+    if(!cand.length)break;
+    const nx=cand[(Math.random()*cand.length)|0];
+    const dx=nx.x-cur.x,dy=nx.y-cur.y,m=Math.min(Math.abs(dx),Math.abs(dy));
+    // 45° elbow then straight — gives the metro-map feel
+    pts.push({x:cur.x+Math.sign(dx)*m,y:cur.y+Math.sign(dy)*m},{x:nx.x,y:nx.y});
+    cur=nx;ends.push(nx);
+  }
+  if(pts.length<2)return null;
+  let len=0;const segLen=[];
+  for(let i=1;i<pts.length;i++){const l=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);segLen.push(l);len+=l;}
+  return {pts,segLen,len:len||1,color:_TT_LINE_COLORS[(Math.random()*3)|0],phase:'draw',p:0,hold:0.7+Math.random()*1.4,ends,dead:false};
+}
+function _homeUpdateRoute(rt,dt){
+  const sp=0.5;
+  if(rt.phase==='draw'){rt.p+=dt*sp;if(rt.p>=1){rt.p=1;rt.phase='hold';rt.ends.forEach(n=>{n.a=1;});}}
+  else if(rt.phase==='hold'){rt.hold-=dt;if(rt.hold<=0)rt.phase='erase';}
+  else{rt.p-=dt*sp;if(rt.p<=0){rt.p=0;rt.dead=true;}}
+}
+function _homeDrawRoute(ctx,rt){
+  const target=rt.p*rt.len;
+  ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=_hexA(rt.color,0.20);
+  ctx.beginPath();
+  let drawn=0,started=false;
+  for(let i=1;i<rt.pts.length;i++){
+    const a=rt.pts[i-1],b=rt.pts[i],l=rt.segLen[i-1];
+    if(drawn+l<=target){if(!started){ctx.moveTo(a.x,a.y);started=true;}ctx.lineTo(b.x,b.y);}
+    else if(drawn<target){const f=(target-drawn)/l;if(!started){ctx.moveTo(a.x,a.y);started=true;}ctx.lineTo(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f);break;}
+    else break;
+    drawn+=l;
+  }
+  ctx.stroke();
+}
+function _homeAnimStart(){
+  if(_ha&&_ha.running)return;
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const screen=document.getElementById('screenHome'),canvas=document.getElementById('homeBg');
+  if(!screen||!canvas)return;
+  const ctx=canvas.getContext('2d');
+  _ha={running:true,raf:0,routes:[],nodes:[],last:0,dpr:Math.min(2,window.devicePixelRatio||1)};
+  function resize(){
+    const r=screen.getBoundingClientRect();
+    _ha.w=r.width||window.innerWidth;_ha.h=Math.max(r.height,screen.scrollHeight,window.innerHeight);
+    canvas.width=_ha.w*_ha.dpr;canvas.height=_ha.h*_ha.dpr;
+    canvas.style.width=_ha.w+'px';canvas.style.height=_ha.h+'px';
+    ctx.setTransform(_ha.dpr,0,0,_ha.dpr,0,0);
+    _ha.gap=Math.max(86,Math.min(130,_ha.w/5));
+    _ha.nodes=_homeBuildNodes(_ha.w,_ha.h,_ha.gap);
+  }
+  _ha.resize=resize;resize();
+  window.addEventListener('resize',resize);
+  for(let i=0;i<3;i++){const rt=_homeRoute(_ha);if(rt)_ha.routes.push(rt);}
+  const step=ts=>{
+    if(!_ha||!_ha.running)return;
+    if(!_ha.last)_ha.last=ts;
+    const dt=Math.min(50,ts-_ha.last)/1000;_ha.last=ts;
+    ctx.clearRect(0,0,_ha.w,_ha.h);
+    for(let i=_ha.routes.length-1;i>=0;i--){const rt=_ha.routes[i];_homeUpdateRoute(rt,dt);_homeDrawRoute(ctx,rt);if(rt.dead)_ha.routes.splice(i,1);}
+    while(_ha.routes.length<3){const rt=_homeRoute(_ha);if(rt)_ha.routes.push(rt);else break;}
+    _ha.nodes.forEach(n=>{if(n.a>0.01){ctx.beginPath();ctx.arc(n.x,n.y,3.4*n.a,0,Math.PI*2);ctx.fillStyle=_hexA('#1A6DD4',0.45*n.a);ctx.fill();n.a-=dt*0.45;}});
+    _ha.raf=requestAnimationFrame(step);
+  };
+  _ha.raf=requestAnimationFrame(step);
+}
+function _homeAnimStop(){
+  if(!_ha)return;
+  _ha.running=false;
+  if(_ha.raf)cancelAnimationFrame(_ha.raf);
+  if(_ha.resize)window.removeEventListener('resize',_ha.resize);
+  _ha=null;
+}
+// Kick off on initial load (home is the default active screen)
+if(document.getElementById('screenHome')&&document.getElementById('screenHome').classList.contains('active'))_homeAnimStart();
 
 </script>
 

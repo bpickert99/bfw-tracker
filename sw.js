@@ -1,6 +1,6 @@
 // BFW Service Worker v3.0
 // Bump CACHE with every deploy
-const CACHE = 'bfw-v33';
+const CACHE = 'bfw-v34';
 const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
