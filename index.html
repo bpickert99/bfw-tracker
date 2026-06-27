@@ -178,6 +178,11 @@ header{background:var(--header-bg);border-bottom:1px solid var(--border);padding
 /* MAP */
 #mapWrap{position:absolute;top:90px;left:0;right:0;bottom:0;}
 #mapEl{position:absolute;inset:0;width:100%;height:100%;}
+.user-dot{width:16px;height:16px;border-radius:50%;background:#1A6DD4;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,109,212,.4),0 1px 4px rgba(0,0,0,.4);}
+.user-dot::after{content:'';position:absolute;top:50%;left:50%;width:16px;height:16px;border-radius:50%;background:rgba(26,109,212,.35);transform:translate(-50%,-50%);animation:userpulse 2s ease-out infinite;}
+@keyframes userpulse{0%{width:16px;height:16px;opacity:.7;}100%{width:46px;height:46px;opacity:0;}}
+.recenter-btn{position:absolute;bottom:18px;right:14px;z-index:1000;width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.recenter-btn svg{width:24px;height:24px;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;box-shadow:none;}
 label{display:block;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
 input[type=text],input[type=number],input[type=time],select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-input);color:var(--text);padding:12px 14px;font-family:var(--font);font-size:15px;margin-bottom:10px;outline:none;transition:border-color .15s;}
@@ -785,6 +790,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <div class="panel" id="panel-map">
     <div id="mapWrap">
       <div id="mapEl"></div>
+      <button class="recenter-btn" onclick="recenterMap()" title="Center on me" aria-label="Center on my location"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#1A6DD4"/><circle cx="12" cy="12" r="8" stroke="#1A6DD4" stroke-width="1.5"/><line x1="12" y1="1" x2="12" y2="4" stroke="#1A6DD4" stroke-width="1.5"/><line x1="12" y1="20" x2="12" y2="23" stroke="#1A6DD4" stroke-width="1.5"/><line x1="1" y1="12" x2="4" y2="12" stroke="#1A6DD4" stroke-width="1.5"/><line x1="20" y1="12" x2="23" y2="12" stroke="#1A6DD4" stroke-width="1.5"/></svg></button>
 
       <div class="mzl"><h4>Zones</h4><div id="mzlInner"></div><div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><button class="btn btn-g btn-xs" style="width:100%;" id="transitToggleBtn" onclick="toggleTransitLayer()">Show Transit Lines</button></div></div>
     </div>
@@ -1115,7 +1121,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
 
   <!-- RULES PANEL -->
-  <div class="panel" id="panel-rules" style="padding-top:10px;padding-bottom:20px;"><div id="rulesContent"></div></div>
+  <div class="panel" id="panel-rules" style="padding-top:10px;padding-bottom:20px;"><div style="padding:0 20px 8px;"><input id="rulesSearch" type="search" oninput="filterRules()" placeholder="Search rules…" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);"></div><div id="rulesContent"></div></div>
   </div><!--/panelWrap-->
 
 <!-- LOCATION MODAL -->
@@ -1167,8 +1173,9 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     </div>
     <div id="finalScoresList"></div>
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;align-items:center;">
+      <button class="btn btn-p btn-sm" style="width:100%;max-width:280px;" onclick="shareRecap()">📸 Share Recap</button>
       <button class="btn btn-g btn-sm" style="width:100%;max-width:280px;" onclick="downloadGamePhotos()">📥 Download All Photos</button>
-      <button class="btn btn-p btn-sm" onclick="returnToHome()">← Back to Home</button>
+      <button class="btn btn-g btn-sm" style="width:100%;max-width:280px;" onclick="returnToHome()">← Back to Home</button>
     </div>
   </div>
 </div>
@@ -1447,7 +1454,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.03';
+const APP_VERSION='2.04';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -3321,6 +3328,8 @@ function enterApp(){
   switchTab('status'); // ensure clean tab/panel/scroll state
   if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration().then(r=>{if(r)r.update();});
   startGpsWatch(); // start immediately so permission is pre-granted
+  requestWakeLock(); // keep screen awake during play
+  ensureNotifPermission(); // ask once so updates can reach the player
 }
 function updateMyTeamBadge(){
   const coins=(G.coins&&G.coins[LS.myTeamIdx])||0;
@@ -3486,7 +3495,77 @@ function showToast(msg, type, duration){
 }
 
 function showNotif(msg,dur=3500){const b=document.getElementById('notifBanner');b.textContent=msg;b.classList.add('show');clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),dur);}
-function sendPN(title,body){if('Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body,icon:'./icon-192.png'});}catch(e){}}}
+// Push/local notification. Prefers the service worker's showNotification
+// (required for reliable delivery on installed PWAs / Android), falls back
+// to the page Notification constructor.
+function sendPN(title,body){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const opts={body,icon:'./icon-192.png',badge:'./icon-192.png',tag:'tt-update',renotify:true,vibrate:[60,30,60]};
+  if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+    navigator.serviceWorker.ready.then(reg=>{try{reg.showNotification(title,opts);}catch(e){try{new Notification(title,opts);}catch(_){}}}).catch(()=>{try{new Notification(title,opts);}catch(e){}});
+  } else { try{new Notification(title,opts);}catch(e){} }
+}
+// Ask for notification permission at a sensible moment (game start / join).
+function ensureNotifPermission(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='default'){try{Notification.requestPermission();}catch(e){}}
+}
+
+// ── SCREEN WAKE LOCK ──────────────────────────────────────────────
+// Keep the screen awake during an active game so players aren't
+// constantly unlocking their phone mid-chase.
+let _wakeLock=null;
+async function requestWakeLock(){
+  try{if('wakeLock' in navigator&&!_wakeLock){_wakeLock=await navigator.wakeLock.request('screen');_wakeLock.addEventListener('release',()=>{_wakeLock=null;});}}catch(e){}
+}
+function releaseWakeLock(){try{if(_wakeLock){_wakeLock.release();_wakeLock=null;}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&LS.gameCode&&G.started)requestWakeLock();});
+
+// ── HAPTIC + SOUND FEEDBACK ───────────────────────────────────────
+let _audioCtx=null;
+function _beep(freq,dur,vol){
+  try{
+    if(localStorage.getItem('tt_muted')==='1')return;
+    _audioCtx=_audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(_audioCtx.state==='suspended')_audioCtx.resume();
+    const o=_audioCtx.createOscillator(),g=_audioCtx.createGain(),t=_audioCtx.currentTime;
+    o.type='sine';o.frequency.value=freq;o.connect(g);g.connect(_audioCtx.destination);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.12,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.start(t);o.stop(t+dur);
+  }catch(e){}
+}
+function _feedback(kind){
+  if(navigator.vibrate){
+    if(kind==='capture')navigator.vibrate([40,30,70]);
+    else if(kind==='curse')navigator.vibrate([120,60,120]);
+    else navigator.vibrate(25);
+  }
+  if(kind==='capture'){_beep(880,0.12);setTimeout(()=>_beep(1245,0.14),95);}
+  else if(kind==='curse'){_beep(196,0.28,0.16);}
+  else _beep(660,0.08);
+}
+function toggleMute(){const m=localStorage.getItem('tt_muted')==='1';localStorage.setItem('tt_muted',m?'0':'1');showToast(m?'Sound on':'Sound muted','ok',1500);return !m;}
+
+// ── LIVE USER LOCATION DOT + RECENTER ─────────────────────────────
+let _userMarker=null;
+function updateUserLocation(){
+  if(!bfwMap||_freshLat==null||_freshLng==null)return;
+  const ll=[_freshLat,_freshLng];
+  if(!_userMarker){
+    _userMarker=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="user-dot"></div>',iconSize:[20,20],iconAnchor:[10,10]}),zIndexOffset:3000,interactive:false}).addTo(bfwMap);
+  } else _userMarker.setLatLng(ll);
+}
+function recenterMap(){
+  if(!bfwMap)return;
+  if(_freshLat!=null&&_freshLng!=null){updateUserLocation();bfwMap.setView([_freshLat,_freshLng],Math.max(bfwMap.getZoom(),15));}
+  else if(navigator.geolocation){
+    showToast('Finding your location…','ok',1500);
+    navigator.geolocation.getCurrentPosition(
+      p=>{_freshLat=p.coords.latitude;_freshLng=p.coords.longitude;updateUserLocation();bfwMap.setView([_freshLat,_freshLng],15);},
+      ()=>showToast('Location unavailable. Check permissions.','warn'),
+      {enableHighAccuracy:true,timeout:10000,maximumAge:5000});
+  }
+}
 
 // GPS
 let gpsIv=null, gpsWatchId=null, _gpsHighAccuracy=false;
@@ -3498,7 +3577,7 @@ function startGpsWatch(){
 
   // Request initial position — low accuracy is fine for background
   navigator.geolocation.getCurrentPosition(
-    pos=>{_freshLat=pos.coords.latitude;_freshLng=pos.coords.longitude;pushGps(pos.coords.latitude,pos.coords.longitude);},
+    pos=>{_freshLat=pos.coords.latitude;_freshLng=pos.coords.longitude;updateUserLocation();pushGps(pos.coords.latitude,pos.coords.longitude);},
     err=>{console.warn('GPS permission denied:',err.message);},
     {enableHighAccuracy:false,timeout:15000,maximumAge:30000}
   );
@@ -3509,6 +3588,7 @@ function startGpsWatch(){
     pos=>{
       _freshLat=pos.coords.latitude;
       _freshLng=pos.coords.longitude;
+      updateUserLocation();
       // Only push to Firebase if locate curse is active on our team
       const locateActive=G.curses&&G.curses.some(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now());
       if(locateActive)pushGps(pos.coords.latitude,pos.coords.longitude);
@@ -3800,7 +3880,7 @@ function initMap(){
 function renderMapColors(){
   if(!mapReady)return;
   getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const contested=G.contestedZones&&G.contestedZones[z.code]&&G.contestedZones[z.code].until>Date.now();if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:contested?.45:.25,color:c,weight:contested?3:2,dashArray:contested?'8 4':null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});if(poly._path)poly._path.classList.toggle('contested-zone',!!contested);});
-  renderMZL();updateLocateMarkers();renderLandmarkMarker();
+  renderMZL();updateLocateMarkers();renderLandmarkMarker();updateUserLocation();
   const ml=document.getElementById('mapLegend');
   if(ml)ml.style.display=isCustomMap()?'none':'block';
 }
@@ -4161,6 +4241,7 @@ async function submitDep(){
   const zCode=curZone;
   closeDep();
   renderAll();
+  _feedback(leader===teamIdx?'capture':'deposit');
   const ok=await pushState();
   if(ok){
     saveGameState();
@@ -4742,7 +4823,7 @@ function showCurseAlert(item,casterName,targetName,type,notes){
   document.getElementById('curseAlertBody').textContent=casterName+' → '+targetName+': '+desc;
   const el=document.getElementById('curseAlertScreen');
   el.style.display='flex';
-  if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);
+  _feedback('curse');
 }
 
 function dismissCurseAlert(){document.getElementById('curseAlertScreen').style.display='none';}
@@ -4873,6 +4954,8 @@ async function downloadGamePhotos(){
 function returnToHome(){
   if(pollIv){clearInterval(pollIv);pollIv=null;}
   stopGpsWatch();
+  releaseWakeLock();
+  _userMarker=null;
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
   G={config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
@@ -4912,6 +4995,56 @@ function showFinalScores(){
   }).join('');
   document.getElementById('finalScoresMo').style.display='';
   document.getElementById('finalScoresMo').classList.add('open');
+}
+
+// Generate a shareable recap image of the final standings.
+async function shareRecap(){
+  try{
+    const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses);
+    const ranked=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t);
+    const W=1080,H=1080,c=document.createElement('canvas');c.width=W;c.height=H;
+    const ctx=c.getContext('2d');
+    // Background
+    const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#0f2540');grad.addColorStop(1,'#0a1626');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Header
+    ctx.textAlign='center';
+    ctx.fillStyle='#fff';ctx.font='800 64px Hanken Grotesk, sans-serif';
+    ctx.fillText('TRANSIT TOURNAMENT',W/2,130);
+    ctx.fillStyle='#6aa9e9';ctx.font='600 30px DM Mono, monospace';
+    const d=new Date();ctx.fillText('FINAL RESULTS · '+d.toLocaleDateString(),W/2,180);
+    // Winner banner
+    const win=G.teams[ranked[0].i];
+    ctx.fillStyle='#f0c419';ctx.font='800 42px Hanken Grotesk, sans-serif';
+    ctx.fillText('🏆 '+(win?win.name:'—')+' WINS',W/2,270);
+    // Standings bars
+    const maxScore=Math.max(1,ranked[0].t);
+    const top=340,rowH=Math.min(150,(H-top-60)/ranked.length),barMaxW=W-300;
+    ctx.textAlign='left';
+    ranked.forEach((r,pos)=>{
+      const team=G.teams[r.i],s=sc[r.i],y=top+pos*rowH;
+      ctx.fillStyle='#ffffff';ctx.font='700 36px Hanken Grotesk, sans-serif';
+      ctx.fillText((pos+1)+'.',70,y+44);
+      ctx.fillText(team?team.name:'—',140,y+44);
+      // bar
+      const bw=Math.max(40,(r.t/maxScore)*barMaxW);
+      ctx.fillStyle=team?team.color:'#888';
+      ctx.beginPath();ctx.roundRect(140,y+60,bw,34,17);ctx.fill();
+      ctx.fillStyle='#cbd6e6';ctx.font='500 24px DM Mono, monospace';
+      ctx.fillText(s.zones+'z + '+s.bonuses+'b',140,y+125);
+      ctx.fillStyle='#fff';ctx.textAlign='right';ctx.font='800 52px Hanken Grotesk, sans-serif';
+      ctx.fillText(String(r.t),W-70,y+72);ctx.textAlign='left';
+    });
+    await new Promise(res=>c.toBlob(async(blob)=>{
+      if(!blob){showToast('Could not build recap image.','warn');return res();}
+      const file=new File([blob],'transit-tournament-recap.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'Transit Tournament',text:win?(win.name+' won our Transit Tournament!'):'Our Transit Tournament results!'});return res();}catch(e){}
+      }
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='transit-tournament-recap.png';a.click();URL.revokeObjectURL(a.href);
+      showToast('Recap image saved.','ok');res();
+    },'image/png'));
+  }catch(e){showToast('Could not generate recap.','warn');}
 }
 
 // ── CHAT ─────────────────────────────────────────────────────────────────────
@@ -4968,6 +5101,24 @@ function renderChat(){
 
 
 // ── RULES (dynamic) ──────────────────────────────────────────────────────────
+// Filter rendered rule blocks by the search query (hides non-matching sections)
+function filterRules(){
+  const inp=document.getElementById('rulesSearch');
+  const el=document.getElementById('rulesContent');
+  if(!inp||!el)return;
+  const q=(inp.value||'').toLowerCase().trim();
+  let visible=0;
+  Array.from(el.children).forEach(ch=>{
+    const match=!q||(ch.textContent||'').toLowerCase().includes(q);
+    ch.style.display=match?'':'none';
+    if(match)visible++;
+  });
+  let empty=document.getElementById('rulesNoMatch');
+  if(q&&visible===0){
+    if(!empty){empty=document.createElement('div');empty.id='rulesNoMatch';empty.style.cssText='padding:16px 20px;color:var(--muted);font-size:13px;';el.appendChild(empty);}
+    empty.textContent='No rules match "'+inp.value+'".';empty.style.display='';
+  } else if(empty){empty.style.display='none';}
+}
 function renderRules(){
   const el=document.getElementById('rulesContent');
   if(!el)return;

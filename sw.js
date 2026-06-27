@@ -1,6 +1,6 @@
 // BFW Service Worker v3.0
 // Bump CACHE with every deploy
-const CACHE = 'bfw-v32';
+const CACHE = 'bfw-v33';
 const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
@@ -66,4 +66,34 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Focus (or open) the app when a notification is tapped
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const client of list) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./index.html');
+    })
+  );
+});
+
+// Handle real push payloads (requires a push server / FCM to deliver these)
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { data = { title: 'Transit Tournament', body: e.data ? e.data.text() : '' }; }
+  const title = data.title || 'Transit Tournament';
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'tt-push',
+      renotify: true,
+      vibrate: [60, 30, 60],
+    })
+  );
 });
