@@ -1459,7 +1459,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.07';
+const APP_VERSION='2.08';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2456,7 +2456,9 @@ const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--
 const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
 
 // STATE
-let G={activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
+// Canonical blank game state — the shape is defined here and nowhere else.
+function freshG(){return {activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};}
+let G=freshG();
 let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
 let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
 const TEAM_NAMES=['Red','Blue','Green','Orange','Purple','Pink','Teal','Flame'];
@@ -2862,12 +2864,11 @@ async function poll(){
           showCurseAlert(c.item,cn,tn,c.type,c.notes);
           sendPN('Curse Activated',`${cn} used ${c.item} on your team!`);
           if(c.type==='locate'&&!_gpsHighAccuracy){
-            _gpsHighAccuracy=true;
             stopGpsWatch();
             _gpsHighAccuracy=true;
             if(navigator.geolocation){
               gpsWatchId=navigator.geolocation.watchPosition(
-                pos=>{_freshLat=pos.coords.latitude;_freshLng=pos.coords.longitude;pushGps(pos.coords.latitude,pos.coords.longitude);},
+                pos=>_onGpsFix(pos.coords.latitude,pos.coords.longitude,true),
                 err=>{console.warn('GPS locate error:',err.message);},
                 {enableHighAccuracy:true,timeout:15000,maximumAge:5000}
               );
@@ -2932,7 +2933,7 @@ async function pushGps(lat,lng){if(!LS.gameCode)return;fetch(`${FB_URL}/gpsLocs/
 function backToSetup(){
   if(!confirm('Go back to setup? The game code will be cancelled and players will need to rejoin.'))return;
   if(pollIv){clearInterval(pollIv);pollIv=null;}
-  G={activeChallenge:null,config:{start:'10:00',end:'18:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};
+  G=freshG();
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   saveL();
   try{localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
@@ -3299,9 +3300,12 @@ async function cancelGame(){
   await pushState();
   if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
   if(_preMap){ _preMap.remove(); _preMap=null; }
+  if(pollIv){clearInterval(pollIv);pollIv=null;}
+  stopGpsWatch();
+  releaseWakeLock();
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
-  G={config:{start:'10:00',end:'19:00',lunchStart:'12:00',lunchEnd:'13:00',score:'18:00'},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
+  G=freshG();
   showScreen('screenHome');
 }
 
@@ -3566,7 +3570,7 @@ function recenterMap(){
   else if(navigator.geolocation){
     showToast('Finding your location…','ok',1500);
     navigator.geolocation.getCurrentPosition(
-      p=>{_freshLat=p.coords.latitude;_freshLng=p.coords.longitude;updateUserLocation();bfwMap.setView([_freshLat,_freshLng],15);},
+      p=>{_onGpsFix(p.coords.latitude,p.coords.longitude,false);bfwMap.setView([_freshLat,_freshLng],15);},
       ()=>showToast('Location unavailable. Check permissions.','warn'),
       {enableHighAccuracy:true,timeout:10000,maximumAge:5000});
   }
@@ -3575,6 +3579,35 @@ function recenterMap(){
 // GPS
 let gpsIv=null, gpsWatchId=null, _gpsHighAccuracy=false;
 
+// Single path from satellite to screen: every GPS fix lands here.
+function _onGpsFix(lat,lng,push){
+  _freshLat=lat;_freshLng=lng;
+  updateUserLocation();
+  if(push)pushGps(lat,lng);
+  autoCheckIn();
+}
+
+// Auto check-in: when a fix resolves inside a zone that differs from our
+// team's last stamp (or the stamp is >10 min old), record it. Targeted PUT
+// to the locs subpath — never a full-state push. Between zones the last
+// stamp stands rather than flapping to Unknown.
+let _autoCheckInBusy=false;
+async function autoCheckIn(){
+  if(_autoCheckInBusy)return;
+  if(!G.started||G.ended||LS.myTeamIdx<0||!LS.gameCode)return;
+  const zc=getGpsZone();
+  if(!zc)return;
+  const cur=G.locs&&G.locs[LS.myTeamIdx];
+  if(cur&&cur.zone===zc&&Date.now()-cur.time<600000)return;
+  _autoCheckInBusy=true;
+  if(!G.locs)G.locs={};
+  const stamp={zone:zc,notes:'',time:Date.now()};
+  G.locs[LS.myTeamIdx]=stamp;
+  renderStatus();renderMapColors();
+  try{await fetch(`${FB_URL}/games/${LS.gameCode}/locs/${LS.myTeamIdx}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(stamp)});}catch(e){}
+  _autoCheckInBusy=false;
+}
+
 function startGpsWatch(){
   // Already watching
   if(gpsWatchId!==null)return;
@@ -3582,7 +3615,7 @@ function startGpsWatch(){
 
   // Request initial position — low accuracy is fine for background
   navigator.geolocation.getCurrentPosition(
-    pos=>{_freshLat=pos.coords.latitude;_freshLng=pos.coords.longitude;updateUserLocation();pushGps(pos.coords.latitude,pos.coords.longitude);},
+    pos=>_onGpsFix(pos.coords.latitude,pos.coords.longitude,true),
     err=>{console.warn('GPS permission denied:',err.message);},
     {enableHighAccuracy:false,timeout:15000,maximumAge:30000}
   );
@@ -3591,12 +3624,9 @@ function startGpsWatch(){
   // High-accuracy is requested on-demand (deposit, locate curse)
   gpsWatchId=navigator.geolocation.watchPosition(
     pos=>{
-      _freshLat=pos.coords.latitude;
-      _freshLng=pos.coords.longitude;
-      updateUserLocation();
       // Only push to Firebase if locate curse is active on our team
       const locateActive=G.curses&&G.curses.some(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now());
-      if(locateActive)pushGps(pos.coords.latitude,pos.coords.longitude);
+      _onGpsFix(pos.coords.latitude,pos.coords.longitude,locateActive);
     },
     err=>{console.warn('GPS watch error:',err.message);},
     {enableHighAccuracy:false,timeout:30000,maximumAge:60000}
@@ -3619,12 +3649,13 @@ function renderStatus(){
   updateClock(); // refresh phase countdown
   const g=document.getElementById('sg');if(!g)return;g.innerHTML='';
   // "Your Team" hero card — shown to players, hidden from host
+  const sc=computeScores();
   const hero=document.getElementById('myTeamHero');
   if(hero){
     if(LS.myTeamIdx>=0&&!LS.isHost&&G.teams[LS.myTeamIdx]){
       const mt=G.teams[LS.myTeamIdx];
       const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
-      const sc2=(()=>{const sc=computeScores();return sc[LS.myTeamIdx]||{zones:0,bonuses:0};})();
+      const sc2=sc[LS.myTeamIdx]||{zones:0,bonuses:0};
       hero.style.display='block';
       hero.innerHTML=`<div style="background:${mt.color};border:none;border-radius:0;padding:14px 20px;margin:0 -20px 14px;display:flex;align-items:center;gap:14px;color:white;">
         <div style="width:36px;height:36px;border-radius:var(--r-badge);background:rgba(0,0,0,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;">${esc(mt.name[0])}</div>
@@ -3641,11 +3672,11 @@ function renderStatus(){
       hero.style.display='none';
     }
   }
-  const sc=computeScores();
   G.teams.forEach((team,i)=>{
     const loc=G.locs&&G.locs[i],zone=loc?getZones().find(z=>z.code===loc.zone):null;
     const mins=loc?Math.floor((Date.now()-loc.time)/60000):null,stale=mins!==null&&mins>15;
-    const hasGps=G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===i);
+    // GPS badge only counts a fix from the last 10 minutes — not day-old data
+    const hasGps=G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===i&&g.t&&Date.now()-g.t<600000);
     const isMine=LS.myTeamIdx===i,sc2=sc[i];
     const card=document.createElement('div');card.className='tsc';
     card.style.background=team.color;
@@ -4963,7 +4994,7 @@ function returnToHome(){
   _userMarker=null;
   LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
   try{localStorage.removeItem('bfw5L');localStorage.removeItem('bfw5G');localStorage.removeItem('bfw5DepQ');_depQueue=[];}catch(e){}
-  G={config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,started:false,gameCode:''};
+  G=freshG();
   if(bfwMap){bfwMap.remove();bfwMap=null;}
   mapReady=false;zPolys={};locMarkers={};
   document.querySelectorAll('.mo').forEach(m=>m.classList.remove('open'));
