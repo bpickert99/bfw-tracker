@@ -1,6 +1,6 @@
 // BFW Service Worker v3.0
 // Bump CACHE with every deploy
-const CACHE = 'bfw-v38';
+const CACHE = 'bfw-v39';
 const CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
@@ -32,6 +32,19 @@ self.addEventListener('fetch', e => {
   // Skip non-GET requests
   if (e.request.method !== 'GET') return;
 
+  // Dynamic APIs (game state, uploads, geo services): do NOT mediate at all.
+  // Returning without respondWith lets the browser handle the request
+  // natively — the SW can never turn a live connection into a phantom
+  // "offline" failure, and API responses are never cached.
+  if (
+    url.includes('firebaseio.com') ||
+    url.includes('cloudinary.com') ||
+    url.includes('overpass') ||
+    url.includes('nominatim')
+  ) {
+    return;
+  }
+
   // Cache-first ONLY for CDN assets (fonts, leaflet)
   if (
     url.includes('fonts.googleapis.com') ||
@@ -52,7 +65,9 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Everything else: network-first (always try fresh, fall back to cache)
+  // App shell & tiles: network-first, fall back to cache when offline.
+  // The fallback must resolve to a real Response — an undefined from a
+  // cache miss would poison the fetch with an opaque TypeError.
   e.respondWith(
     fetch(e.request, { cache: 'no-store' })
       .then(res => {
@@ -60,7 +75,7 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(cache => cache.put(e.request, clone));
         return res;
       })
-      .catch(() => caches.match(e.request))
+      .catch(async () => (await caches.match(e.request)) || Response.error())
   );
 });
 
