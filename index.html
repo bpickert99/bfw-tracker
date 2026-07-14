@@ -1465,7 +1465,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.14';
+const APP_VERSION='2.15';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -2752,7 +2752,7 @@ async function joinGame(){
 // FIREBASE
 async function pushState(){
   if(!LS.gameCode)return false;
-  try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});if(!r.ok)_dbgLog('PUSH','full PUT failed status='+r.status);return r.ok;}catch(e){_dbgLog('PUSH','full PUT threw: '+e.message);return false;}
+  try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});_dbgLog('PUSH',(r.ok?'ok':'failed status='+r.status)+' players='+(G.players?Object.keys(G.players).length:0));return r.ok;}catch(e){_dbgLog('PUSH','full PUT threw: '+e.message);return false;}
 }
 // Firebase strips empty objects/arrays and nulls from stored JSON. Restore
 // every collection the app iterates so fetched state never crashes consumers
@@ -3149,10 +3149,22 @@ function _lobbyTouchEnd(e,pid){
 }
 async function assignPlayer(pid,ti){
   const idx=parseInt(ti);
+  if(!G.players[pid])return;
   G.players[pid].teamIdx=idx;
   // If host is assigning themselves, update local team index too
   if(pid===LS.playerId){LS.myTeamIdx=idx;saveL();}
-  await pushState();renderLobby();
+  renderLobby();
+  // Targeted write of ONLY this player's teamIdx — a full-state push here
+  // erases any player who joined since our last poll (verified from device
+  // logs: a join landed, then an assignment push deleted it 5s later).
+  try{
+    const r=await fetch(`${FB_URL}/games/${LS.gameCode}/players/${pid}/teamIdx.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(idx)});
+    _dbgLog('ASSIGN',pid+'→'+idx+' status='+r.status);
+    await fetch(`${FB_URL}/games/${LS.gameCode}/_ts.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Date.now())});
+  }catch(e){
+    _dbgLog('ASSIGN','threw: '+e.message);
+    showToast('Assignment didn’t sync — check your connection and try again.','warn');
+  }
 }
 
 function _updateStartBtn(){
