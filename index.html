@@ -137,8 +137,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .lobby-unassigned h4{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .lobby-unassigned .chips{display:flex;flex-wrap:wrap;gap:4px;min-height:32px;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes contested-pulse{0%,100%{opacity:.3}50%{opacity:.7}}
-.contested-zone{animation:contested-pulse 2s ease-in-out infinite;}
 
 /* WAITING */
 #screenWaiting{align-items:center;justify-content:center;padding:24px;background:var(--surface);}
@@ -810,9 +808,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div style="padding:0 20px 14px;">
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
-      <div id="zoneChallengeBtn" style="display:none;margin-top:10px;">
-        <button class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:20px;" onclick="initiateZoneChallenge()">Zone Challenge<div id="zoneChallengeSub" style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;"></div></button>
-      </div>
     </div>
     <div class="stitle" style="margin-top:0">Zone Status</div>
     <div id="zoneContainer"></div>
@@ -948,74 +943,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   </div>
 
 
-<!-- ZONE CHALLENGE OVERLAY -->
-<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:980;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);flex-direction:column;overflow-y:auto;color:var(--fg);text-align:center;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));">
-  <div style="margin-bottom:8px;"><svg viewBox="0 0 40 40" style="width:40px;height:40px"><path d="M10 30l8-8m4-4l8-8M30 10l-8 8m-4 4l-8 8" stroke="var(--red)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="20" r="4" fill="var(--red)" opacity=".6"/></svg></div>
-  <div id="challengeTitle" style="font-family:var(--font);font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
-  <div id="challengeSubtitle" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
-  <!-- Pending phase: challenger waiting / defender accept-decline -->
-  <div id="chPhasePending" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div id="chPendingChallenger" style="display:none;">
-      <div style="background:var(--surface2);border-radius:20px;padding:16px;margin-bottom:12px;">
-        <div style="font-size:13px;color:var(--muted);">Waiting for defender to respond...</div>
-        <div id="chPendingTimer" style="font-family:var(--font);font-weight:800;font-size:42px;color:#f59e0b;margin-top:8px;">03:00</div>
-      </div>
-      <div style="font-size:12px;color:var(--muted);">Challenge will be voided if not accepted within 3 minutes.</div>
-    </div>
-    <div id="chPendingDefender" style="display:none;">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;margin-bottom:12px;">
-        <div style="font-size:14px;font-weight:700;margin-bottom:8px;" id="chDefenderPrompt"></div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">You must match their wager to accept.</div>
-        <div id="chDefenderTimer" style="font-family:var(--font);font-weight:800;font-size:36px;color:#f59e0b;margin-bottom:12px;">03:00</div>
-        <div style="display:flex;gap:10px;">
-          <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="respondToChallenge(true)">Accept & Match Wager</button>
-          <button class="btn" style="flex:1;background:var(--surface2);color:var(--fg);border:1px solid var(--border);padding:12px;font-size:14px;" onclick="respondToChallenge(false)">Decline</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Active phase: challenge text, timer, photo upload -->
-  <div id="chPhaseActive" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 18px;margin-bottom:12px;font-size:14px;font-weight:700;line-height:1.5;" id="chActiveTask"></div>
-    <div style="background:var(--surface2);border-radius:20px;padding:12px;margin-bottom:12px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Time Remaining</div>
-      <div id="chActiveTimer" style="font-family:var(--font);font-weight:800;font-size:48px;letter-spacing:3px;color:#f59e0b;">08:00</div>
-    </div>
-    <div id="chActiveSubmitSection">
-      <input type="file" id="chActivePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleZoneChallengePhoto(this)">
-      <button class="btn" style="background:var(--surface2);color:var(--fg);border:1px solid var(--border);width:100%;margin-bottom:8px;padding:12px;font-size:14px;" onclick="document.getElementById('chActivePhoto').click()">📷 Take Photo</button>
-      <div id="chActivePhotoStatus" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
-      <button id="chActiveSubmitBtn" class="btn" style="background:#e63946;color:white;border:none;width:100%;font-size:15px;padding:14px;" onclick="submitZoneChallengePhoto()" disabled>Submit Photo</button>
-    </div>
-    <div id="chActiveSubmitted" style="display:none;font-size:13px;color:#4ade80;margin-top:8px;">✓ Photo submitted — waiting for opponent…</div>
-    <div id="chActiveStatus" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
-  </div>
-  <!-- Voting phase -->
-  <div id="chPhaseVoting" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div style="font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:2px;margin-bottom:12px;">VOTE ON OPPONENT'S SUBMISSION</div>
-    <div id="chVoteContent" style="margin-bottom:12px;">
-      <img id="chVoteImg" src="" style="width:100%;max-height:260px;object-fit:contain;border-radius:20px;background:var(--surface2);margin-bottom:10px;">
-      <div id="chVoteNoPhoto" style="display:none;background:var(--surface2);border-radius:20px;padding:20px;margin-bottom:10px;font-size:13px;color:var(--muted);">No photo submitted by opponent.</div>
-    </div>
-    <div id="chVoteButtons" style="display:flex;gap:10px;margin-bottom:10px;">
-      <button class="btn" style="flex:1;background:#059669;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="voteOnZoneChallenge(true)">Approve</button>
-      <button class="btn" style="flex:1;background:#dc2626;color:white;border:none;padding:12px;font-size:14px;font-weight:700;" onclick="showZoneChallengeRejectForm()">❌ Reject</button>
-    </div>
-    <div id="chVoteRejectForm" style="display:none;margin-bottom:10px;">
-      <textarea id="chVoteRejectReason" placeholder="Reason for rejection (required)" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--fg);border-radius:14px;padding:10px;font-size:13px;min-height:60px;resize:none;margin-bottom:8px;"></textarea>
-      <button class="btn" style="background:#dc2626;color:white;border:none;width:100%;padding:10px;" onclick="voteOnZoneChallenge(false)">Confirm Rejection</button>
-    </div>
-    <div id="chVoteWaiting" style="display:none;font-size:13px;color:#4ade80;">✓ Vote submitted — waiting for opponent's vote…</div>
-    <div id="chVoteAutoTimer" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
-  </div>
-  <!-- Result phase -->
-  <div id="chPhaseResult" style="display:none;width:100%;max-width:380px;margin:0 auto;">
-    <div id="chResultIcon" style="font-size:64px;margin-bottom:8px;"></div>
-    <div id="chResultTitle" style="font-family:var(--font);font-weight:800;font-size:32px;letter-spacing:2px;margin-bottom:8px;"></div>
-    <div id="chResultDetail" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;"></div>
-    <button class="btn" style="background:var(--surface2);color:var(--fg);border:1px solid var(--border);width:100%;padding:12px;" onclick="dismissChallenge()">Continue Game</button>
-  </div>
-</div>
 
 
 <!-- LUNCH OVERLAY -->
@@ -1465,7 +1392,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.16';
+const APP_VERSION='2.17';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -2497,11 +2424,45 @@ const LINE_BONUSES=[
 ];
 
 const LCOLORS={red:"var(--rl)",blue:"var(--bl)",orange:"var(--ol)",green:"var(--gl)",silver:"var(--sl)",yellow:"var(--yl)"};
+
+// ── BUILT-IN DC MAP ───────────────────────────────────────────────
+// The original baked-in Washington DC game, packaged as a community-map
+// entry so it flows through the exact same selection + game pipeline.
+function _builtinDCMap(){
+  const lineName=id=>id.charAt(0).toUpperCase()+id.slice(1)+' Line';
+  const transitLines={};
+  Object.entries(MLINES).forEach(([id,cfg])=>{
+    const stations=METRO_STATIONS.filter(s=>s.line.split(',').map(x=>x.trim()).includes(id)).map(s=>({name:s.name,lat:s.lat,lng:s.lng}));
+    transitLines[id]={name:lineName(id),type:'metro',color:cfg.color,w:cfg.w,opacity:cfg.opacity||.9,paths:cfg.paths,stations,stops:stations,zonesServed:ZONES.filter(z=>(z.lines||[]).includes(id)).map(z=>z.code),imported:true};
+  });
+  return {
+    id:'builtin_dc',
+    name:'Washington DC — The Original',
+    cityName:'Washington, DC',
+    cityTag:'washington-dc',
+    desc:'The original Transit Tournament map: '+ZONES.length+' zones across DC, Maryland & Virginia on the WMATA Metro, with '+LANDMARKS.length+' landmarks.',
+    creator:'Transit Tournament',creatorId:'builtin',createdAt:0,playCount:0,creatorPhoto:null,thumbnail:null,builtin:true,
+    config:{
+      cityName:'Washington, DC',
+      cityCenter:{lat:MALL_LAT,lng:MALL_LNG},
+      transitMode:'transit',
+      transitTypes:['transit'],
+      zones:ZONES,
+      landmarks:LANDMARKS.map(l=>({name:l.name,hint:l.hint||'',lat:l.lat,lng:l.lng,coins:0})),
+      transitStops:METRO_STATIONS,
+      transitLines,
+      lines:Object.keys(MLINES).map(id=>({id,name:lineName(id),zonesServed:ZONES.filter(z=>(z.lines||[]).includes(id)).map(z=>z.code)})),
+      lineBonuses:LINE_BONUSES,
+      // Enable the full shop, matching how the original DC game played
+      shopConfig:SHOP_ITEMS_DATA.map(i=>({id:i.name,enabled:true,cost:parseInt(i.cost)||0}))
+    }
+  };
+}
 const PAL=["#e63946","#2563eb","#059669","#d97706","#7c3aed","#db2777","#0891b2","#ea580c"];
 
 // STATE
 // Canonical blank game state — the shape is defined here and nowhere else.
-function freshG(){return {activeChallenge:null,config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};}
+function freshG(){return {config:{start:"10:00",end:"19:00",lunchStart:"12:00",lunchEnd:"13:00",score:"18:00"},teams:[],players:{},zones:{},curses:[],locs:{},gpsLocs:{},log:[],chat:[],claimedTasks:{},detours:{},flop:[],flopClaims:{},coins:{},lastFlopActivity:0,landmark:null,started:false,gameCode:'',emergencyDeps:{},landmarkClaims:{}};}
 let G=freshG();
 let LS={playerId:'',playerName:'',isHost:false,myTeamIdx:-1,fbUrl:FB_URL,gameCode:'',mode:''};
 let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
@@ -2865,9 +2826,6 @@ function needsFastPoll(){
       if(claim.status==='pending'&&claim.teamIdx!==LS.myTeamIdx&&(!claim.votes||claim.votes[LS.myTeamIdx]===undefined))return true;
     }
   }
-  // Active zone challenge involving me
-  const ch=G.activeChallenge;
-  if(ch&&ch.result===null&&(ch.challengerIdx===LS.myTeamIdx||ch.defenderIdx===LS.myTeamIdx))return true;
   // Active locate curse on my team (need to push GPS often)
   if(G.curses&&G.curses.some(c=>c.active&&c.type==='locate'&&c.target===LS.myTeamIdx&&c.expiresAt&&c.expiresAt>Date.now()))return true;
   // I am being tracked (pushing GPS)
@@ -2990,7 +2948,6 @@ async function poll(){
       const lcp=document.getElementById('lunchChatPanel');if(lcp&&lcp.style.display==='flex')renderLunchChat();
     }
     checkForPendingVotes();
-    checkForActiveChallenge();checkContestedZoneExpiry();
     // Landmark auto-refresh: host checks 30-min timeout
     if(LS.isHost&&G.landmark&&!G.landmark.claimedBy){
       const pending=G.flopClaims&&G.flopClaims['landmark']&&G.flopClaims['landmark'].status==='pending';
@@ -4039,7 +3996,7 @@ function initMap(){
 }
 function renderMapColors(){
   if(!mapReady)return;
-  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const contested=G.contestedZones&&G.contestedZones[z.code]&&G.contestedZones[z.code].until>Date.now();if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:contested?.45:.25,color:c,weight:contested?3:2,dashArray:contested?'8 4':null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});if(poly._path)poly._path.classList.toggle('contested-zone',!!contested);});
+  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2,dashArray:null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});});
   renderMZL();updateLocateMarkers();renderLandmarkMarker();updateUserLocation();
   const ml=document.getElementById('mapLegend');
   if(ml)ml.style.display=isCustomMap()?'none':'block';
@@ -4155,7 +4112,6 @@ function updateDepositHint(){
     hint.textContent='You are in: '+(zone?zoneName:'outside all zones')+' · '+Math.round(dist)+'m from nearest station';
     hint.style.color=zone?'var(--green)':'var(--muted)';
   }
-  updateZoneChallengeBtn();
 }
 
 let curZone=null;
@@ -4419,374 +4375,6 @@ async function submitDep(){
   if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}
 }
 
-
-// ZONE CHALLENGE
-let _zcPhotoUrl=null;
-let _zcInterval=null;
-
-function updateZoneChallengeBtn(){
-  const btn=document.getElementById('zoneChallengeBtn');
-  const sub=document.getElementById('zoneChallengeSub');
-  if(!btn)return;
-  btn.style.display='none';
-  if(!G.started||LS.myTeamIdx<0)return;
-  if(G.activeChallenge&&G.activeChallenge.result===null)return;
-  const lat=_freshLat,lng=_freshLng;
-  if(!lat)return;
-  const zone=getGpsZone();
-  if(!zone)return;
-  const deps=G.zones&&G.zones[zone]||{};
-  const leader=getL(deps);
-  if(leader<0||leader===LS.myTeamIdx)return;
-  const dist=distToNearestStation(lat,lng);
-  const minDist=getMinDistFromTransit();
-  if(dist<minDist)return;
-  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now())return;
-  const defName=G.teams[leader]?.name||'?';
-  btn.style.display='block';
-  if(sub)sub.textContent='Challenge '+defName+' for '+zone;
-}
-
-function initiateZoneChallenge(){
-  if(!G.started||LS.myTeamIdx<0){showToast('Game not started or no team.','warn');return;}
-  if(G.activeChallenge&&G.activeChallenge.result===null){showToast('A challenge is already active.','warn');return;}
-  const zone=getGpsZone();
-  if(!zone){showToast('GPS could not detect your zone.','warn');return;}
-  const deps=G.zones&&G.zones[zone]||{};
-  const leader=getL(deps);
-  if(leader<0){showToast('No team controls this zone.','warn');return;}
-  if(leader===LS.myTeamIdx){showToast('Your team controls this zone.','warn');return;}
-  if(G.contestedZones&&G.contestedZones[zone]&&G.contestedZones[zone].until>Date.now()){showToast('This zone is contested — challenge blocked for 30 minutes.','warn');return;}
-  const lat=_freshLat,lng=_freshLng;
-  if(lat){const dist=distToNearestStation(lat,lng);const minDist=getMinDistFromTransit();if(dist<minDist){showToast('Too close to a metro station.','warn');return;}}
-  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
-  const defName=G.teams[leader]?.name||'?';
-  const html='<div style="text-align:center;padding:16px;"><div style="font-size:36px;margin-bottom:8px;">⚔️</div>'+
-    '<div style="font-family:var(--font);font-size:22px;letter-spacing:2px;margin-bottom:8px;">ZONE CHALLENGE</div>'+
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Challenge <b>'+esc(defName)+'</b> for zone <b>'+zone+'</b></div>'+
-    '<div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Wager (coins)</label>'+
-    '<input type="number" id="zcWagerInput" min="1" max="'+myCoins+'" placeholder="1–'+myCoins+'" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:14px;font-size:16px;text-align:center;"></div>'+
-    '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Defender must match your wager within 3 minutes or forfeit.</div>'+
-    '<div style="display:flex;gap:10px;">'+
-    '<button class="btn btn-g" style="flex:1;" onclick="closeZcModal()">Cancel</button>'+
-    '<button class="btn btn-p" style="flex:1;" onclick="confirmZoneChallenge(\''+zone+'\','+leader+')">Challenge!</button></div></div>';
-  const mo=document.createElement('div');
-  mo.id='zcModal';
-  mo.style.cssText='position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
-  mo.innerHTML='<div style="background:var(--surface);border-radius:20px;width:100%;max-width:360px;box-shadow:var(--shadow);">'+html+'</div>';
-  document.body.appendChild(mo);
-}
-
-function closeZcModal(){const m=document.getElementById('zcModal');if(m)m.remove();}
-
-async function confirmZoneChallenge(zone,defenderIdx){
-  const inp=document.getElementById('zcWagerInput');
-  const wager=parseInt(inp?.value)||0;
-  if(wager<1){showToast('Enter a wager of at least 1 coin.','warn');return;}
-  const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
-  if(wager>myCoins){showToast('Not enough coins.','error');return;}
-  closeZcModal();
-  if(!G.coins)G.coins={};
-  G.coins[LS.myTeamIdx]=Math.max(0,(G.coins[LS.myTeamIdx]||0)-wager);
-  const now=Date.now();
-  G.activeChallenge={
-    id:'ch_'+now,
-    challengerIdx:LS.myTeamIdx,
-    defenderIdx:defenderIdx,
-    contestedZone:zone,
-    wager:wager,
-    phase:'pending',
-    createdAt:now,
-    acceptDeadline:now+3*60000,
-    acceptedAt:null,
-    challenge:null,
-    activeAt:null,
-    endsAt:null,
-    submissions:{},
-    votes:{},
-    declined:false,
-    result:null
-  };
-  const cn=G.teams[LS.myTeamIdx]?.name||'?',dn=G.teams[defenderIdx]?.name||'?';
-  logEv('<b>'+esc(cn)+'</b> challenges <b>'+esc(dn)+'</b> for zone '+zone+'! Wager: '+wager+' coins.');
-  sendPN('Zone Challenge!',cn+' challenges '+dn+' for '+zone+'!');
-  await pushState();
-  showChallengeOverlay();
-}
-
-async function respondToChallenge(accept){
-  const ch=G.activeChallenge;
-  if(!ch||ch.phase!=='pending')return;
-  const dn=G.teams[ch.defenderIdx]?.name||'?',cn=G.teams[ch.challengerIdx]?.name||'?';
-  if(accept){
-    const defCoins=(G.coins&&G.coins[ch.defenderIdx])||0;
-    if(defCoins<ch.wager){showToast('Not enough coins to match the wager ('+ch.wager+').','error');return;}
-    if(!G.coins)G.coins={};
-    G.coins[ch.defenderIdx]=Math.max(0,(G.coins[ch.defenderIdx]||0)-ch.wager);
-    ch.acceptedAt=Date.now();
-    const pool=FLOP_CHALLENGES.filter(f=>f.coins<=2);
-    ch.challenge=pool[Math.floor(Math.random()*pool.length)]||{text:'Take a creative photo',coins:1};
-    ch.activeAt=Date.now();
-    ch.endsAt=Date.now()+8*60000;
-    ch.phase='active';
-    logEv('<b>'+esc(dn)+'</b> accepted the Zone Challenge! Task: '+esc(ch.challenge.text));
-  } else {
-    ch.declined=true;
-    ch.phase='done';
-    ch.result='void';
-    if(!G.coins)G.coins={};
-    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
-    if(!G.contestedZones)G.contestedZones={};
-    G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
-    logEv('<b>'+esc(dn)+'</b> declined the Zone Challenge. Zone '+ch.contestedZone+' is contested for 30 minutes.');
-  }
-  await pushState();
-  showChallengeOverlay();
-  renderAll();
-}
-
-function handleZoneChallengePhoto(input){
-  const file=input.files[0];if(!file)return;
-  const status=document.getElementById('chActivePhotoStatus');
-  if(status)status.textContent='Uploading…';
-  uploadToCloudinary(file).then(url=>{
-    _zcPhotoUrl=url;
-    if(status)status.textContent='✓ Photo ready';
-    const btn=document.getElementById('chActiveSubmitBtn');if(btn)btn.disabled=false;
-  }).catch(()=>{if(status)status.textContent='Upload failed';});
-  input.value='';
-}
-
-async function submitZoneChallengePhoto(){
-  const ch=G.activeChallenge;if(!ch||ch.phase!=='active')return;
-  if(!_zcPhotoUrl){showToast('Take a photo first.','warn');return;}
-  if(!ch.submissions)ch.submissions={};
-  ch.submissions[LS.myTeamIdx]={photoUrl:_zcPhotoUrl,submittedAt:Date.now()};
-  _zcPhotoUrl=null;
-  const both=ch.submissions[ch.challengerIdx]&&ch.submissions[ch.defenderIdx];
-  if(both){ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;}
-  await pushState();
-  showChallengeOverlay();
-}
-
-function showZoneChallengeRejectForm(){
-  const f=document.getElementById('chVoteRejectForm');if(f)f.style.display='block';
-  const b=document.getElementById('chVoteButtons');if(b)b.style.display='none';
-}
-
-async function voteOnZoneChallenge(approved){
-  const ch=G.activeChallenge;if(!ch||ch.phase!=='voting')return;
-  if(!approved){
-    const reason=document.getElementById('chVoteRejectReason')?.value?.trim();
-    if(!reason){showToast('Please provide a reason for rejection.','warn');return;}
-    if(!ch.votes)ch.votes={};
-    ch.votes[LS.myTeamIdx]={approved:false,reason:reason,votedAt:Date.now()};
-  } else {
-    if(!ch.votes)ch.votes={};
-    ch.votes[LS.myTeamIdx]={approved:true,reason:'',votedAt:Date.now()};
-  }
-  const bothVoted=ch.votes[ch.challengerIdx]&&ch.votes[ch.defenderIdx];
-  if(bothVoted)resolveZoneChallenge();
-  await pushState();
-  showChallengeOverlay();
-}
-
-function resolveZoneChallenge(){
-  const ch=G.activeChallenge;
-  if(!ch||ch.result!==null)return;
-  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
-  if(!G.coins)G.coins={};
-  if(!G.zones)G.zones={};
-  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
-  const cVote=ch.votes&&ch.votes[ch.defenderIdx];
-  const dVote=ch.votes&&ch.votes[ch.challengerIdx];
-  const cApproved=cVote&&cVote.approved;
-  const dApproved=dVote&&dVote.approved;
-  if(cApproved&&dApproved){
-    ch.result='challenger';
-    const zone=ch.contestedZone;
-    if(zone){
-      if(!G.zones[zone])G.zones[zone]={};
-      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
-    }
-    logEv('<b>'+esc(cn)+'</b> wins the Zone Challenge! '+ch.wager*2+' coins deposited in '+zone+'.');
-  } else if(cApproved&&!dApproved){
-    ch.result='challenger';
-    const zone=ch.contestedZone;
-    if(zone){
-      if(!G.zones[zone])G.zones[zone]={};
-      G.zones[zone][ch.challengerIdx]=(parseInt(G.zones[zone][ch.challengerIdx])||0)+ch.wager*2;
-    }
-    logEv('<b>'+esc(cn)+'</b> wins the Zone Challenge (only approved submission)! '+ch.wager*2+' coins deposited in '+zone+'.');
-  } else if(!cApproved&&dApproved){
-    ch.result='defender';
-    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager*2;
-    logEv('<b>'+esc(dn)+'</b> defends the zone! Both wagers ('+ch.wager*2+' coins) go to '+dn+'.');
-  } else {
-    ch.result='draw';
-    G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
-    G.coins[ch.defenderIdx]=(G.coins[ch.defenderIdx]||0)+ch.wager;
-    logEv('Zone Challenge draw — wagers returned.');
-  }
-  ch.phase='done';
-  pushState();
-  renderAll();
-}
-
-function showChallengeOverlay(){
-  const ch=G.activeChallenge;
-  if(!ch)return;
-  const myTeam=LS.myTeamIdx;
-  const involved=myTeam===ch.challengerIdx||myTeam===ch.defenderIdx||LS.isHost;
-  if(!involved)return;
-  const ov=document.getElementById('challengeOverlay');
-  if(!ov)return;
-  ov.style.display='flex';
-  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
-  document.getElementById('challengeTitle').textContent='ZONE CHALLENGE';
-  document.getElementById('challengeSubtitle').textContent=cn+' vs '+dn+' · '+ch.wager+' coin wager · Zone '+ch.contestedZone;
-  ['chPhasePending','chPhaseActive','chPhaseVoting','chPhaseResult'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
-  if(ch.phase==='pending')showChPending(ch,myTeam);
-  else if(ch.phase==='active')showChActive(ch,myTeam);
-  else if(ch.phase==='voting')showChVoting(ch,myTeam);
-  else if(ch.phase==='done')showChResult(ch,myTeam);
-  if(_zcInterval)clearInterval(_zcInterval);
-  if(ch.result===null)_zcInterval=setInterval(()=>updateChallengeTimers(),1000);
-}
-
-function showChPending(ch,myTeam){
-  document.getElementById('chPhasePending').style.display='block';
-  const isChallenger=myTeam===ch.challengerIdx;
-  document.getElementById('chPendingChallenger').style.display=isChallenger?'block':'none';
-  document.getElementById('chPendingDefender').style.display=isChallenger?'none':'block';
-  if(!isChallenger){
-    const cn=G.teams[ch.challengerIdx]?.name||'?';
-    document.getElementById('chDefenderPrompt').textContent=cn+' challenges you for zone '+ch.contestedZone+'! Wager: '+ch.wager+' coins.';
-  }
-}
-
-function showChActive(ch,myTeam){
-  document.getElementById('chPhaseActive').style.display='block';
-  document.getElementById('chActiveTask').textContent=ch.challenge?ch.challenge.text:'Complete the challenge';
-  const mySub=ch.submissions&&ch.submissions[myTeam];
-  document.getElementById('chActiveSubmitSection').style.display=mySub?'none':'block';
-  document.getElementById('chActiveSubmitted').style.display=mySub?'block':'none';
-  let status='';
-  const cSub=ch.submissions&&ch.submissions[ch.challengerIdx];
-  const dSub=ch.submissions&&ch.submissions[ch.defenderIdx];
-  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
-  status+=cn+': '+(cSub?'✅ submitted':'⏳ pending')+' · '+dn+': '+(dSub?'✅ submitted':'⏳ pending');
-  document.getElementById('chActiveStatus').textContent=status;
-}
-
-function showChVoting(ch,myTeam){
-  document.getElementById('chPhaseVoting').style.display='block';
-  const myVote=ch.votes&&ch.votes[myTeam];
-  if(myVote){
-    document.getElementById('chVoteButtons').style.display='none';
-    document.getElementById('chVoteRejectForm').style.display='none';
-    document.getElementById('chVoteWaiting').style.display='block';
-  } else {
-    document.getElementById('chVoteButtons').style.display='flex';
-    document.getElementById('chVoteRejectForm').style.display='none';
-    document.getElementById('chVoteWaiting').style.display='none';
-  }
-  const opponentIdx=myTeam===ch.challengerIdx?ch.defenderIdx:ch.challengerIdx;
-  const opSub=ch.submissions&&ch.submissions[opponentIdx];
-  const img=document.getElementById('chVoteImg');
-  const noPhoto=document.getElementById('chVoteNoPhoto');
-  if(opSub&&opSub.photoUrl){img.src=opSub.photoUrl;img.style.display='block';if(noPhoto)noPhoto.style.display='none';}
-  else{img.style.display='none';if(noPhoto)noPhoto.style.display='block';}
-}
-
-function showChResult(ch,myTeam){
-  document.getElementById('chPhaseResult').style.display='block';
-  const isChallenger=myTeam===ch.challengerIdx;
-  const cn=G.teams[ch.challengerIdx]?.name||'?',dn=G.teams[ch.defenderIdx]?.name||'?';
-  let icon='',title='',detail='';
-  if(ch.result==='void'){
-    icon='🚫';title='CHALLENGE VOIDED';detail='The challenge was declined. Wager returned.';
-  } else if(ch.result==='draw'){
-    icon='🤝';title='DRAW';detail='Neither submission was approved. Wagers returned to both teams.';
-  } else if(ch.result==='challenger'){
-    icon=isChallenger?'🏆':'😔';
-    title=isChallenger?'YOU WON!':'YOU LOST';
-    detail=cn+' wins! '+ch.wager*2+' coins deposited into zone '+ch.contestedZone+'.';
-  } else if(ch.result==='defender'){
-    icon=isChallenger?'😔':'🏆';
-    title=isChallenger?'YOU LOST':'YOU WON!';
-    detail=dn+' defends! Both wagers ('+ch.wager*2+' coins) added to '+dn+'\'s coins.';
-  }
-  document.getElementById('chResultIcon').textContent=icon;
-  document.getElementById('chResultTitle').textContent=title;
-  document.getElementById('chResultDetail').textContent=detail;
-}
-
-function updateChallengeTimers(){
-  const ch=G.activeChallenge;if(!ch||ch.result!==null)return;
-  const now=Date.now();
-  if(ch.phase==='pending'){
-    const rem=Math.max(0,ch.acceptDeadline-now);
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    const ts=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    const t1=document.getElementById('chPendingTimer');if(t1)t1.textContent=ts;
-    const t2=document.getElementById('chDefenderTimer');if(t2)t2.textContent=ts;
-    if(rem<=0&&LS.isHost){
-      ch.declined=true;ch.phase='done';ch.result='void';
-      if(!G.coins)G.coins={};
-      G.coins[ch.challengerIdx]=(G.coins[ch.challengerIdx]||0)+ch.wager;
-      if(!G.contestedZones)G.contestedZones={};
-      G.contestedZones[ch.contestedZone]={until:Date.now()+30*60000};
-      logEv('Zone Challenge timed out — '+G.teams[ch.defenderIdx]?.name+' did not respond. Wager returned.');
-      pushState();showChallengeOverlay();renderAll();
-    }
-  } else if(ch.phase==='active'){
-    const rem=Math.max(0,ch.endsAt-now);
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    document.getElementById('chActiveTimer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    if(rem<=0&&LS.isHost){
-      ch.phase='voting';ch.votingDeadline=Date.now()+5*60000;
-      pushState();showChallengeOverlay();
-    }
-  } else if(ch.phase==='voting'){
-    const deadline=ch.votingDeadline||Date.now()+5*60000;
-    const rem=Math.max(0,deadline-now);
-    const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
-    const ta=document.getElementById('chVoteAutoTimer');
-    if(ta)ta.textContent='Auto-accept in '+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    if(rem<=0&&LS.isHost){
-      if(!ch.votes)ch.votes={};
-      if(!ch.votes[ch.challengerIdx])ch.votes[ch.challengerIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
-      if(!ch.votes[ch.defenderIdx])ch.votes[ch.defenderIdx]={approved:true,reason:'auto-accepted',votedAt:Date.now()};
-      resolveZoneChallenge();showChallengeOverlay();
-    }
-  }
-}
-
-function dismissChallenge(){
-  document.getElementById('challengeOverlay').style.display='none';
-  if(_zcInterval){clearInterval(_zcInterval);_zcInterval=null;}
-}
-
-function checkForActiveChallenge(){
-  const ch=G.activeChallenge;
-  if(!ch||ch.result!==null)return;
-  const involved=LS.myTeamIdx===ch.challengerIdx||LS.myTeamIdx===ch.defenderIdx;
-  if(!involved&&!LS.isHost)return;
-  const ov=document.getElementById('challengeOverlay');
-  if(ov&&ov.style.display==='none')showChallengeOverlay();
-  else updateChallengeTimers();
-}
-
-function checkContestedZoneExpiry(){
-  if(!G.contestedZones)return;
-  const now=Date.now();
-  let changed=false;
-  for(const z of Object.keys(G.contestedZones)){
-    if(G.contestedZones[z].until<=now){delete G.contestedZones[z];changed=true;}
-  }
-  if(changed&&LS.isHost)pushState();
-}
 
 // ── SHOP LOGIC ─────────────────────────────────────────────────────────────
 // SHOP_ITEMS_DATA hoisted
@@ -5074,15 +4662,6 @@ async function downloadGamePhotos(){
       else if(claim.type==='detour')label=team+' — Detour: '+esc(claim.station||'');
       else{const item=G.flop&&G.flop.find(f=>f.id===id);label=team+' — '+(item?.text||'Flop challenge');}
       photos.push({url:claim.photoUrl,label});
-    }
-  }
-
-  // Zone challenge photos
-  if(G.activeChallenge&&G.activeChallenge.submissions){
-    for(const [ti,s] of Object.entries(G.activeChallenge.submissions)){
-      if(!s.photoUrl)continue;
-      const team=G.teams[parseInt(ti)]?.name||'Team '+(parseInt(ti)+1);
-      photos.push({url:s.photoUrl,label:team+' — Zone Challenge'});
     }
   }
 
@@ -5395,16 +4974,6 @@ function renderRules(){
     ' The team with the highest total deposit in a zone controls it.'
   );
 
-  // ── Zone Challenge ────────────────────────────────────────────
-  addTitle('Zone Challenge');
-  addCard(
-    '<b>Zone Challenge</b> is a free action available on the Zones tab when your GPS places you inside an enemy-controlled zone (100+ ft from metro stations). '
-    +'You set a wager; the defending team has 3 minutes to accept and match the wager, or the challenge is voided and the zone becomes "contested" for 30 minutes. '
-    +'A challenge is drawn from the Flop (Tier 1–2) with an 8-minute countdown. Both teams submit a photo, then cross-team voting occurs (5-min auto-accept). '
-    +'<b>Winner logic:</b> Both approved → challenger wins. Only one approved → that team wins. Neither → draw, wagers returned. '
-    +'<b>Challenger wins:</b> both wagers deposited into the zone. <b>Defender wins:</b> both wagers added to defender\'s coins.'
-  );
-
   // ── Flop tiers ────────────────────────────────────────────────
   addTitle('The Flop — Challenge Tiers');
   addTableCard(
@@ -5488,7 +5057,7 @@ function updateUI(){
     }
   }
 }
-function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();updateZoneChallengeBtn();}
+function renderAll(){renderStatus();renderScores();renderMapColors();renderZones();renderShopItems();renderCurses();renderChat();renderFlop();renderRules();}
 
 // ── COLOR PICKER ──────────────────────────────────────────────────────────────
 let cpTgt=null;
@@ -5724,23 +5293,22 @@ async function loadCommunityMaps(){
   const res = document.getElementById('cfgMapResults');
   if(!res) return;
   res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Loading maps\u2026</div>';
+  let remote=[],dataObj=null;
   try{
     const r = await fetch(MAPS_FB_PATH + '.json');
-    if(!r.ok){
-      res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Firebase error '+r.status+'. Check /maps/ read rules.</div>';
-      _allMaps=[]; return;
+    if(r.ok){
+      dataObj = await r.json();
+      if(dataObj&&typeof dataObj==='object'&&!Array.isArray(dataObj))remote=Object.values(dataObj);
     }
-    const data = await r.json();
-    if(!data||typeof data!=='object'||Array.isArray(data)){
-      res.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No maps published yet. Create the first one!</div>';
-      _allMaps=[]; return;
-    }
-    _allMaps = Object.values(data).sort((a,b)=>(b.playCount||0)-(a.playCount||0));
-    _renderMapResults(_allMaps);
   }catch(e){
     console.error('loadCommunityMaps error:', e);
-    res.innerHTML = '<div style="font-size:12px;color:var(--accent);padding:8px 0;">Could not load maps: '+e.message+'</div>';
   }
+  // Built-in DC map always leads the list. Its playCount lives remotely as a
+  // stub record (id 'builtin_dc') which we fold in and otherwise ignore.
+  const dc=_builtinDCMap();
+  dc.playCount=parseInt(dataObj&&dataObj.builtin_dc&&dataObj.builtin_dc.playCount)||0;
+  _allMaps=[dc,...remote.filter(m=>m&&m.id&&m.config&&m.id!=='builtin_dc').sort((a,b)=>(b.playCount||0)-(a.playCount||0))];
+  _renderMapResults(_allMaps);
 }
 
 function _renderMapResults(maps){
@@ -8261,10 +7829,6 @@ async function mbDoTransitImportSelected(){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadL();
 _updateConnBanner();
-// challengeOverlay must live at body level — inside #panelWrap the panel's
-// stacking context traps it beneath the sticky header/tabs (verified via
-// screenshot: title clipped under the tab bar)
-(function(){const ov=document.getElementById('challengeOverlay');if(ov&&ov.parentElement!==document.body)document.body.appendChild(ov);})();
 renderTeamSetup();
 if(LS.gameCode&&LS.playerId){
   fetchState(FB_URL,LS.gameCode).then(state=>{
