@@ -1463,7 +1463,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.12';
+const APP_VERSION='2.13';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2681,15 +2681,30 @@ async function joinGame(){
   // Check if player is rejoining (same name already in game)
   const existing=Object.entries(G.players||{}).find(([pid,p])=>p.name===name&&!p.isHost);
   if(existing){
-    // Restore existing session
+    // Restore existing session — record already on the server, nothing to write
     LS.playerId=existing[0];
     LS.myTeamIdx=existing[1].teamIdx;
     showNotif(`Welcome back, ${name}!`);
   } else {
     LS.playerId='p_'+Date.now();
-    G.players[LS.playerId]={name,teamIdx:-1,isHost:false,uid:_authUser?_authUser.uid:null};
+    const rec={name,teamIdx:-1,isHost:false,uid:_authUser?_authUser.uid:null};
+    G.players[LS.playerId]=rec;
+    // Write ONLY our player record (never the full game state — a full PUT
+    // from a fresh client can clobber concurrent host edits), and verify it
+    // landed before showing the waiting screen.
+    let joined=false;
+    for(let attempt=0;attempt<3&&!joined;attempt++){
+      try{
+        const r=await fetch(`${FB_URL}/games/${code}/players/${LS.playerId}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+        joined=r.ok;
+      }catch(e){}
+      if(!joined)await new Promise(res=>setTimeout(res,800*(attempt+1)));
+    }
+    if(!joined){showToast('Could not join — check your connection and try again.','error',5000);return;}
+    // Bump _ts so other phones' polls pick up the roster change immediately
+    try{await fetch(`${FB_URL}/games/${code}/_ts.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Date.now())});}catch(e){}
   }
-  await pushState();saveL();showPreGame();startPoll();
+  saveL();showPreGame();startPoll();
   if(_authUser) _writeUserGame(_authUser.uid,code,'player',LS.playerId,LS.myTeamIdx);
   if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 }
@@ -2917,7 +2932,8 @@ async function poll(){
     if(G.log&&G.log.length>prevLogLen&&prevStarted){const newest=G.log[0];if(newest)sendPN('Transit Tournament Update',newest.text.replace(/<[^>]+>/g,''));}
     if(G.chat&&G.chat.length>prevChatLen){
       const newest=G.chat[G.chat.length-1];
-      if(newest&&!(newest.playerName===LS.playerName&&newest.teamIdx===LS.myTeamIdx)){
+      // System log entries have no teamName/playerName — never toast them as chat
+      if(newest&&newest.type!=='system'&&newest.teamName&&!(newest.playerName===LS.playerName&&newest.teamIdx===LS.myTeamIdx)){
         showNotif(`💬 ${newest.teamName}: ${newest.text.replace(/<[^>]+>/g,'').substring(0,60)}`);
         sendPN(`💬 ${newest.teamName}`,newest.text.replace(/<[^>]+>/g,''));
       }
@@ -3112,6 +3128,10 @@ async function confirmStartGame(){
   startGame();
 }
 async function startGame(){
+  // Merge fresh server state first so starting never erases players or
+  // edits that landed after our last poll (start does a full-state PUT).
+  const fresh=await fetchState(FB_URL,LS.gameCode);
+  if(fresh){const{_ts,...rest}=fresh;Object.assign(G,rest);}
   G.started=true;
   // Give each team their starting coins
   const startCoins=(G.config&&G.config.startCoins!=null)?G.config.startCoins:10;
