@@ -1463,7 +1463,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.11';
+const APP_VERSION='2.12';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2689,7 +2689,7 @@ async function joinGame(){
     LS.playerId='p_'+Date.now();
     G.players[LS.playerId]={name,teamIdx:-1,isHost:false,uid:_authUser?_authUser.uid:null};
   }
-  await pushState();saveL();showScreen('screenWaiting');startPoll();
+  await pushState();saveL();showPreGame();startPoll();
   if(_authUser) _writeUserGame(_authUser.uid,code,'player',LS.playerId,LS.myTeamIdx);
   if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
 }
@@ -2792,7 +2792,12 @@ window.addEventListener('offline',()=>{_connLost=true;_updateConnBanner();});
 // POLL_SLOW/POLL_FAST hoisted
 
 function needsFastPoll(){
-  if(!G.started) return false;
+  if(!G.started){
+    // Lobby phase: poll fast so new joiners and team assignments appear
+    // quickly on every phone (15s made joins look broken).
+    return !!(document.getElementById('screenLobby')?.classList.contains('active')
+      ||document.getElementById('screenWaiting')?.classList.contains('active'));
+  }
   // Pending vote waiting for my input
   if(G.flopClaims){
     for(const claim of Object.values(G.flopClaims)){
