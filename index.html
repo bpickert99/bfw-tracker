@@ -667,6 +667,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <h3>Teams</h3>
       <div id="lobbyTeamList"></div>
     </div>
+    <div onclick="_dbgTap()" style="text-align:center;font-size:10px;color:var(--faint);padding:10px 0 20px;font-family:var(--font-mono);" id="lobbyVersion"></div>
   </div>
 </div>
 
@@ -717,6 +718,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <div id="preLeaveGame" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);text-align:center;">
         <span onclick="leaveGame()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Leave Game</span>
       </div>
+      <div onclick="_dbgTap()" style="text-align:center;font-size:10px;color:var(--faint);padding:10px 0;font-family:var(--font-mono);" id="waitingVersion"></div>
     </div>
     <!-- Rules panel -->
     <div id="prePanel-rules" style="display:none;padding:14px 16px 20px;">
@@ -1463,8 +1465,40 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.13';
-(function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
+const APP_VERSION='2.14';
+
+// ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
+// Ring buffer of app events + errors, persisted to localStorage.
+// Open by tapping the version number 5 times. Copy button included.
+let _dbg=[];
+try{_dbg=JSON.parse(localStorage.getItem('tt_dbg')||'[]');}catch(e){}
+function _dbgLog(tag,msg){
+  const t=new Date(),p=n=>String(n).padStart(2,'0');
+  _dbg.push(p(t.getHours())+':'+p(t.getMinutes())+':'+p(t.getSeconds())+' ['+tag+'] '+msg);
+  if(_dbg.length>80)_dbg=_dbg.slice(-80);
+  try{localStorage.setItem('tt_dbg',JSON.stringify(_dbg));}catch(e){}
+}
+window.addEventListener('error',e=>_dbgLog('ERR',(e.message||'?')+' @ '+(e.filename||'').split('/').pop()+':'+e.lineno));
+window.addEventListener('unhandledrejection',e=>_dbgLog('REJ',String(e.reason&&e.reason.message||e.reason).slice(0,200)));
+_dbgLog('BOOT','v'+APP_VERSION+' ua:'+navigator.userAgent.slice(0,60));
+function _showDbg(){
+  let ov=document.getElementById('dbgOverlay');
+  if(ov){ov.remove();return;}
+  ov=document.createElement('div');ov.id='dbgOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.92);color:#9fe8b8;font-family:monospace;font-size:10px;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;';
+  const info='v'+APP_VERSION+' | game:'+(LS&&LS.gameCode||'-')+' | pid:'+(LS&&LS.playerId||'-')+' | host:'+(LS&&LS.isHost)+' | team:'+(LS&&LS.myTeamIdx)+'\nplayers:'+(typeof G!=='undefined'&&G.players?Object.keys(G.players).length+' ['+Object.values(G.players).map(p=>p.name+':'+p.teamIdx).join(', ')+']':'-')+'\n————————————\n';
+  ov.textContent=info+_dbg.slice().reverse().join('\n');
+  const btns=document.createElement('div');btns.style.cssText='position:sticky;bottom:0;display:flex;gap:8px;margin-top:12px;';
+  const cp=document.createElement('button');cp.textContent='Copy';cp.style.cssText='padding:8px 16px;background:#1A6DD4;color:#fff;border:none;border-radius:6px;';
+  cp.onclick=()=>{navigator.clipboard.writeText(ov.textContent).then(()=>cp.textContent='Copied!');};
+  const cl=document.createElement('button');cl.textContent='Close';cl.style.cssText='padding:8px 16px;background:#333;color:#fff;border:none;border-radius:6px;';
+  cl.onclick=()=>ov.remove();
+  btns.appendChild(cp);btns.appendChild(cl);ov.appendChild(btns);
+  document.body.appendChild(ov);
+}
+let _dbgTaps=0,_dbgTapT=0;
+function _dbgTap(){const n=Date.now();if(n-_dbgTapT>2500)_dbgTaps=0;_dbgTapT=n;if(++_dbgTaps>=5){_dbgTaps=0;_showDbg();}}
+(function(){['joinVersion','homeVersion','lobbyVersion','waitingVersion'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='v'+APP_VERSION;el.onclick=_dbgTap;}});})();
 
 // GPS updated by watchPosition
 let _freshLat=null,_freshLng=null;
@@ -2664,8 +2698,10 @@ async function joinGame(){
   if(!name){showToast('Enter your name.','warn');return;}
   if(code.length!==5){showToast('Enter the 5-character game code.','warn');return;}
   LS.fbUrl=FB_URL;LS.gameCode=code;LS.playerName=name;LS.isHost=false;LS.mode='player';
+  _dbgLog('JOIN','attempt code='+code+' name='+name);
   const state=await fetchState(FB_URL,code);
-  if(!state){showToast('Game not found. Check the code and try again.','error');return;}
+  if(!state){_dbgLog('JOIN','fetchState null — game not found / fetch failed');showToast('Game not found. Check the code and try again.','error');return;}
+  _dbgLog('JOIN','state ok, players='+Object.keys(state.players||{}).length+' started='+!!state.started);
   G={...state};if(!G.gpsLocs)G.gpsLocs={};if(!G.claimedTasks)G.claimedTasks={};if(!G.detours)G.detours={};
 
   // Check if rejoining as host (same name as host) or existing player
@@ -2684,6 +2720,7 @@ async function joinGame(){
     // Restore existing session — record already on the server, nothing to write
     LS.playerId=existing[0];
     LS.myTeamIdx=existing[1].teamIdx;
+    _dbgLog('JOIN','existing player pid='+LS.playerId+' teamIdx='+LS.myTeamIdx);
     showNotif(`Welcome back, ${name}!`);
   } else {
     LS.playerId='p_'+Date.now();
@@ -2697,12 +2734,15 @@ async function joinGame(){
       try{
         const r=await fetch(`${FB_URL}/games/${code}/players/${LS.playerId}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
         joined=r.ok;
-      }catch(e){}
+        _dbgLog('JOIN','player PUT attempt '+(attempt+1)+' status='+r.status);
+      }catch(e){_dbgLog('JOIN','player PUT attempt '+(attempt+1)+' threw: '+e.message);}
       if(!joined)await new Promise(res=>setTimeout(res,800*(attempt+1)));
     }
     if(!joined){showToast('Could not join — check your connection and try again.','error',5000);return;}
     // Bump _ts so other phones' polls pick up the roster change immediately
-    try{await fetch(`${FB_URL}/games/${code}/_ts.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Date.now())});}catch(e){}
+    try{const tr=await fetch(`${FB_URL}/games/${code}/_ts.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Date.now())});_dbgLog('JOIN','_ts bump status='+tr.status);}catch(e){_dbgLog('JOIN','_ts bump threw: '+e.message);}
+    // Read-back verification: confirm our record is actually on the server
+    try{const vr=await fetch(`${FB_URL}/games/${code}/players/${LS.playerId}.json`);const vd=await vr.json();_dbgLog('JOIN','read-back: '+(vd&&vd.name?('OK name='+vd.name):'MISSING'));}catch(e){_dbgLog('JOIN','read-back threw: '+e.message);}
   }
   saveL();showPreGame();startPoll();
   if(_authUser) _writeUserGame(_authUser.uid,code,'player',LS.playerId,LS.myTeamIdx);
@@ -2712,7 +2752,7 @@ async function joinGame(){
 // FIREBASE
 async function pushState(){
   if(!LS.gameCode)return false;
-  try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});return r.ok;}catch(e){return false;}
+  try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});if(!r.ok)_dbgLog('PUSH','full PUT failed status='+r.status);return r.ok;}catch(e){_dbgLog('PUSH','full PUT threw: '+e.message);return false;}
 }
 // Firebase strips empty objects/arrays and nulls from stored JSON. Restore
 // every collection the app iterates so fetched state never crashes consumers
@@ -2867,7 +2907,10 @@ async function poll(){
     if(_connLost){_connLost=false;_updateConnBanner();}
     if(!d||d._ts===lastTs)return;lastTs=d._ts;
     const prevStarted=G.started,prevLogLen=G.log?G.log.length:0,prevChatLen=G.chat?G.chat.length:0;
+    const prevPlayerCount=G.players?Object.keys(G.players).length:0;
     const{_ts,...rest}=d;G=_hydrateG({...rest});
+    const newPlayerCount=G.players?Object.keys(G.players).length:0;
+    if(newPlayerCount!==prevPlayerCount)_dbgLog('POLL','players '+prevPlayerCount+'→'+newPlayerCount+' ['+Object.values(G.players).map(p=>p.name+':'+p.teamIdx).join(', ')+']');
     // Check team assignment
     if(LS.mode==='player'&&G.players[LS.playerId]){
       const ti=G.players[LS.playerId].teamIdx;
@@ -2960,6 +3003,7 @@ async function poll(){
     updateUI();
   }catch(e){
     console.error('poll() failed:',e);
+    _dbgLog('POLL','failed: '+(e.message||e).toString().slice(0,150));
     _pollFailCount++;
     _connLost=true;_updateConnBanner();
     if(_pollFailCount>=3)showNotif('No connection — retrying…',5000);
@@ -3132,6 +3176,7 @@ async function startGame(){
   // edits that landed after our last poll (start does a full-state PUT).
   const fresh=await fetchState(FB_URL,LS.gameCode);
   if(fresh){const{_ts,...rest}=fresh;Object.assign(G,rest);}
+  _dbgLog('START','starting, players='+(G.players?Object.keys(G.players).length:0)+' fresh='+!!fresh);
   G.started=true;
   // Give each team their starting coins
   const startCoins=(G.config&&G.config.startCoins!=null)?G.config.startCoins:10;
@@ -3742,6 +3787,7 @@ function renderStatus(){
   let vf=document.getElementById('statusVersion');
   if(!vf){vf=document.createElement('div');vf.id='statusVersion';vf.style.cssText='text-align:center;font-size:10px;color:var(--muted);margin-top:16px;font-family:var(--font-mono);';g.parentElement.appendChild(vf);}
   vf.textContent='v'+APP_VERSION;
+  vf.onclick=_dbgTap;
 }
 let locTI=null;
 function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.getElementById('locMoTitle').textContent=`Update — ${G.teams[i]?.name}`;const sel=document.getElementById('locZSel');sel.innerHTML=getZones().map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');const cur=G.locs&&G.locs[i];if(cur){sel.value=cur.zone;document.getElementById('locNotes').value=cur.notes||'';}else document.getElementById('locNotes').value='';document.getElementById('locMo').classList.add('open');}
