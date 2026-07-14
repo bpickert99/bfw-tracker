@@ -713,6 +713,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
           <button class="btn btn-sm" style="flex:1;background:#fff0f0;border:1px solid #fecaca;color:var(--accent);" onclick="cancelGame()">✕ Cancel Game</button>
         </div>
       </div>
+      <!-- Leave game (non-host only) -->
+      <div id="preLeaveGame" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);text-align:center;">
+        <span onclick="leaveGame()" style="font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;">Leave Game</span>
+      </div>
     </div>
     <!-- Rules panel -->
     <div id="prePanel-rules" style="display:none;padding:14px 16px 20px;">
@@ -1459,7 +1463,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.08';
+const APP_VERSION='2.09';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2819,7 +2823,10 @@ async function poll(){
   if(_depQueue.length&&navigator.onLine)await flushDepQueue();
   try{
     const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`);if(!r.ok)return;
-    const d=await r.json();if(!d||d._ts===lastTs)return;lastTs=d._ts;
+    const d=await r.json();
+    _pollFailCount=0;
+    if(_connLost){_connLost=false;_updateConnBanner();}
+    if(!d||d._ts===lastTs)return;lastTs=d._ts;
     const prevStarted=G.started,prevLogLen=G.log?G.log.length:0,prevChatLen=G.chat?G.chat.length:0;
     const{_ts,...rest}=d;G={...rest};if(!G.gpsLocs)G.gpsLocs={};
     // Check team assignment
@@ -2907,21 +2914,12 @@ async function poll(){
       const gr=await fetch(`${FB_URL}/gpsLocs/${LS.gameCode}.json`);
       if(gr.ok){const gd=await gr.json();G.gpsLocs=gd||{};}
     }catch(e){}
-    if(LS.isHost&&document.getElementById('screenWaiting').classList.contains('active')){
-      Object.keys(G.players||{}).forEach(pid=>{
-        const p=G.players[pid];
-        if(p&&!p.isHost&&(p.teamIdx===undefined||p.teamIdx<0)){
-          _checkLateJoiner(pid);
-        }
-      });
-    }
-    _pollFailCount=0;
-    if(_connLost){_connLost=false;_updateConnBanner();}
     // Re-apply any deposits still queued (failed to flush) for optimistic display
     if(_depQueue.length)_depQueue.forEach(d=>_applyDeposit(G,d));
     saveGameState();
     updateUI();
   }catch(e){
+    console.error('poll() failed:',e);
     _pollFailCount++;
     _connLost=true;_updateConnBanner();
     if(_pollFailCount>=3)showNotif('No connection — retrying…',5000);
@@ -3124,6 +3122,8 @@ function showPreGame(){
   // Show host controls for host only
   const hc = document.getElementById('preHostControls');
   if(hc) hc.style.display = LS.isHost ? 'block' : 'none';
+  const lg = document.getElementById('preLeaveGame');
+  if(lg) lg.style.display = LS.isHost ? 'none' : 'block';
 
   _updatePreGameTeamCard();
   _renderPreGameRules();
@@ -3309,6 +3309,14 @@ async function cancelGame(){
   showScreen('screenHome');
 }
 
+async function leaveGame(){
+  if(!confirm('Leave this game? You can rejoin later with the game code if you want to come back.'))return;
+  if(!LS.isHost&&LS.gameCode&&LS.playerId){
+    try{await fetch(`${FB_URL}/games/${LS.gameCode}/players/${LS.playerId}.json`,{method:'DELETE'});}catch(e){}
+  }
+  if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
+  clearSession();
+}
 
 function copyStatusCode(){
   if(LS.gameCode){navigator.clipboard.writeText(LS.gameCode).then(()=>showNotif('Game code copied!')).catch(()=>{const tmp=document.createElement('input');tmp.value=LS.gameCode;document.body.appendChild(tmp);tmp.select();document.execCommand('copy');document.body.removeChild(tmp);showNotif('Game code copied!');});}
