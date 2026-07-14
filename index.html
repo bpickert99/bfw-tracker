@@ -168,8 +168,18 @@ header{background:var(--header-bg);border-bottom:1px solid var(--border);padding
 /* PANELS */
 .panel{display:none;padding:20px;}
 .panel.active{display:block;}
-#panel-scores,#panel-zones,#panel-status,#panel-flop,#panel-shop{padding:20px 0;}
-#panel-scores .stitle,#panel-zones .zone-region-header,#panel-status .stitle,#panel-shop .stitle,#panel-flop .stitle{padding:0 20px;}
+#panel-zones,#panel-status,#panel-flop,#panel-shop{padding:20px 0;}
+#panel-zones .zone-region-header,#panel-status .stitle,#panel-shop .stitle,#panel-flop .stitle{padding:0 20px;}
+.flop-list{display:flex;flex-direction:column;gap:10px;padding:0 20px;}
+.flop-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;position:relative;box-shadow:0 1px 2px rgba(16,24,40,.04);}
+.flop-card.claimable{cursor:pointer;transition:transform .1s ease,box-shadow .1s ease;}
+.flop-card.claimable:active{transform:scale(.99);}
+.flop-card.won{opacity:.6;}
+.flop-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;}
+.flop-coins-pill{display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1px solid #fde68a;border-radius:999px;padding:2px 10px 2px 8px;font-family:var(--font-led);font-weight:400;font-size:15px;color:#b7791f;}
+.flop-text{font-size:14px;font-weight:600;line-height:1.45;color:var(--text);}
+.flop-foot{font-size:11px;margin-top:9px;color:var(--faint);display:flex;align-items:center;gap:6px;}
+.flop-badge{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:999px;}
 #panelWrap{position:fixed;left:0;right:0;bottom:0;top:var(--app-top,88px);overflow-y:auto;overflow-x:hidden;overflow-anchor:none;}
 #panel-map{display:none;padding:0;}
 #panel-map.active{display:block;position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;}
@@ -613,15 +623,15 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <div style="align-self:end;font-size:11px;color:var(--muted);padding-bottom:10px;">Points for largest area held (momentum in final 2hr). 0 disables.</div>
       </div>
       <div class="setup-toggle">
-        <label>Auto-refresh after inactivity</label>
+        <label>Replace <b>whole board</b> when idle<div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px;">Swaps all 4 challenges at once after a stretch of no activity</div></label>
         <input type="checkbox" id="cfgFlopRefresh" onchange="toggleFlopFields()" style="width:auto;margin:0;transform:scale(1.3);">
       </div>
       <div id="flopRefreshFields" style="display:none;margin-top:8px;">
-        <span class="setup-label">Refresh after (minutes)</span>
+        <span class="setup-label">Board idle time (minutes)</span>
         <input type="number" id="cfgFlopMins" value="45" min="5" max="240" style="max-width:120px;">
       </div>
       <div class="setup-toggle">
-        <label>Auto-replace unclaimed items (1 hr)</label>
+        <label>Rotate <b>stale challenges</b> hourly<div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px;">Swaps out any single challenge left unclaimed for 1 hr</div></label>
         <input type="checkbox" id="cfgFlopItemExpiry" style="width:auto;margin:0;transform:scale(1.3);">
       </div>
       <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
@@ -748,20 +758,22 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
   <header>
     <div class="logo">Transit <span>Tournament</span></div>
     <div class="hright">
+      <div id="topCoinBadge" style="display:none;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-chip);padding:3px 10px;">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px"><circle cx="8" cy="8" r="7" fill="var(--gold)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".65"/></svg>
+        <span id="topCoinCount" style="font-family:var(--font-led);font-weight:400;font-size:16px;color:var(--gold);">0</span>
+      </div>
       <div id="myTeamBadge" class="myteam-badge" style="display:none;"></div>
       <div class="gpill" id="gspill">Lobby</div>
       <div class="clock" id="gclock">--:--</div>
     </div>
   </header>
   <div class="tabs">
-    <div class="tab" onclick="switchTab('rules')">Rules</div>
-    <div class="tab" onclick="switchTab('scores')">Scores</div>
+    <div class="tab active" onclick="switchTab('status')">Status</div>
     <div class="tab" onclick="switchTab('map')">Map</div>
     <div class="tab" onclick="switchTab('zones')">Zones</div>
     <div class="tab" onclick="switchTab('flop')">The Flop</div>
     <div class="tab" onclick="switchTab('shop')">The Shop</div>
-    <div class="tab" onclick="switchTab('log')">Chat</div>
-    <div class="tab active" onclick="switchTab('status')">Status</div>
+    <div class="tab" onclick="switchTab('rules')">Rules</div>
   </div>
 
   <div id="panelWrap">
@@ -781,20 +793,18 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </div>
     </div>
     <div id="myTeamHero" style="display:none;"></div>
-    <div class="stitle">Team Locations</div>
+    <div class="stitle">Standings</div>
     <div class="sg" id="sg"></div>
     <p style="font-size:11px;color:var(--muted);padding:0 20px;" id="locHint"></p>
+    <div class="stitle">Bonus Points</div>
+    <div class="card" style="margin:0 20px;padding:0;overflow:hidden;">
+      <table class="btbl"><thead><tr><th>Bonus</th><th>Worth</th><th>Leader</th><th>Detail</th></tr></thead><tbody id="btbd"></tbody></table>
+    </div>
+    <div class="stitle">Activity Log</div>
+    <div id="activityLog" style="margin:0 20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 12px;max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
     <div id="endGameSection" style="display:none;margin-top:16px;padding:14px 20px 0;border-top:1px solid var(--border);">
       <button class="btn btn-g btn-sm" style="width:100%;margin-bottom:6px;" onclick="hostAwardCoins()">Award Coins to Team</button>
       <button class="btn btn-sm" style="background:#fff0f0;border:1px solid #fecaca;color:var(--accent);width:100%;" onclick="confirmEndGame()">End Game</button>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-scores">
-    <div class="scg" id="scg"></div>
-    <div class="stitle">Bonus Points</div>
-    <div class="card" style="padding:0;overflow:hidden;">
-      <table class="btbl"><thead><tr><th>Bonus</th><th>Worth</th><th>Leader</th><th>Terminals</th></tr></thead><tbody id="btbd"></tbody></table>
     </div>
   </div>
 
@@ -820,19 +830,14 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
   <!-- FLOP PANEL -->
   <div class="panel" id="panel-flop">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 20px;">
-      <div>
-        <div class="stitle" style="margin:0">The Flop</div>
-        <div id="flopTimer" style="font-size:11px;color:var(--green);font-family:var(--font-led);margin-top:4px;background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;display:inline-block;"></div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Your coins</div>
-        <div id="myCoinBadge" style="font-family:var(--font-led);font-weight:400;font-size:28px;color:var(--gold);">0</div>
-      </div>
+    <div style="padding:0 20px;margin-bottom:14px;">
+      <div class="stitle" style="margin:0 0 3px;padding:0;">The Flop</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.45;">Photograph a challenge with your team and submit it for a vote to earn coins.</div>
+      <div id="flopTimer" style="font-size:11px;color:var(--green);font-family:var(--font-led);margin-top:8px;background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;display:inline-block;"></div>
+      <span id="myCoinBadge" style="display:none;"></span>
     </div>
-
-    <div id="landmarkContainer"></div>
-    <div id="flopGrid" style="display:flex;flex-direction:column;"></div>
+    <div style="padding:0 20px;"><div id="landmarkContainer"></div></div>
+    <div id="flopGrid" class="flop-list"></div>
   </div>
 
   <!-- VOTE MODAL (full screen) -->
@@ -1050,16 +1055,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     </div>
   </div>
 
-  <div class="panel" id="panel-log">
-    <!-- UNIFIED CHAT+LOG STREAM -->
-    <div id="chatMessages" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:10px;height:calc(100vh - 220px);min-height:300px;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:6px;">
-      <div class="empty" style="padding:16px 0">No messages yet</div>
-    </div>
-    <div style="display:flex;gap:6px;">
-      <input type="text" id="chatInput" placeholder="Message everyone…" maxlength="200" style="margin:0;flex:1;" onkeydown="if(event.key==='Enter')sendChat()"><input type="file" id="imgUpload" accept="image/*" style="display:none" onchange="handleImageUpload(this)"><button class="btn btn-g btn-sm" onclick="document.getElementById('imgUpload').click()" title="Send image">📷</button>
-      <button class="btn btn-p btn-sm" onclick="sendChat()">Send</button>
-    </div>
-  </div>
 
   <!-- RULES PANEL -->
   <div class="panel" id="panel-rules" style="padding-top:10px;padding-bottom:20px;"><div style="padding:0 20px 8px;"><input id="rulesSearch" type="search" oninput="filterRules()" placeholder="Search rules…" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);"></div><div id="rulesContent"></div></div>
@@ -1396,7 +1391,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.18';
+const APP_VERSION='2.19';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -1437,14 +1432,13 @@ const POLL_SLOW = 15000;
 const POLL_FAST = 4000;
 let _currentPollInterval=POLL_SLOW;
 let _lunchShowing=false;
-const TABS=['rules','scores','map','zones','flop','shop','log','status'];
+const TABS=['status','map','zones','flop','shop','rules'];
 const SHOP_ITEMS_DATA=[
   {name:'Spy',cost:'3 coins',type:'instant',needsTarget:true,desc:'Instantly reveals the target team coin total to you',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><circle cx="9" cy="9" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M13.5 13.5L18 18" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>'},
   {name:'Locate',cost:'3 coins',type:'locate',needsTarget:true,desc:'Track target team GPS for 30 minutes',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><circle cx="10" cy="14" r="3" fill="var(--accent)"/><path d="M4 6a8 8 0 0112 0" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M6.5 9a5 5 0 017 0" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>',dur:30},
-  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen metro line for 1 hour',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="8" width="16" height="7" rx="2" fill="var(--accent)"/><circle cx="6" cy="15" r="2" fill="var(--text)"/><circle cx="14" cy="15" r="2" fill="var(--text)"/><path d="M4 8l2-4h8l2 4" fill="var(--accent)" opacity=".6"/></svg>',dur:60,needsLine:true},
-  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a destination and photo-verify before depositing',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="3" y="4" width="14" height="10" rx="3" fill="var(--accent)"/><circle cx="7" cy="14" r="1.5" fill="var(--text)"/><circle cx="13" cy="14" r="1.5" fill="var(--text)"/><rect x="6" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/><rect x="11" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/></svg>'},
-  {name:'Transit Cost',cost:'10 coins',type:'timed',needsTarget:true,desc:'Target loses 3 coins on every deposit into a zone served by the chosen line (14 coins if target leads in zones)',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="5" width="16" height="10" rx="2" fill="var(--gold)"/><path d="M7 5v10" stroke="white" stroke-width="1" stroke-dasharray="2 2"/></svg>',dur:120,needsLine:true,dynamicCost:true},
-  {name:'Line Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team can deposit into zones served by the chosen line for 2 hours',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="4" y="9" width="12" height="8" rx="2" fill="var(--red)"/><path d="M7 9V6a3 3 0 016 0v3" fill="none" stroke="var(--red)" stroke-width="2"/></svg>',dur:120,needsLine:true},
+  {name:'Interstate Travellers',cost:'6 coins',type:'timed',needsTarget:true,desc:'Target cannot deposit in zones on a chosen transit line for 1 hour',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="2" y="8" width="16" height="7" rx="2" fill="var(--accent)"/><circle cx="6" cy="15" r="2" fill="var(--text)"/><circle cx="14" cy="15" r="2" fill="var(--text)"/><path d="M4 8l2-4h8l2 4" fill="var(--accent)" opacity=".6"/></svg>',dur:60,needsLine:true},
+  {name:'Forced Detour',cost:'6 coins',type:'detour',needsTarget:true,desc:'Target must reach a landmark in their current zone and photo-verify before depositing',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="3" y="4" width="14" height="10" rx="3" fill="var(--accent)"/><circle cx="7" cy="14" r="1.5" fill="var(--text)"/><circle cx="13" cy="14" r="1.5" fill="var(--text)"/><rect x="6" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/><rect x="11" y="7" width="3" height="3" rx="1" fill="white" opacity=".6"/></svg>'},
+  {name:'Zone Lockdown',cost:'10 coins',type:'timed',needsTarget:false,desc:'No team (including yours) can deposit into a chosen zone for 45 minutes',icon:'<svg viewBox="0 0 20 20" style="width:20px;height:20px"><rect x="4" y="9" width="12" height="8" rx="2" fill="var(--red)"/><path d="M7 9V6a3 3 0 016 0v3" fill="none" stroke="var(--red)" stroke-width="2"/></svg>',dur:45,needsZone:true},
 ];
 
 
@@ -1860,34 +1854,41 @@ function renderFlop(){
     }
   }
   if(!G.flop||!G.flop.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">No challenges loaded yet</div>';return;}
+  const coinIcon='<svg viewBox="0 0 16 16" style="width:14px;height:14px"><circle cx="8" cy="8" r="7" fill="var(--gold)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".65"/></svg>';
   const flopHtml=[];
   (G.flop||[]).forEach(function(item){
     const claim=G.flopClaims&&G.flopClaims[item.id];
     const isClaimed=claim&&claim.status==='pending';
     const isWon=claim&&claim.status==='won';
-    const coinColor=item.coins===1?'var(--accent)':item.coins===2?'var(--gold)':'var(--navy)';
     const canClaim=G.started&&LS.myTeamIdx>=0&&!isClaimed&&!isWon;
-    const border=isWon?'var(--green)':isClaimed?'var(--gold)':'var(--border)';
     const safeId=item.id.replace(/['"]/g,'');
-    const accentBorder=isWon?'var(--green)':isClaimed?'var(--gold)':'var(--accent)';
-    let html='<div ';
-    if(canClaim){html+='data-id="'+safeId+'" onclick="openClaimMo(this.dataset.id)" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'var(--surface)\'" ';}
-    html+='style="background:var(--surface);border-bottom:1px solid var(--border);border-left:4px solid '+accentBorder+';padding:14px 20px;cursor:'+(canClaim?'pointer':'default')+';opacity:'+(isWon?'0.65':'1')+';color:var(--text);">';
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-    html+='<div style="font-size:20px">'+'<svg viewBox="0 0 16 16" style="width:14px;height:14px;vertical-align:middle"><circle cx="8" cy="8" r="7" fill="var(--gold)" opacity=".8"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".6"/></svg>'.repeat(item.coins)+'</div>';
-    html+='<div style="font-family:var(--font-led);font-size:16px;color:var(--gold);">'+item.coins+'</div>';
-    html+='</div>';
-    html+='<div style="font-size:12px;font-weight:600;line-height:1.5;color:var(--text)">'+esc(item.text)+'</div>';
-    if(isWon)html+='<div style="font-size:10px;color:var(--green);margin-top:6px;font-weight:700">CLAIMED</div>';
-    else if(isClaimed){
-      const age=Date.now()-claim.submittedAt;
-      const remain=Math.max(0,getVoteTimeoutMs()-age);
+    let statusBadge='',foot='';
+    if(isWon){
+      const winner=claim&&G.teams[claim.teamIdx];
+      statusBadge='<span class="flop-badge" style="background:#dcfce7;color:#16a34a;">Claimed</span>';
+      foot='<span style="color:var(--green);font-weight:700;">'+(winner?esc(winner.name)+' claimed this':'Claimed')+'</span>';
+    } else if(isClaimed){
+      const remain=Math.max(0,getVoteTimeoutMs()-(Date.now()-claim.submittedAt));
       const rm=Math.floor(remain/60000),rs=Math.floor((remain%60000)/1000);
-      html+='<div style="font-size:13px;color:var(--muted);margin-top:6px;font-weight:500">Voting… auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</div>';
+      statusBadge='<span class="flop-badge" style="background:#fef3c7;color:#b7791f;">Voting</span>';
+      foot='<span style="color:#b7791f;font-weight:600;">Vote in progress · auto-accepts in '+rm+':'+String(rs).padStart(2,'0')+'</span>';
+    } else if(canClaim){
+      foot='<span>Tap to claim &rarr;</span>';
+    } else {
+      foot='<span>Sign in to a team to claim</span>';
     }
-    else if(canClaim)html+='<div style="font-size:10px;color:var(--faint);margin-top:6px">Tap to claim →</div>';
-    html+='</div>';
-    flopHtml.push(html);
+    let attrs='class="flop-card'+(canClaim?' claimable':'')+(isWon?' won':'')+'"';
+    if(canClaim)attrs+=' data-id="'+safeId+'" onclick="openClaimMo(this.dataset.id)"';
+    flopHtml.push(
+      '<div '+attrs+'>'
+      +'<div class="flop-card-top">'
+        +'<span class="flop-coins-pill">'+coinIcon+item.coins+'</span>'
+        +statusBadge
+      +'</div>'
+      +'<div class="flop-text">'+esc(item.text)+'</div>'
+      +'<div class="flop-foot">'+foot+'</div>'
+      +'</div>'
+    );
   });
   grid.innerHTML=flopHtml.join('');
 }
@@ -2232,6 +2233,13 @@ function getTransitLines(){
   }
   return {};
 }
+// Transit-line helpers for the line-based curse (dropdown + exact matching)
+function _availableLines(){
+  const raw=(G.config&&G.config.map&&G.config.map.transitLines)||{};
+  return Object.keys(raw).map(id=>({id,name:(raw[id]&&raw[id].name)||id.charAt(0).toUpperCase()+id.slice(1)}));
+}
+function _lineLabel(id){const raw=(G.config&&G.config.map&&G.config.map.transitLines)||{};return (raw[id]&&raw[id].name)||String(id).charAt(0).toUpperCase()+String(id).slice(1);}
+function _lineMatchesZone(id,zone){return (zone.lines||[]).some(l=>String(l).toLowerCase()===String(id).toLowerCase());}
 function getLineBonuses(){return(G.config&&G.config.map&&G.config.map.lineBonuses)?G.config.map.lineBonuses:[];}
 function getTransitMode(){return(G.config&&G.config.map&&G.config.map.transitMode)||'transit';}
 function getMinDistFromTransit(){const m=getTransitMode();if(m==='walking'||m==='bike')return 0;return 30;}
@@ -3156,6 +3164,14 @@ async function startGame(){
   // edits that landed after our last poll (start does a full-state PUT).
   const fresh=await fetchState(FB_URL,LS.gameCode);
   if(fresh){const{_ts,...rest}=fresh;Object.assign(G,rest);}
+  // Hard gate: every non-host player must be on a team (re-checked against
+  // fresh state, so a late joiner who isn't assigned still blocks the start)
+  const unassigned=Object.values(G.players||{}).filter(p=>!p.isHost&&(p.teamIdx==null||p.teamIdx<0));
+  if(unassigned.length){
+    _updateStartBtn();renderLobby();
+    showToast('Assign every player to a team first — still waiting on: '+unassigned.map(p=>p.name).join(', '),'warn',6000);
+    return;
+  }
   _dbgLog('START','starting, players='+(G.players?Object.keys(G.players).length:0)+' fresh='+!!fresh);
   G.started=true;
   // Give each team their starting coins
@@ -3423,6 +3439,12 @@ function updateMyTeamBadge(){
   if(cb)cb.textContent=coins;
   const sb=document.getElementById('shopCoinBadge');
   if(sb)sb.textContent=coins;
+  // Persistent coin count in the top bar (players only; hosts have no team)
+  const tcb=document.getElementById('topCoinBadge'),tcc=document.getElementById('topCoinCount');
+  if(tcb&&tcc){
+    if(LS.myTeamIdx>=0&&!LS.isHost&&G.started){tcb.style.display='flex';tcc.textContent=coins;}
+    else tcb.style.display='none';
+  }
   updateDepositHint();
   const b=document.getElementById('myTeamBadge');
   if(!b)return;
@@ -3653,6 +3675,25 @@ function recenterMap(){
   }
 }
 
+// One-time Spy position ping: drops a fading marker at a team's last known
+// GPS fix and jumps the map to it.
+let _spyMarker=null;
+function _dropSpyPing(teamIdx){
+  const gps=G.gpsLocs&&Object.values(G.gpsLocs).find(g=>g.teamIdx===teamIdx&&g.lat);
+  if(!gps){showToast('No recent GPS position for that team.','warn');return;}
+  switchTab('map');
+  setTimeout(()=>{
+    if(!bfwMap)return;
+    if(_spyMarker){_spyMarker.remove();_spyMarker=null;}
+    const t=G.teams[teamIdx],age=gps.t?Math.round((Date.now()-gps.t)/60000):null;
+    const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:'+(t?t.color:'#333')+';border:3px solid #fff;box-shadow:0 0 0 3px rgba(0,0,0,.25);"></div>',iconSize:[22,22],iconAnchor:[11,11]});
+    _spyMarker=L.marker([gps.lat,gps.lng],{icon,zIndexOffset:4000,interactive:false}).addTo(bfwMap);
+    _spyMarker.bindTooltip((t?esc(t.name):'Target')+(age!=null?(' · '+(age<1?'just now':age+'m ago')):''),{permanent:true,direction:'top',className:'zt'}).openTooltip();
+    bfwMap.setView([gps.lat,gps.lng],15);
+    setTimeout(()=>{if(_spyMarker){_spyMarker.remove();_spyMarker=null;}},60000);
+  },350);
+}
+
 // GPS
 let gpsIv=null, gpsWatchId=null, _gpsHighAccuracy=false;
 
@@ -3768,6 +3809,9 @@ function renderStatus(){
   if(!vf){vf=document.createElement('div');vf.id='statusVersion';vf.style.cssText='text-align:center;font-size:10px;color:var(--muted);margin-top:16px;font-family:var(--font-mono);';g.parentElement.appendChild(vf);}
   vf.textContent='v'+APP_VERSION;
   vf.onclick=_dbgTap;
+  // Status tab now hosts the bonus table + activity log
+  renderScores();
+  renderChat();
 }
 let locTI=null;
 function openLocMo(i){if(!LS.isHost&&LS.myTeamIdx!==i)return;locTI=i;document.getElementById('locMoTitle').textContent=`Update — ${G.teams[i]?.name}`;const sel=document.getElementById('locZSel');sel.innerHTML=getZones().map(z=>`<option value="${z.code}">${z.code} — ${z.name}</option>`).join('');const cur=G.locs&&G.locs[i];if(cur){sel.value=cur.zone;document.getElementById('locNotes').value=cur.notes||'';}else document.getElementById('locNotes').value='';document.getElementById('locMo').classList.add('open');}
@@ -3831,10 +3875,10 @@ function computeScores(){
   _scoreCache=sc;_scoreCacheTs=now;
   return sc;
 }
+// Populates the Bonus Points table (now inside the Status tab). The per-team
+// standings are rendered by renderStatus into #sg.
 function renderScores(){
-  const sc=computeScores(),tot=sc.map(s=>s.zones+s.bonuses),rk=[...tot.map((t,i)=>({t,i}))].sort((a,b)=>b.t-a.t),ro={};rk.forEach((r,p)=>ro[r.i]=p+1);
-  const g=document.getElementById('scg');if(!g)return;g.innerHTML='';
-  G.teams.forEach((team,i)=>{const s=sc[i],card=document.createElement('div');card.className='tscc';card.style.borderLeft='4px solid '+team.color;card.innerHTML=`<div class="route-badge" style="background:${team.color}">${esc(team.name[0])}</div><div class="tsn2">${esc(team.name)}</div><div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:auto;"><div class="bsc">${tot[i]}</div><div class="brkd">${s.zones}z + ${s.bonuses}b</div></div><div class="tsrk">#${ro[i]}</div>`;g.appendChild(card);});
+  const sc=computeScores();
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
   // Momentum bonus display
   const abPts=(G.config&&G.config.areaBonus!=null)?G.config.areaBonus:1;
@@ -4139,7 +4183,7 @@ function getDepositBlockReason(){
   const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
   if(itCurse){
     const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-    return 'Interstate Travellers active! You cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.';
+    return 'Interstate Travellers active! You cannot deposit on the '+_lineLabel(itCurse.notes)+' line for '+rem+' more minute'+(rem===1?'':'s')+'.';
   }
   return null; // no block
 }
@@ -4324,18 +4368,18 @@ async function submitDep(){
     isEmergencyDep=true;
   } else if(amount>myCoins){showToast('Not enough coins! You have '+myCoins+' coins.','error');closeDep();_depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;}
 
-  // Check Interstate Travellers (blocks a metro line)
+  // Check Interstate Travellers (blocks a chosen transit line — exact id match)
   const itCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Interstate Travellers'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
-  if(itCurse&&z.lines.some(l=>itCurse.notes.toLowerCase().includes(l))){
+  if(itCurse&&_lineMatchesZone(itCurse.notes,z)){
     const rem=Math.ceil((itCurse.expiresAt-Date.now())/60000);
-    showToast('Interstate Travellers — you cannot deposit on the '+itCurse.notes+' line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
+    showToast('Interstate Travellers — you cannot deposit on the '+_lineLabel(itCurse.notes)+' line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
     _depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;
   }
-  // Check Line Lockdown
-  const lockCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Line Lockdown'&&c.expiresAt&&c.expiresAt>Date.now());
-  if(lockCurse&&z.lines.some(l=>lockCurse.notes.toLowerCase().includes(l))){
+  // Check Zone Lockdown (blocks a specific zone for everyone)
+  const lockCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Zone Lockdown'&&c.expiresAt&&c.expiresAt>Date.now()&&c.notes===curZone);
+  if(lockCurse){
     const rem=Math.ceil((lockCurse.expiresAt-Date.now())/60000);
-    showToast('🔒 Line Lockdown active — no deposits on that line for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
+    showToast('🔒 Zone Lockdown active — no deposits in this zone for '+rem+' more minute'+(rem===1?'':'s')+'.','error',5000);
     _depSubmitting=false;if(depBtn){depBtn.disabled=false;depBtn.textContent='Deposit Coins';}return;
   }
 
@@ -4354,15 +4398,7 @@ async function submitDep(){
   G.zones[curZone][teamIdx]=(parseInt(G.zones[curZone][teamIdx])||0)+amount;
   const tot=G.zones[curZone][teamIdx];
   const leader=getL(G.zones[curZone]);
-
-  // Apply Transit Cost penalty
-  const tcCurse=G.curses&&G.curses.find(c=>c.active&&c.item==='Transit Cost'&&c.target===teamIdx&&c.expiresAt&&c.expiresAt>Date.now());
-  let penalty=0;
-  if(tcCurse&&z.lines.some(l=>tcCurse.notes.toLowerCase().includes(l))){
-    penalty=3;
-    G.coins[teamIdx]=Math.max(0,(G.coins[teamIdx]||0)-penalty);
-    logEv('💸 <b>'+esc(G.teams[teamIdx]?.name)+'</b> lost '+penalty+' coins from Transit Cost penalty in '+z.code);
-  }
+  const penalty=0;
 
   if(!G.locs)G.locs={};
   G.locs[teamIdx]={zone:curZone,notes:'',time:Date.now()};
@@ -4433,29 +4469,26 @@ function openPurchaseMo(idx){
   cRow.style.display='none'; // everyone purchases for their own team
   const nRow=document.getElementById('purchaseNotesRow');
   const nInput=document.getElementById('purchaseNotes');
-  nInput.value='';
+  nInput.value='';nInput.style.display='none';
   const wRow=document.getElementById('purchaseWagerRow');
   if(wRow)wRow.style.display='none';
-  if(item.needsRegion){
-    nRow.style.display='block';
-    document.getElementById('purchaseNotesLabel').textContent='Which region to block?';
-    nInput.placeholder='';
-    // Replace text input with select for region
-    const existingSel=document.getElementById('purchaseRegionSel');
-    if(!existingSel){
-      const sel=document.createElement('select');sel.id='purchaseRegionSel';sel.style.marginTop='4px';
-      ['VA — Virginia','DC — District of Columbia','MD — Maryland'].forEach(r=>{
-        const o=document.createElement('option');o.value=r.split(' ')[0];o.textContent=r;sel.appendChild(o);
-      });
-      nInput.parentNode.insertBefore(sel,nInput);nInput.style.display='none';
-    } else {existingSel.style.display='block';nInput.style.display='none';}
+  // Single dynamic dropdown reused for region / line / zone choices, so the
+  // stored value is always a real id — never free text that fails to match.
+  let sel=document.getElementById('purchaseChoiceSel');
+  if(!sel){sel=document.createElement('select');sel.id='purchaseChoiceSel';sel.style.marginTop='4px';nInput.parentNode.insertBefore(sel,nInput);}
+  sel.style.display='none';sel.innerHTML='';
+  let opts=null,label='';
+  if(item.needsRegion){label='Which region to block?';opts=[['VA','VA — Virginia'],['DC','DC — District of Columbia'],['MD','MD — Maryland']];}
+  else if(item.needsLine){label='Which transit line?';opts=_availableLines().map(l=>[l.id,l.name]);}
+  else if(item.needsZone){label='Which zone to lock?';opts=getZones().map(z=>[z.code,z.code+' — '+z.name]);}
+  if(opts){
+    nRow.style.display='block';document.getElementById('purchaseNotesLabel').textContent=label;
+    sel.style.display='block';
+    if(!opts.length){sel.innerHTML='<option value="">(none available on this map)</option>';}
+    else opts.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o);});
   } else {
-    const existingSel=document.getElementById('purchaseRegionSel');
-    if(existingSel)existingSel.style.display='none';
-    nInput.style.display='block';
+    nRow.style.display='none';
   }
-  if(item.needsLine){nRow.style.display='block';document.getElementById('purchaseNotesLabel').textContent='Which metro line?';nInput.placeholder='Red, Blue, Orange, Green, Yellow, or Silver';}
-  else{nRow.style.display='none';}
   document.getElementById('purchaseMo').classList.add('open');
 }
 
@@ -4468,22 +4501,16 @@ async function confirmPurchase(){
   const caster=LS.myTeamIdx;
   let target=null;
   if(item.needsTarget){const tv=document.getElementById('purchaseTarget').value;target=tv!==''?parseInt(tv):null;if(target===null){showToast('Please select a target team.','warn');return;}}
-  const regionSel=document.getElementById('purchaseRegionSel');
-  const notes=item.needsRegion&&regionSel&&regionSel.style.display!=='none'?regionSel.value:document.getElementById('purchaseNotes').value.trim();
-  if(item.needsLine&&!notes){showToast('Please specify the metro line.','warn');return;}
+  const choiceSel=document.getElementById('purchaseChoiceSel');
+  const notes=(item.needsRegion||item.needsLine||item.needsZone)&&choiceSel?choiceSel.value:'';
+  if(item.needsLine&&!notes){showToast('This map has no transit lines to target.','warn');return;}
+  if(item.needsZone&&!notes){showToast('Please choose a zone to lock.','warn');return;}
   if(item.needsRegion&&!notes){showToast('Please choose a region.','warn');return;}
 
   // Check and deduct coins BEFORE creating curse
   const shopCfg3 = G.config&&G.config.map&&G.config.map.shopConfig;
   const shopEntry2 = shopCfg3 ? shopCfg3.find(s=>s.id===item.name) : null;
   let coinCost = shopEntry2 ? (shopEntry2.cost||parseInt(item.cost)||0) : parseInt(item.cost)||0;
-  // Transit Cost anti-kingmaking: 14 coins if target leads in zone count
-  if(item.dynamicCost&&target!==null){
-    const sc=computeScores();
-    const targetZones=sc[target]?.zones||0;
-    const isLeader=sc.every((s,i)=>i===target||s.zones<=targetZones)&&targetZones>0;
-    if(isLeader)coinCost=14;
-  }
   if(coinCost>0){
     if(!G.coins)G.coins={};
     const cur=G.coins[caster]||0;
@@ -4493,32 +4520,26 @@ async function confirmPurchase(){
 
   let curseNotes=notes;
   if(item.type==='detour'&&target!==null){
-    // DC: use nearby metro station. Custom map: use nearby landmark or zone.
+    // Send the target to a landmark inside the zone they're currently in.
     const tGps=G.gpsLocs&&Object.values(G.gpsLocs).find(g=>g.teamIdx===target);
-    let destName;
-    if(!isCustomMap()){
-      let pool=METRO_STATIONS;
-      if(tGps&&tGps.lat){
-        const nearby=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=2400);
-        if(nearby.length>0)pool=nearby;
-        else{const mid=METRO_STATIONS.filter(s=>haversineM(tGps.lat,tGps.lng,s.lat,s.lng)<=4000);if(mid.length>0)pool=mid;}
-      }
-      const s=pool[Math.floor(Math.random()*pool.length)];
-      destName=s.name;
-    } else {
-      const lmPool=getLandmarkPool();
-      if(lmPool.length){
-        let pool=lmPool;
-        if(tGps&&tGps.lat){
-          const nearby=lmPool.filter(lm=>haversineM(tGps.lat,tGps.lng,lm.lat,lm.lng)<=2400);
-          if(nearby.length>0)pool=nearby;
-        }
-        destName=pool[Math.floor(Math.random()*pool.length)].name;
-      } else {
-        const zones=getZones();
-        destName=(zones[Math.floor(Math.random()*zones.length)]?.name||'a nearby zone')+' area';
-      }
+    const tLoc=G.locs&&G.locs[target];
+    // Resolve the target's current zone: live GPS first, else last check-in
+    let curZoneObj=null;
+    if(tGps&&tGps.lat){curZoneObj=getZones().find(z=>z.poly&&pointInPoly(tGps.lat,tGps.lng,z.poly))||null;}
+    if(!curZoneObj&&tLoc&&tLoc.zone){curZoneObj=getZones().find(z=>z.code===tLoc.zone)||null;}
+    const lmPool=getLandmarkPool();
+    let destName=null;
+    if(curZoneObj&&lmPool.length){
+      // Landmarks whose point falls inside the target's zone
+      const inZone=lmPool.filter(lm=>lm.lat&&lm.lng&&curZoneObj.poly&&pointInPoly(lm.lat,lm.lng,curZoneObj.poly));
+      if(inZone.length)destName=inZone[Math.floor(Math.random()*inZone.length)].name+' (in '+curZoneObj.code+' '+curZoneObj.name+')';
     }
+    // Fallbacks: nearest landmark to the target, then the zone itself
+    if(!destName&&lmPool.length&&tGps&&tGps.lat){
+      const nearest=lmPool.slice().sort((a,b)=>haversineM(tGps.lat,tGps.lng,a.lat,a.lng)-haversineM(tGps.lat,tGps.lng,b.lat,b.lng))[0];
+      if(nearest)destName='nearest landmark: '+nearest.name;
+    }
+    if(!destName)destName=curZoneObj?('a landmark in '+curZoneObj.code+' '+curZoneObj.name):'a landmark in your current zone';
     curseNotes='Go to: '+destName;
     if(!G.detours)G.detours={};
     G.detours[target]={active:true,station:destName,assignedAt:now};
@@ -4530,24 +4551,29 @@ async function confirmPurchase(){
   const cn=G.teams[caster]?.name||'?',tn=target!==null?G.teams[target]?.name:null;
   logEv('🛒 <b>'+esc(cn)+'</b> used <b>'+esc(item.name)+'</b>'+(tn?' on <b>'+esc(tn)+'</b>':'')+(curseNotes?' — '+esc(curseNotes):''),true);
 
-  // Handle Spy instantly — show a dismissable result dialog, not a
-  // vanishing toast, so the buyer actually sees what they paid for
+  // Handle Spy instantly — reveal coin total AND drop a one-time position
+  // ping on the map, in a dismissable dialog
   if(item.name==='Spy'&&target!==null){
     const targetCoins=(G.coins&&G.coins[target])||0;
     const tName=G.teams[target]?.name||'?';
     const tColor=G.teams[target]?.color||'var(--accent)';
+    const gps=G.gpsLocs&&Object.values(G.gpsLocs).find(g=>g.teamIdx===target&&g.lat);
+    const age=gps&&gps.t?Math.round((Date.now()-gps.t)/60000):null;
     logEv('🔍 <b>'+esc(cn)+'</b> used Spy — <b>'+esc(tName)+'</b> has <b>'+targetCoins+' coins</b>',true);
     setTimeout(()=>{
       const ov=document.createElement('div');
       ov.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px;';
+      const posLine=gps?('Last seen '+(age==null?'recently':age<1?'just now':age+' min ago')):'No recent GPS position available';
       ov.innerHTML='<div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;">'
         +'<div style="font-size:36px;margin-bottom:10px;">🔍</div>'
         +'<div style="font-weight:800;font-size:17px;margin-bottom:14px;">Spy Report</div>'
         +'<div style="font-size:14px;color:var(--muted);margin-bottom:4px;">Team <b style="color:'+tColor+'">'+esc(tName)+'</b> currently has</div>'
-        +'<div style="font-family:var(--font-led);font-size:44px;color:var(--gold);margin-bottom:16px;">'+targetCoins+' <span style="font-size:18px;">coins</span></div>'
-        +'<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Tip: the <b>Locate</b> item tracks a team’s live GPS position on the map for 30 minutes.</div>'
-        +'<button class="btn btn-p" style="width:100%;">Got it</button></div>';
-      ov.querySelector('button').onclick=()=>ov.remove();
+        +'<div style="font-family:var(--font-led);font-size:44px;color:var(--gold);margin-bottom:8px;">'+targetCoins+' <span style="font-size:18px;">coins</span></div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">'+posLine+'</div>'
+        +(gps?'<button id="spyMapBtn" class="btn btn-p" style="width:100%;margin-bottom:8px;">📍 Show on map</button>':'')
+        +'<button id="spyCloseBtn" class="btn btn-g" style="width:100%;">Close</button></div>';
+      ov.querySelector('#spyCloseBtn').onclick=()=>ov.remove();
+      const mb=ov.querySelector('#spyMapBtn');if(mb)mb.onclick=()=>{ov.remove();_dropSpyPing(target);};
       document.body.appendChild(ov);
     },350);
   }
@@ -4585,10 +4611,9 @@ async function hostAwardCoins(){
 const CURSE_DESCRIPTIONS={
   'Spy':'Your coin total has been revealed to the purchasing team.',
   'Locate':'Your GPS is being tracked for 30 minutes. You cannot hide!',
-  'Interstate Travellers':'You cannot deposit coins on the blocked metro line for the next hour!',
-  'Forced Detour':'You MUST travel to the specified destination and submit a photo before you can deposit coins.',
-  'Transit Cost':'You will lose 3 coins on every deposit into a zone served by the chosen line for 2 hours!',
-  'Line Lockdown':'No team can deposit into zones served by the chosen line for 2 hours.',
+  'Interstate Travellers':'You cannot deposit coins on the blocked transit line for the next hour!',
+  'Forced Detour':'You MUST travel to a landmark in your current zone and submit a photo before you can deposit coins.',
+  'Zone Lockdown':'A zone is locked — no team can deposit into it for 45 minutes.',
 };
 
 function showCurseAlert(item,casterName,targetName,type,notes){
@@ -4818,6 +4843,7 @@ async function shareRecap(){
 // ── CHAT ─────────────────────────────────────────────────────────────────────
 async function sendChat(imgData){
   const input=document.getElementById('chatInput');
+  if(!input)return; // in-game chat removed
   const text=input.value.trim();
   if(!text&&!imgData)return;
   if(!G.chat)G.chat=[];
@@ -4849,22 +4875,18 @@ function logEv(text,push=true){
   if(G.chat.length>500)G.chat.shift();
   if(push)renderChat();
 }
+// Read-only event feed for the Status tab (chat messaging removed; only the
+// system event log remains). Newest first.
 function renderChat(){
-  const el=document.getElementById('chatMessages');if(!el)return;
-  if(!G.chat||!G.chat.length){el.innerHTML='<div class="empty" style="padding:16px 0">No messages yet</div>';return;}
-  el.innerHTML=G.chat.map(m=>{
-    if(m.type==='system'){
-      return '<div style="display:flex;justify-content:center;margin:2px 0;"><div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);text-align:center;max-width:90%;"><span style="font-family:var(--font-mono);font-size:10px;margin-right:4px;">'+m.time+'</span>'+m.text+'</div></div>';
-    }
-    const isMe=m.playerName===LS.playerName&&m.teamIdx===LS.myTeamIdx;
-    const hasImg=m.img;
-    return '<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+';margin:2px 0;">'+
-      '<div style="font-size:10px;color:var(--muted);margin-bottom:2px;'+(isMe?'text-align:right':'')+'"><b style="color:'+(m.teamColor||'var(--muted)')+'">'+esc(m.teamName||'')+'</b> · '+esc(m.playerName||'')+' · '+m.time+'</div>'+
-      '<div style="background:'+(isMe?'var(--accent)':'var(--surface2)')+';color:'+(isMe?'white':'var(--text)')+';padding:'+(hasImg?'6px':'7px 11px')+';border-radius:'+(isMe?'12px 12px 3px 12px':'12px 12px 12px 3px')+';font-size:13px;max-width:85%;word-break:break-word;">'+
-      (hasImg?'<img src="'+m.img+'" style="max-width:220px;max-height:180px;border-radius:20px;display:block;" onerror="this.style.display=\'none\'">':esc(m.text||''))+
-      '</div></div>';
-  }).join('');
-  el.scrollTop=el.scrollHeight;
+  const el=document.getElementById('activityLog');if(!el)return;
+  const events=(G.chat||[]).filter(m=>m.type==='system');
+  if(!events.length){el.innerHTML='<div class="empty" style="padding:12px 0;font-size:12px;">No activity yet</div>';return;}
+  el.innerHTML=events.slice().reverse().map(m=>
+    '<div style="display:flex;gap:8px;font-size:12px;line-height:1.5;color:var(--text);">'
+    +'<span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);flex-shrink:0;padding-top:1px;">'+m.time+'</span>'
+    +'<span style="min-width:0;">'+m.text+'</span></div>'
+  ).join('');
+  el.scrollTop=0;
 }
 
 
@@ -5003,12 +5025,11 @@ function renderRules(){
   addTableCard(
     ['Item','Cost','Effect'],
     [
-      ['Spy','3 coins','Instantly reveals the target team\'s current coin total'],
-      ['Locate','3 coins','Tracks target team GPS on the map for 30 minutes'],
-      ['Interstate Travellers','6 coins','Target cannot deposit in zones on a chosen metro line for 1 hour'],
-      ['Forced Detour','6 coins',isCustomMap()?'Target must reach a specific landmark and photo-verify before depositing':'Target must reach a specific metro stop and photo-verify before depositing'],
-      ['Transit Cost','10–14 coins','Target loses 3 coins on every deposit into zones on a chosen line for 2 hours (14 coins if target leads in zones)'],
-      ['Line Lockdown','10','No team can deposit into zones on a chosen line for 2 hours'],
+      ['Spy','3 coins','Reveals the target team\'s coin total and drops a one-time position ping on the map'],
+      ['Locate','3 coins','Tracks target team GPS live on the map for 30 minutes'],
+      ['Interstate Travellers','6 coins','Target cannot deposit in zones on a chosen transit line for 1 hour'],
+      ['Forced Detour','6 coins','Target must reach a landmark in their current zone and photo-verify before depositing'],
+      ['Zone Lockdown','10 coins','No team (including the buyer) can deposit into a chosen zone for 45 minutes'],
     ]
   );
 }
@@ -5034,21 +5055,18 @@ function switchTab(name){
     },100);
   }
   if(name==='status')renderStatus();
-  if(name==='scores')renderScores();
   if(name==='zones')renderZones();
   if(name==='rules')renderRules();
   if(name==='flop'){initFlop().then(()=>renderFlop());}
   if(name==='shop'){renderShopItems();renderCurses();}
-  if(name==='log'){renderChat();}
 }
 
 function updateUI(){
   updateClock();updateMyTeamBadge();
   const at=document.querySelector('.tab.active');
   if(at){const tn=TABS[Array.from(document.querySelectorAll('.tab')).indexOf(at)];
-    if(tn==='status')renderStatus();else if(tn==='scores')renderScores();else if(tn==='map')renderMapColors();
+    if(tn==='status')renderStatus();else if(tn==='map')renderMapColors();
     else if(tn==='zones')renderZones();else if(tn==='flop')renderFlop();else if(tn==='shop')renderCurses();
-    else if(tn==='log')renderChat();
   }
   if(document.getElementById('screenLobby').classList.contains('active'))renderLobby();
   if(document.getElementById('screenWaiting').classList.contains('active')&&G.started){
@@ -6795,10 +6813,9 @@ async function publishMap(){
 const MB_SHOP_DEFAULTS = [
   {id:'Spy',        label:'🔍 Spy',              defaultCost:3,  alwaysShow:true,  desc:'Reveals target team coin total'},
   {id:'Locate',     label:'📡 Locate',           defaultCost:3,  alwaysShow:true,  desc:'Track target team GPS for 30 min'},
-  {id:'Forced Detour', label:'Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a nearby landmark'},
-  {id:'Interstate Travellers',label:'🚗 Line Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing on a metro line'},
-  {id:'Transit Cost',label:'🎫 Transit Cost',    defaultCost:10, alwaysShow:false, desc:'Target loses coins on deposits near a line'},
-  {id:'Line Lockdown',label:'🔒 Line Lockdown',  defaultCost:10, alwaysShow:false, desc:'No deposits on a transit line for 2 hours'},
+  {id:'Forced Detour', label:'Forced Detour', defaultCost:6,  alwaysShow:true,  desc:'Send target to a landmark in their current zone'},
+  {id:'Interstate Travellers',label:'🚗 Line Block',defaultCost:6,alwaysShow:false,desc:'Block target from depositing on a transit line'},
+  {id:'Zone Lockdown',label:'🔒 Zone Lockdown',  defaultCost:10, alwaysShow:true, desc:'No deposits in a chosen zone for 45 minutes'},
 ];
 
 function _mbGetCleanShopConfig(){
@@ -6832,12 +6849,8 @@ function _renderMbShopConfig(){
     const entry = _mbShopConfig.find(s=>s.id===def.id);
     if(!entry) return;
 
-    // Hide line-based items if map has no lines
-    const needsLine = def.id==='Transit Cost'||def.id==='Line Lockdown';
-    if(needsLine && !hasLines) return;
-
-    // Hide DC-region item for all maps (deprecated for custom maps)
-    if(def.id==='Interstate Travellers') return;
+    // Hide the line-block item if the map has no transit lines
+    if(def.id==='Interstate Travellers' && !hasLines) return;
 
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);';
