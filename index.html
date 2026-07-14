@@ -1463,7 +1463,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.10';
+const APP_VERSION='2.11';
 (function(){const jv=document.getElementById('joinVersion');if(jv)jv.textContent='v'+APP_VERSION;const hv=document.getElementById('homeVersion');if(hv)hv.textContent='v'+APP_VERSION;})();
 
 // GPS updated by watchPosition
@@ -2699,8 +2699,27 @@ async function pushState(){
   if(!LS.gameCode)return false;
   try{const{gpsLocs:_gps,...stateToWrite}=G;const r=await fetch(`${FB_URL}/games/${LS.gameCode}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...stateToWrite,_ts:Date.now()})});return r.ok;}catch(e){return false;}
 }
+// Firebase strips empty objects/arrays and nulls from stored JSON. Restore
+// every collection the app iterates so fetched state never crashes consumers
+// (e.g. a zone saved with lines:[] comes back with no lines key at all).
+function _hydrateG(g){
+  if(!g)return g;
+  g.teams=g.teams||[];g.players=g.players||{};g.zones=g.zones||{};g.curses=g.curses||[];
+  g.locs=g.locs||{};g.gpsLocs=g.gpsLocs||{};g.log=g.log||[];g.chat=g.chat||[];
+  g.claimedTasks=g.claimedTasks||{};g.detours=g.detours||{};g.flop=g.flop||[];
+  g.flopClaims=g.flopClaims||{};g.coins=g.coins||{};g.emergencyDeps=g.emergencyDeps||{};
+  g.landmarkClaims=g.landmarkClaims||{};
+  if(g.config&&g.config.map){
+    const m=g.config.map;
+    m.zones=(m.zones||[]).map(z=>({...z,lines:z.lines||[],poly:z.poly||[]}));
+    m.landmarks=m.landmarks||[];
+    m.transitLines=m.transitLines||{};
+    Object.values(m.transitLines).forEach(ln=>{ln.stops=ln.stops||[];ln.zonesServed=ln.zonesServed||[];ln.stations=ln.stations||[];});
+  }
+  return g;
+}
 async function fetchState(fu,code){
-  try{const r=await fetch(`${FB_URL}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return rest;}catch(e){return null;}
+  try{const r=await fetch(`${FB_URL}/games/${code}.json`);if(!r.ok)return null;const d=await r.json();if(!d||!d.teams)return null;const{_ts,...rest}=d;return _hydrateG(rest);}catch(e){return null;}
 }
 // Push an explicit state object (used by the offline sync queue)
 async function pushStateObj(obj){
@@ -2828,7 +2847,7 @@ async function poll(){
     if(_connLost){_connLost=false;_updateConnBanner();}
     if(!d||d._ts===lastTs)return;lastTs=d._ts;
     const prevStarted=G.started,prevLogLen=G.log?G.log.length:0,prevChatLen=G.chat?G.chat.length:0;
-    const{_ts,...rest}=d;G={...rest};if(!G.gpsLocs)G.gpsLocs={};
+    const{_ts,...rest}=d;G=_hydrateG({...rest});
     // Check team assignment
     if(LS.mode==='player'&&G.players[LS.playerId]){
       const ti=G.players[LS.playerId].teamIdx;
@@ -3711,10 +3730,18 @@ function _parseTimeToMs(t){if(!t)return 0;const[h,m]=(t||'18:00').split(':');con
 
 function _getLineStreakBonuses(){
   const zones=getZones();
-  const lines=isCustomMap()&&G.config?.map?.lines?G.config.map.lines:Object.entries(MLINES).map(([id,v])=>({id,zonesServed:zones.filter(z=>z.lines.includes(id)).map(z=>z.code)}));
+  let lines;
+  if(isCustomMap()){
+    // Custom maps: prefer explicit lines config, else derive from transitLines.
+    // Never fall back to the DC MLINES ids — they don't exist on custom maps.
+    lines=G.config?.map?.lines
+      ||Object.entries(G.config?.map?.transitLines||{}).map(([id,ln])=>({id,name:ln.name,zonesServed:ln.zonesServed||[]}));
+  } else {
+    lines=Object.entries(MLINES).map(([id,v])=>({id,zonesServed:zones.filter(z=>(z.lines||[]).includes(id)).map(z=>z.code)}));
+  }
   const bonuses=[];
   lines.forEach(ln=>{
-    const served=ln.zonesServed||zones.filter(z=>z.lines.includes(ln.id)).map(z=>z.code);
+    const served=ln.zonesServed||zones.filter(z=>(z.lines||[]).includes(ln.id)).map(z=>z.code);
     if(served.length<3)return;
     for(let i=0;i<=served.length-3;i++){
       const trio=served.slice(i,i+3);
@@ -8135,8 +8162,7 @@ if(LS.gameCode&&LS.playerId){
       // Firebase unreachable on load (offline) — restore last-known board from cache
       const saved=loadGameState();
       if(saved&&saved.G&&saved.G.started&&!saved.G.ended){
-        G={...saved.G};if(!G.gpsLocs)G.gpsLocs={};if(!G.chat)G.chat=[];if(!G.flop)G.flop=[];
-        if(!G.coins)G.coins={};if(!G.detours)G.detours={};if(!G.flopClaims)G.flopClaims={};
+        G=_hydrateG({...saved.G});
         lastTs=saved.lastTs||0;
         _connLost=true;
         enterApp();startPoll();_updateConnBanner();
