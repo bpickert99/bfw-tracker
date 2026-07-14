@@ -949,7 +949,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 
 <!-- ZONE CHALLENGE OVERLAY -->
-<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:960;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);flex-direction:column;overflow-y:auto;color:var(--fg);text-align:center;padding:24px;">
+<div id="challengeOverlay" style="display:none;position:fixed;inset:0;z-index:980;background:linear-gradient(135deg,var(--bg) 0%,var(--surface2) 100%);flex-direction:column;overflow-y:auto;color:var(--fg);text-align:center;padding:24px;padding-top:calc(24px + env(safe-area-inset-top));">
   <div style="margin-bottom:8px;"><svg viewBox="0 0 40 40" style="width:40px;height:40px"><path d="M10 30l8-8m4-4l8-8M30 10l-8 8m-4 4l-8 8" stroke="var(--red)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="20" r="4" fill="var(--red)" opacity=".6"/></svg></div>
   <div id="challengeTitle" style="font-family:var(--font);font-weight:800;font-size:28px;letter-spacing:2px;margin-bottom:4px;">ZONE CHALLENGE</div>
   <div id="challengeSubtitle" style="font-size:13px;color:var(--muted);margin-bottom:16px;"></div>
@@ -1465,7 +1465,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.15';
+const APP_VERSION='2.16';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -1916,11 +1916,17 @@ function renderFlop(){
   if(!grid)return;
   const myCoins=(G.coins&&G.coins[LS.myTeamIdx])||0;
   if(coinBadge)coinBadge.textContent=myCoins;
-  if(timerEl&&G.lastFlopActivity&&G.config?.flopRefreshEnabled){
-    const remaining=Math.max(0,getFlopInactivityMs()-(Date.now()-G.lastFlopActivity));
-    const mins=Math.floor(remaining/60000),secs=Math.floor((remaining%60000)/1000);
-    if(remaining<5*60000){timerEl.innerHTML='<svg class="go-arc" viewBox="0 0 14 14"><path d="M7 1a6 6 0 110 12" fill="none" stroke="#00B66B" stroke-width="2" stroke-linecap="round"/><path d="M7 3.5a3.5 3.5 0 110 7" fill="none" stroke="#00B66B" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>'+mins+':'+String(secs).padStart(2,'0');timerEl.style.color='#00B66B';}
-    else{timerEl.textContent='REFRESH '+mins+'m';timerEl.style.color='rgba(255,255,255,.6)';}
+  if(timerEl){
+    if(G.lastFlopActivity&&G.config?.flopRefreshEnabled){
+      timerEl.style.display='inline-block';
+      const remaining=Math.max(0,getFlopInactivityMs()-(Date.now()-G.lastFlopActivity));
+      const mins=Math.floor(remaining/60000),secs=Math.floor((remaining%60000)/1000);
+      if(remaining<5*60000){timerEl.innerHTML='<svg class="go-arc" viewBox="0 0 14 14"><path d="M7 1a6 6 0 110 12" fill="none" stroke="#00B66B" stroke-width="2" stroke-linecap="round"/><path d="M7 3.5a3.5 3.5 0 110 7" fill="none" stroke="#00B66B" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>'+mins+':'+String(secs).padStart(2,'0');timerEl.style.color='#00B66B';}
+      else{timerEl.textContent='REFRESH '+mins+'m';timerEl.style.color='var(--muted)';}
+    } else {
+      // No refresh configured — hide the pill instead of showing an empty blob
+      timerEl.style.display='none';
+    }
   }
   if(!G.flop||!G.flop.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">No challenges loaded yet</div>';return;}
   const flopHtml=[];
@@ -4092,10 +4098,13 @@ function renderZones(){
       const card=document.createElement('div');card.className='zone-card'+(leader>=0?' controlled':'');
       if(leader>=0&&G.teams[leader]){card.style.background=G.teams[leader].color;}else{card.style.background='#4B5563';card.style.color='white';}
       card.onclick=()=>openZoneInfo(z.code);
-      const totalCoins=Object.values(deps).reduce((s,v)=>s+(parseInt(v)||0),0);
+      const leaderCoins=leader>=0?(parseInt(deps[leader])||0):0;
       const badgeLetter=leader>=0&&G.teams[leader]?G.teams[leader].name[0]:'?';
       const badgeBg=leader>=0?'rgba(0,0,0,.2)':'rgba(0,0,0,.1)';
-      card.innerHTML=`<div style="display:flex;align-items:center;gap:12px;"><div style="width:30px;height:30px;border-radius:var(--r-badge);background:${badgeBg};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;flex-shrink:0;">${esc(badgeLetter)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span class="zone-code">${z.code}</span><span class="zone-name-t">${z.name}</span></div></div><div style="text-align:right;"><div style="font-family:var(--font-led);font-weight:400;font-size:18px;color:white;">${totalCoins||'–'}</div><div style="font-size:10px;color:rgba(255,255,255,.6);">${z.area} mi²</div></div></div>`;
+      // Per-team breakdown so deposits never LOOK combined (each team's
+      // coins are stored separately; the big number is the leader's own)
+      const breakdown=G.teams.map((t,i)=>{const v=parseInt(deps[i])||0;return v>0?esc(t.name[0])+':'+v:null;}).filter(Boolean).join(' · ');
+      card.innerHTML=`<div style="display:flex;align-items:center;gap:12px;"><div style="width:30px;height:30px;border-radius:var(--r-badge);background:${badgeBg};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;flex-shrink:0;">${esc(badgeLetter)}</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span class="zone-code">${z.code}</span><span class="zone-name-t">${z.name}</span></div>${breakdown?`<div style="font-size:10px;color:rgba(255,255,255,.75);margin-top:2px;">${breakdown}</div>`:''}</div><div style="text-align:right;"><div style="font-family:var(--font-led);font-weight:400;font-size:18px;color:white;">${leader>=0?leaderCoins:'–'}</div><div style="font-size:10px;color:rgba(255,255,255,.6);">${z.area} mi²</div></div></div>`;
       grid.appendChild(card);
     });
     con.appendChild(grid);
@@ -4814,7 +4823,7 @@ function openPurchaseMo(idx){
   const cost=parseInt(item.cost)||0;
   if(coins<cost){showToast('Not enough coins — open the Flop tab to earn more.','error');return;}
   pendingPurchase={itemIdx:idx};
-  document.getElementById('purchaseTitle').textContent=item.icon+' '+item.name;
+  document.getElementById('purchaseTitle').innerHTML='<span style="display:inline-flex;align-items:center;gap:8px;vertical-align:middle;">'+item.icon+'<span>'+esc(item.name)+'</span></span>';
   document.getElementById('purchaseMeta').textContent=item.cost+' — '+item.desc;
   const tRow=document.getElementById('purchaseTargetRow');
   const tSel=document.getElementById('purchaseTarget');
@@ -4921,12 +4930,26 @@ async function confirmPurchase(){
   const cn=G.teams[caster]?.name||'?',tn=target!==null?G.teams[target]?.name:null;
   logEv('🛒 <b>'+esc(cn)+'</b> used <b>'+esc(item.name)+'</b>'+(tn?' on <b>'+esc(tn)+'</b>':'')+(curseNotes?' — '+esc(curseNotes):''),true);
 
-  // Handle Spy instantly
+  // Handle Spy instantly — show a dismissable result dialog, not a
+  // vanishing toast, so the buyer actually sees what they paid for
   if(item.name==='Spy'&&target!==null){
     const targetCoins=(G.coins&&G.coins[target])||0;
     const tName=G.teams[target]?.name||'?';
-    setTimeout(()=>showNotif('🔍 '+tName+' has '+targetCoins+' coins',5000),300);
+    const tColor=G.teams[target]?.color||'var(--accent)';
     logEv('🔍 <b>'+esc(cn)+'</b> used Spy — <b>'+esc(tName)+'</b> has <b>'+targetCoins+' coins</b>',true);
+    setTimeout(()=>{
+      const ov=document.createElement('div');
+      ov.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px;';
+      ov.innerHTML='<div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;">'
+        +'<div style="font-size:36px;margin-bottom:10px;">🔍</div>'
+        +'<div style="font-weight:800;font-size:17px;margin-bottom:14px;">Spy Report</div>'
+        +'<div style="font-size:14px;color:var(--muted);margin-bottom:4px;">Team <b style="color:'+tColor+'">'+esc(tName)+'</b> currently has</div>'
+        +'<div style="font-family:var(--font-led);font-size:44px;color:var(--gold);margin-bottom:16px;">'+targetCoins+' <span style="font-size:18px;">coins</span></div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Tip: the <b>Locate</b> item tracks a team’s live GPS position on the map for 30 minutes.</div>'
+        +'<button class="btn btn-p" style="width:100%;">Got it</button></div>';
+      ov.querySelector('button').onclick=()=>ov.remove();
+      document.body.appendChild(ov);
+    },350);
   }
 
   await pushState();
@@ -8238,6 +8261,10 @@ async function mbDoTransitImportSelected(){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadL();
 _updateConnBanner();
+// challengeOverlay must live at body level — inside #panelWrap the panel's
+// stacking context traps it beneath the sticky header/tabs (verified via
+// screenshot: title clipped under the tab bar)
+(function(){const ov=document.getElementById('challengeOverlay');if(ov&&ov.parentElement!==document.body)document.body.appendChild(ov);})();
 renderTeamSetup();
 if(LS.gameCode&&LS.playerId){
   fetchState(FB_URL,LS.gameCode).then(state=>{
