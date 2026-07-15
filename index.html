@@ -1398,7 +1398,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.20';
+const APP_VERSION='2.21';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -4087,9 +4087,38 @@ function initMap(){
     });
   }
 }
+// Returns the active Zone Lockdown curse on a zone code, or null.
+function _zoneLockdown(code){
+  return (G.curses||[]).find(c=>c.active&&c.item==='Zone Lockdown'&&c.notes===code&&c.expiresAt&&c.expiresAt>Date.now())||null;
+}
+let _lockMarkers={};
 function renderMapColors(){
   if(!mapReady)return;
-  getZones().forEach(z=>{const poly=zPolys[z.code];if(!poly)return;const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);if(l>=0&&l<G.teams.length){const c=G.teams[l].color;poly.setStyle({fillColor:c,fillOpacity:.25,color:c,weight:2,dashArray:null});}else poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});});
+  getZones().forEach(z=>{
+    const poly=zPolys[z.code];if(!poly)return;
+    const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);
+    const locked=!!_zoneLockdown(z.code);
+    if(locked){
+      // Locked zones read as frozen: red dashed outline over the owner tint
+      const c=(l>=0&&l<G.teams.length)?G.teams[l].color:'#94a3b8';
+      poly.setStyle({fillColor:c,fillOpacity:.18,color:'#dc2626',weight:3,dashArray:'6 5'});
+    } else if(l>=0&&l<G.teams.length){
+      poly.setStyle({fillColor:G.teams[l].color,fillOpacity:.25,color:G.teams[l].color,weight:2,dashArray:null});
+    } else {
+      poly.setStyle({fillColor:'#3b82f6',fillOpacity:.05,color:'#94a3b8',weight:1.5,dashArray:null});
+    }
+  });
+  // Lock badges at zone centroids (rebuilt each render)
+  Object.values(_lockMarkers).forEach(m=>{try{m.remove();}catch(e){}});
+  _lockMarkers={};
+  if(bfwMap)getZones().forEach(z=>{
+    const lock=_zoneLockdown(z.code);if(!lock||!z.poly||!z.poly.length)return;
+    const lats=z.poly.map(p=>p[0]),lngs=z.poly.map(p=>p[1]);
+    const clat=(Math.max(...lats)+Math.min(...lats))/2,clng=(Math.max(...lngs)+Math.min(...lngs))/2;
+    const mins=Math.ceil((lock.expiresAt-Date.now())/60000);
+    const icon=L.divIcon({className:'',html:'<div style="display:flex;align-items:center;gap:3px;background:#dc2626;color:#fff;border:2px solid #fff;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.35);white-space:nowrap;">🔒 '+mins+'m</div>',iconSize:[0,0],iconAnchor:[0,0]});
+    _lockMarkers[z.code]=L.marker([clat,clng],{icon,zIndexOffset:3500,interactive:false}).addTo(bfwMap);
+  });
   renderMZL();updateLocateMarkers();renderLandmarkMarker();updateUserLocation();
   const ml=document.getElementById('mapLegend');
   if(ml)ml.style.display=isCustomMap()?'none':'block';
@@ -4128,7 +4157,7 @@ function renderLandmarkMarker(){
 }
 function renderMZL(){
   const el=document.getElementById('mzlInner');if(!el)return;
-  el.innerHTML=getZones().map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span></div>`;}).join('');
+  el.innerHTML=getZones().map(z=>{const deps=G.zones&&G.zones[z.code]||{},l=getL(deps);const col=l>=0&&G.teams[l]?G.teams[l].color:'var(--muted)';const locked=!!_zoneLockdown(z.code);return `<div class="mzr" onclick="if(bfwMap&&zPolys['${z.code}'])bfwMap.fitBounds(zPolys['${z.code}'].getBounds(),{padding:[30,30]});${canDeposit()?`openDep('${z.code}');`:''}"><div class="mzd" style="background:${col}"></div><span class="mzc">${z.code}</span><span class="mznm">${z.name}</span>${locked?'<span title="Locked" style="margin-left:auto;font-size:11px;">🔒</span>':''}</div>`;}).join('');
 }
 
 // ZONES LIST
