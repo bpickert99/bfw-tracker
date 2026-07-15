@@ -820,6 +820,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
   <div class="panel" id="panel-zones">
     <div style="padding:0 20px 14px;">
+      <div id="zonesCoinBar" style="display:none;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--muted);font-weight:600;">Your coins to deposit</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 16 16" style="width:16px;height:16px"><circle cx="8" cy="8" r="7" fill="var(--gold)"/><circle cx="8" cy="8" r="4" fill="none" stroke="white" stroke-width="1.5" opacity=".65"/></svg>
+          <span id="zonesCoinCount" style="font-family:var(--font-led);font-weight:400;font-size:24px;color:var(--gold);">0</span>
+        </span>
+      </div>
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
     </div>
@@ -1057,7 +1064,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 
 
   <!-- RULES PANEL -->
-  <div class="panel" id="panel-rules" style="padding-top:10px;padding-bottom:20px;"><div style="padding:0 20px 8px;"><input id="rulesSearch" type="search" oninput="filterRules()" placeholder="Search rules…" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);"></div><div id="rulesContent"></div></div>
+  <div class="panel" id="panel-rules" style="padding-top:10px;padding-bottom:20px;"><div id="rulesContent"></div></div>
   </div><!--/panelWrap-->
 
 <!-- LOCATION MODAL -->
@@ -1391,7 +1398,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.19';
+const APP_VERSION='2.20';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -1810,24 +1817,29 @@ function renderLandmark(container){
   const coins=G.landmark.coins||_landmarkCoins(lm.lat,lm.lng);
   const coinStr=coins;
 
+  let pendCountdown='';
+  if(isPending&&pending.submittedAt){
+    const remain=Math.max(0,getVoteTimeoutMs()-(Date.now()-pending.submittedAt));
+    const rm=Math.floor(remain/60000),rs=Math.floor((remain%60000)/1000);
+    pendCountdown=rm+':'+String(rs).padStart(2,'0');
+  }
   container.innerHTML=`
-    <div style="background:var(--surface);border:2px solid var(--gold);border-radius:20px;padding:14px 16px;margin-bottom:16px;position:relative;overflow:hidden;">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--accent));"></div>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
-        <div>
-          <div style="font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">FEATURED LANDMARK</div>
-          <div style="font-family:var(--font);font-weight:800;font-size:20px;letter-spacing:1px;color:var(--text);line-height:1.1;">${esc(lm.name)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;">${esc(lm.hint)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-          <div style="font-family:var(--font);font-weight:800;font-size:28px;color:var(--gold);line-height:1;">${coins}</div>
-          <div style="font-size:13px;color:var(--muted);">coins</div>
-        </div>
+    <div style="background:var(--surface);border:1px solid #fde68a;border-left:4px solid var(--gold);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px"><path d="M8 1l2 4 4 .5-3 3 .8 4.5L8 11l-3.8 2 .8-4.5-3-3 4-.5z" fill="var(--gold)"/></svg>
+        <span style="font-size:11px;font-weight:700;color:#b7791f;letter-spacing:.06em;text-transform:uppercase;">Featured Landmark</span>
       </div>
-      ${isWon?`<div style="font-size:12px;font-weight:700;color:${claimerColor};padding:6px 10px;background:${claimerColor}22;border-radius:14px;margin-top:6px;">Claimed by ${esc(claimerName||'a team')}! New landmark incoming…</div>`:
-        isPending?`<div style="font-size:12px;color:var(--gold);padding:6px 10px;background:#fef9c322;border-radius:14px;margin-top:6px;border:1px solid var(--gold)44;">A team submitted a photo — vote in progress!</div>`:
-        canClaim?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;"><div style="font-size:11px;color:var(--muted);">${timerTxt}</div><button class="btn btn-p btn-sm" onclick="openLandmarkMo()">I'm Here!</button></div>`:
-        `<div style="font-size:11px;color:var(--muted);margin-top:6px;">${timerTxt}</div>`
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="min-width:0;">
+          <div style="font-weight:800;font-size:18px;color:var(--text);line-height:1.15;">${esc(lm.name)}</div>
+          ${lm.hint?`<div style="font-size:12px;color:var(--muted);margin-top:3px;">${esc(lm.hint)}</div>`:''}
+        </div>
+        <span class="flop-coins-pill" style="flex-shrink:0;font-size:16px;">${coins}<span style="font-size:11px;margin-left:2px;">coins</span></span>
+      </div>
+      ${isWon?`<div style="font-size:12px;font-weight:600;color:${claimerColor};padding:8px 10px;background:${claimerColor}18;border-radius:12px;margin-top:10px;">${esc(claimerName||'A team')} claimed this — new landmark incoming…</div>`:
+        isPending?`<div style="font-size:12px;color:#b7791f;padding:8px 10px;background:#fef3c7;border-radius:12px;margin-top:10px;font-weight:600;">Photo submitted — vote in progress${pendCountdown?` · auto-accepts in ${pendCountdown}`:''}</div>`:
+        canClaim?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;"><span style="font-size:11px;color:var(--muted);">${timerTxt}</span><button class="btn btn-p btn-sm" onclick="openLandmarkMo()">I'm Here!</button></div>`:
+        `<div style="font-size:11px;color:var(--muted);margin-top:10px;">${timerTxt}</div>`
       }
     </div>`;
 }
@@ -2481,6 +2493,23 @@ let pollIv=null,lastTs=0,mapReady=false,zPolys={},locMarkers={},bfwMap=null;
 const TEAM_NAMES=['Red','Blue','Green','Orange','Purple','Pink','Teal','Flame'];
 let setupTeams=[{name:'Red',color:PAL[0]},{name:'Blue',color:PAL[1]},{name:'Green',color:PAL[2]}];
 const _seenCurseIds=new Set(); // tracks curse IDs we've already alerted locally
+const _notifiedClaims=new Set(); // photo-claim keys we've already notified about
+// Notify (banner + push) when another team submits a photo needing my vote
+function _notifyNewClaims(){
+  if(!G.flopClaims||LS.myTeamIdx<0)return;
+  for(const [id,claim] of Object.entries(G.flopClaims)){
+    if(!claim||claim.status!=='pending')continue;
+    if(claim.teamIdx===LS.myTeamIdx)continue; // never notify the submitter
+    const key=id+'_'+(claim.submittedAt||0);
+    if(_notifiedClaims.has(key))continue;
+    _notifiedClaims.add(key);
+    if(claim.votes&&claim.votes[LS.myTeamIdx]!==undefined)continue; // already voted
+    const tn=G.teams[claim.teamIdx]?.name||'A team';
+    const what=claim.type==='landmark'?('the landmark '+(claim.landmarkName||'')):claim.type==='detour'?'their detour':'a Flop challenge';
+    showNotif('📸 '+tn+' submitted a photo — tap to vote');
+    sendPN('Vote needed',tn+' submitted a photo for '+what+'. Open the app to approve or reject.');
+  }
+}
 
 function saveL(){try{localStorage.setItem('bfw5L',JSON.stringify(LS));}catch(e){}}
 function loadL(){try{const d=localStorage.getItem('bfw5L');if(d)LS={...LS,...JSON.parse(d)};}catch(e){}}
@@ -2960,6 +2989,7 @@ async function poll(){
       renderChat();
       const lcp=document.getElementById('lunchChatPanel');if(lcp&&lcp.style.display==='flex')renderLunchChat();
     }
+    _notifyNewClaims();
     checkForPendingVotes();
     // Landmark auto-refresh: host checks 30-min timeout
     if(LS.isHost&&G.landmark&&!G.landmark.claimedBy){
@@ -3441,9 +3471,16 @@ function updateMyTeamBadge(){
   if(sb)sb.textContent=coins;
   // Persistent coin count in the top bar (players only; hosts have no team)
   const tcb=document.getElementById('topCoinBadge'),tcc=document.getElementById('topCoinCount');
+  const showCoins=LS.myTeamIdx>=0&&!LS.isHost&&G.started;
   if(tcb&&tcc){
-    if(LS.myTeamIdx>=0&&!LS.isHost&&G.started){tcb.style.display='flex';tcc.textContent=coins;}
+    if(showCoins){tcb.style.display='flex';tcc.textContent=coins;}
     else tcb.style.display='none';
+  }
+  // Prominent coins bar on the Zones tab (where deposits are made)
+  const zcb=document.getElementById('zonesCoinBar'),zcc=document.getElementById('zonesCoinCount');
+  if(zcb&&zcc){
+    if(showCoins){zcb.style.display='flex';zcc.textContent=coins;}
+    else zcb.style.display='none';
   }
   updateDepositHint();
   const b=document.getElementById('myTeamBadge');
@@ -4096,6 +4133,7 @@ function renderMZL(){
 
 // ZONES LIST
 function renderZones(){
+  updateMyTeamBadge(); // refresh the Zones-tab coin bar
   const con=document.getElementById('zoneContainer');if(!con)return;con.innerHTML='';
   const zones=getZones();
   // Group by region if zones have regions, else put all in one group
@@ -4891,24 +4929,6 @@ function renderChat(){
 
 
 // ── RULES (dynamic) ──────────────────────────────────────────────────────────
-// Filter rendered rule blocks by the search query (hides non-matching sections)
-function filterRules(){
-  const inp=document.getElementById('rulesSearch');
-  const el=document.getElementById('rulesContent');
-  if(!inp||!el)return;
-  const q=(inp.value||'').toLowerCase().trim();
-  let visible=0;
-  Array.from(el.children).forEach(ch=>{
-    const match=!q||(ch.textContent||'').toLowerCase().includes(q);
-    ch.style.display=match?'':'none';
-    if(match)visible++;
-  });
-  let empty=document.getElementById('rulesNoMatch');
-  if(q&&visible===0){
-    if(!empty){empty=document.createElement('div');empty.id='rulesNoMatch';empty.style.cssText='padding:16px 20px;color:var(--muted);font-size:13px;';el.appendChild(empty);}
-    empty.textContent='No rules match "'+inp.value+'".';empty.style.display='';
-  } else if(empty){empty.style.display='none';}
-}
 function renderRules(){
   const el=document.getElementById('rulesContent');
   if(!el)return;
