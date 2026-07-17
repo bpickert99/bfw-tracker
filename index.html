@@ -146,7 +146,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:10px 20px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:300;}
 .logo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-0.005em;color:var(--fg);}
 .logo span{color:var(--accent);}
-.hright{display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;}
+.hright{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+#topCoinBadge{flex-shrink:0;}
 .clock{font-family:var(--font-led);font-size:11px;color:var(--fg);letter-spacing:1.5px;font-variant-numeric:tabular-nums;}
 .clock.lunch{color:rgba(255,255,255,.7);}.clock.ended{color:rgba(255,255,255,.5);}
 .gpill{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:var(--r-chip);background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
@@ -764,7 +765,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       </div>
       <div id="myTeamBadge" class="myteam-badge" style="display:none;"></div>
       <div class="gpill" id="gspill">Lobby</div>
-      <div class="clock" id="gclock">--:--</div>
     </div>
   </header>
   <div class="tabs">
@@ -784,7 +784,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Game Code</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span id="statusGameCode" style="font-family:var(--font-led);font-weight:400;font-size:22px;letter-spacing:2px;color:var(--accent);">—</span>
-          <button class="btn btn-g btn-sm" style="padding:2px 8px;font-size:11px;" onclick="copyStatusCode()">Copy</button>
         </div>
       </div>
       <div style="text-align:right;">
@@ -795,7 +794,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
     <div id="myTeamHero" style="display:none;"></div>
     <div class="stitle">Standings</div>
     <div class="sg" id="sg"></div>
-    <p style="font-size:11px;color:var(--muted);padding:0 20px;" id="locHint"></p>
     <div class="stitle">Bonus Points</div>
     <div class="card" style="margin:0 20px;padding:0;overflow:hidden;">
       <table class="btbl"><thead><tr><th>Bonus</th><th>Worth</th><th>Leader</th><th>Detail</th></tr></thead><tbody id="btbd"></tbody></table>
@@ -830,7 +828,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
       <button class="btn btn-p" style="width:100%;font-size:16px;padding:14px;" onclick="openDepositFlow()">Deposit Coins</button>
       <div id="depositZoneHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
     </div>
-    <div class="stitle" style="margin-top:0">Zone Status</div>
     <div id="zoneContainer"></div>
   </div>
 
@@ -1398,7 +1395,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.22';
+const APP_VERSION='2.23';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -2084,12 +2081,9 @@ async function castVote(yes){
     } else if(claim.type==='landmark'){
       if(!G.coins)G.coins={};
       if(!G.landmarkClaims)G.landmarkClaims={};
-      const prevClaims=G.landmarkClaims[claim.teamIdx]||0;
-      const base=claim.coins||7;
-      const earned=Math.max(4,base-prevClaims);
-      G.landmarkClaims[claim.teamIdx]=prevClaims+1;
+      const earned=claim.coins||7;
       G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
-      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!'+(prevClaims>0?' (diminishing returns: -'+prevClaims+')':''));
+      logEv('🏆 <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b>!');
       pickNewLandmark(true);
     } else {
       if(!G.coins)G.coins={};
@@ -2173,10 +2167,7 @@ function checkVoteTimeouts(){
       } else if(claim.type==='landmark'){
         if(!G.coins)G.coins={};
         if(!G.landmarkClaims)G.landmarkClaims={};
-        const prevClaims2=G.landmarkClaims[claim.teamIdx]||0;
-        const base2=claim.coins||7;
-        const earned=Math.max(4,base2-prevClaims2);
-        G.landmarkClaims[claim.teamIdx]=prevClaims2+1;
+        const earned=claim.coins||7;
         G.coins[claim.teamIdx]=(G.coins[claim.teamIdx]||0)+earned;
         logEv('⏱️ <b>'+esc(tn)+'</b> earned <b>'+earned+' coin'+(earned>1?'s':'')+'</b> at <b>'+esc(claim.landmarkName||'a landmark')+'</b> — auto-accepted!');
         pickNewLandmark(true);
@@ -3436,7 +3427,6 @@ window.addEventListener('resize',_updateHeaderVar);
 
 function enterApp(){
   showScreen('screenApp');updateMyTeamBadge();
-  document.getElementById('locHint').textContent=LS.isHost?'Tap a team card to update their location.':'Tap your team card to report your location.';
   document.getElementById('shopForm').style.display='block'; // all players see shop
   document.getElementById('endGameSection').style.display=LS.isHost?'block':'none';
   renderAll();
@@ -3453,9 +3443,10 @@ function updateMyTeamBadge(){
   if(cb)cb.textContent=coins;
   const sb=document.getElementById('shopCoinBadge');
   if(sb)sb.textContent=coins;
-  // Persistent coin count in the top bar (players only; hosts have no team)
+  // Persistent coin count — shown whenever you're on a team (incl. a host
+  // who is also playing on a team), once the game is live
   const tcb=document.getElementById('topCoinBadge'),tcc=document.getElementById('topCoinCount');
-  const showCoins=LS.myTeamIdx>=0&&!LS.isHost&&G.started;
+  const showCoins=LS.myTeamIdx>=0&&G.started;
   if(tcb&&tcc){
     if(showCoins){tcb.style.display='flex';tcc.textContent=coins;}
     else tcb.style.display='none';
@@ -3577,8 +3568,7 @@ setInterval(()=>{checkLunchOverlay();if(_lunchShowing)updateLunchOverlay();},100
 
 function updateClock(){
   const now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),p=n=>String(n).padStart(2,'0');
-  const el=document.getElementById('gclock');if(!el)return;
-  el.textContent=`${p(h)}:${p(m)}:${p(s)}`;
+  const el=document.getElementById('gclock');if(el)el.textContent=`${p(h)}:${p(m)}:${p(s)}`;
   const cfg=G.config||{},pill=document.getElementById('gspill');if(!pill)return;
   const toM=t=>{if(!t)return 0;const[a,b]=t.split(':');return +a*60+ +b;};
   const n=h*60+m,gs=toM(cfg.start),ge=toM(cfg.end),ls=toM(cfg.lunchStart),le=toM(cfg.lunchEnd),sc=toM(cfg.score);
@@ -3589,7 +3579,7 @@ function updateClock(){
   else if(n>=le&&n<sc){pill.className='gpill live';pill.textContent='Live';}
   else if(n>=sc&&n<ge){pill.className='gpill ended';pill.textContent='Scoring';}
   else{pill.className='gpill ended';pill.textContent='Ended';}
-  el.className='clock'+(pill.textContent==='Lunch'?' lunch':pill.textContent.match(/Scoring|Ended/)?' ended':'');
+  if(el)el.className='clock'+(pill.textContent==='Lunch'?' lunch':pill.textContent.match(/Scoring|Ended/)?' ended':'');
   // Phase countdown for status panel
   const pl=document.getElementById('phaseLabel'),pc=document.getElementById('phaseCountdown');
   if(pl&&pc&&G.started){
@@ -3811,18 +3801,19 @@ function renderStatus(){
       hero.style.display='none';
     }
   }
+  // Rank order for the standings
+  const ranked=[...sc.map((s,i)=>({t:s.zones+s.bonuses,i}))].sort((a,b)=>b.t-a.t);
+  const rankOf={};ranked.forEach((r,p)=>rankOf[r.i]=p+1);
   G.teams.forEach((team,i)=>{
-    const loc=G.locs&&G.locs[i],zone=loc?getZones().find(z=>z.code===loc.zone):null;
-    const mins=loc?Math.floor((Date.now()-loc.time)/60000):null,stale=mins!==null&&mins>15;
-    // GPS badge only counts a fix from the last 10 minutes — not day-old data
-    const hasGps=G.gpsLocs&&Object.values(G.gpsLocs).some(g=>g.teamIdx===i&&g.t&&Date.now()-g.t<600000);
     const isMine=LS.myTeamIdx===i,sc2=sc[i];
     const card=document.createElement('div');card.className='tsc';
     card.style.background=team.color;
-    card.onclick=()=>{if(LS.isHost||isMine)openLocMo(i);};
-    card.innerHTML=`<div style="display:flex;align-items:center;gap:12px;"><div style="width:30px;height:30px;border-radius:var(--r-badge);background:rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;flex-shrink:0;">${esc(team.name[0])}</div><div style="flex:1;min-width:0;"><div class="tsn">${esc(team.name)}</div><div class="tsl2"><div class="${stale?'sdd':'pd'}" style="${stale?'background:rgba(255,255,255,.4)':''}"></div>${zone?`<span class="lname">${zone.code} — ${zone.name}</span>`:'<span style="color:rgba(255,255,255,.5)">Unknown</span>'}</div></div><div style="text-align:right;"><div style="font-family:var(--font-led);font-weight:400;font-size:18px;color:white;">${sc2.zones+sc2.bonuses}</div><div class="tss">${sc2.zones}z+${sc2.bonuses}b</div></div></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><div class="tst">${mins===null?'No check-in':mins===0?'Just now':`${mins}m ago`}</div>${hasGps?`<span style="font-size:10px;color:rgba(255,255,255,.8)"><svg class="go-arc" viewBox="0 0 14 14" style="width:10px;height:10px"><path d="M7 1a6 6 0 110 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> GPS</span>`:''}</div>
-      ${isMine?`<div style="font-size:10px;color:rgba(255,255,255,.8);margin-top:4px;font-weight:700">Your team · tap to update</div>`:''}`;
+    card.innerHTML=`<div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:30px;height:30px;border-radius:var(--r-badge);background:rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:white;flex-shrink:0;">${esc(team.name[0])}</div>
+      <div style="flex:1;min-width:0;"><div class="tsn">${esc(team.name)}</div>${isMine?'<div style="font-size:10px;color:rgba(255,255,255,.85);font-weight:700;margin-top:1px;">Your team</div>':''}</div>
+      <div style="text-align:right;"><div style="font-family:var(--font-led);font-weight:400;font-size:20px;color:white;line-height:1;">${sc2.zones+sc2.bonuses}</div><div class="tss">${sc2.zones}z+${sc2.bonuses}b</div></div>
+      <div style="font-family:var(--font);font-weight:800;font-size:14px;color:rgba(255,255,255,.85);width:26px;text-align:right;flex-shrink:0;">#${rankOf[i]}</div>
+    </div>`;
     g.appendChild(card);
   });
   // Version footer — use fixed id so it never duplicates
@@ -3876,23 +3867,12 @@ function computeScores(){
   if(_scoreCache&&now-_scoreCacheTs<500)return _scoreCache;
   const sc=G.teams.map(()=>({zones:0,area:0,bonuses:0}));
   getZones().forEach(z=>{const l=getL(G.zones&&G.zones[z.code]||{});if(l>=0&&l<sc.length){sc[l].zones++;sc[l].area+=(z.area||0);}});
-  // Area/Momentum Bonus: host-configurable points (0 disables). Largest
-  // area held; switches to most net new zones in the final 2 hours.
+  // Area Bonus: host-configurable points to the team holding the largest
+  // total area (0 disables). No momentum swap, no line-streak bonus.
   const areaBonusPts=(G.config&&G.config.areaBonus!=null)?G.config.areaBonus:1;
-  const scoreTime=_parseTimeToMs(G.config?.score||'18:00');
-  const twoHrBefore=scoreTime-2*3600000;
   if(areaBonusPts>0){
-    if(Date.now()>=twoHrBefore&&G.zoneSnapshots){
-      const snap=G.zoneSnapshots;
-      let bestGain=0,mw=-1;
-      sc.forEach((_,i)=>{const gain=sc[i].zones-(snap[i]||0);if(gain>bestGain){bestGain=gain;mw=i;}});
-      if(mw>=0&&bestGain>0)sc[mw].bonuses+=areaBonusPts;
-    } else {
-      let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=areaBonusPts;
-    }
+    let ma=0,aw=-1;sc.forEach((s,i)=>{if(s.area>ma){ma=s.area;aw=i;}});if(aw>=0)sc[aw].bonuses+=areaBonusPts;
   }
-  // Line Bonus: 3 consecutive zones on same line
-  _getLineStreakBonuses().forEach(lb=>{sc[lb.team].bonuses++;});
   _scoreCache=sc;_scoreCacheTs=now;
   return sc;
 }
@@ -3901,26 +3881,14 @@ function computeScores(){
 function renderScores(){
   const sc=computeScores();
   const tbody=document.getElementById('btbd');if(!tbody)return;tbody.innerHTML='';
-  // Momentum bonus display
   const abPts=(G.config&&G.config.areaBonus!=null)?G.config.areaBonus:1;
-  const scoreTime2=_parseTimeToMs(G.config?.score||'18:00');
-  const inFinal2=Date.now()>=scoreTime2-2*3600000;
-  let momentumHtml='';
   if(abPts>0){
-    if(inFinal2&&G.zoneSnapshots){
-      let bestGain2=0,mw2=-1;
-      sc.forEach((s,i)=>{const gain=s.zones-(G.zoneSnapshots[i]||0);if(gain>bestGain2){bestGain2=gain;mw2=i;}});
-      momentumHtml=`<tr><td><b>Momentum</b></td><td>${abPts} pt${abPts!==1?'s':''}</td><td>${mw2>=0&&G.teams[mw2]?`<span style="color:${G.teams[mw2].color};font-weight:700">${esc(G.teams[mw2].name)}</span> <span style="color:var(--muted);font-size:10px">+${bestGain2} zones</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Most net new zones (final 2hr)</td></tr>`;
-    } else {
-      const as=G.teams.map((_,i)=>{let a=0;getZones().forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
-      const aw2=as.indexOf(Math.max(...as,0));
-      momentumHtml=`<tr><td><b>Area Bonus</b></td><td>${abPts} pt${abPts!==1?'s':''}</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Largest area (switches to momentum in final 2hr)</td></tr>`;
-    }
+    const as=G.teams.map((_,i)=>{let a=0;getZones().forEach(z=>{if(getL(G.zones&&G.zones[z.code]||{})===i)a+=z.area;});return a;});
+    const aw2=as.indexOf(Math.max(...as,0));
+    tbody.innerHTML=`<tr><td><b>Area Bonus</b></td><td>${abPts} pt${abPts!==1?'s':''}</td><td>${as[aw2]>0&&G.teams[aw2]?`<span style="color:${G.teams[aw2].color};font-weight:700">${esc(G.teams[aw2].name)}</span> <span style="color:var(--muted);font-size:10px">${as[aw2].toFixed(0)} mi²</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">Team holding the largest total area</td></tr>`;
+  } else {
+    tbody.innerHTML=`<tr><td colspan="4" style="color:var(--muted);font-size:12px;text-align:center;">No bonus points in this game</td></tr>`;
   }
-  // Line streak bonuses
-  const _lsb=_getLineStreakBonuses();
-  tbody.innerHTML=momentumHtml+
-  (_lsb.length?_lsb.map(lb=>{return `<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><b>${esc(lb.lineName)}</b></span></td><td>1 pt</td><td>${G.teams[lb.team]?`<span style="color:${G.teams[lb.team].color};font-weight:700">${esc(G.teams[lb.team].name)}</span>`:'<span style="color:var(--muted)">—</span>'}</td><td style="color:var(--muted);font-size:11px">3 consecutive zones</td></tr>`;}).join(''):'');
 }
 
 // MAP
@@ -4999,11 +4967,7 @@ function renderRules(){
   schedHtml+='<b>Starting coins:</b> Each team begins with <b>'+startCoinsCount+' coins</b>.<br>';
   schedHtml+='<b>Zones:</b> 1 pt each for any zone your team leads at scoring time.<br>';
   const abRules=(G.config&&G.config.areaBonus!=null)?G.config.areaBonus:1;
-  if(abRules>0)schedHtml+='<b>Area/Momentum Bonus:</b> '+abRules+' pt'+(abRules!==1?'s':'')+' for the team gaining the most net new zones in the final 2 hours (before that: largest area held).<br>';
-  const hasLines=isCustomMap()?Object.keys(getTransitLines()).length>0:true;
-  if(hasLines){
-    schedHtml+='<b>Line Bonus:</b> 1 pt per transit line where your team controls 3 consecutive zones.';
-  }
+  if(abRules>0)schedHtml+='<b>Area Bonus:</b> '+abRules+' pt'+(abRules!==1?'s':'')+' for the team holding the largest total area at scoring time.';
   addTitle('Schedule',true);
   addCard(schedHtml);
 
@@ -5028,7 +4992,6 @@ function renderRules(){
   addCard(
     'A <b>Featured Landmark</b> appears at the top of The Flop tab — a real location in '+esc(cityName)+' worth 8–12 coins depending on distance from the city center. '
     +'Race there, take a photo with your team, and submit for a vote. '
-    +'<b>Diminishing returns:</b> each successive landmark claim by the same team earns 1 fewer coin (minimum 4). '
     +'Once claimed, a new landmark is immediately assigned. '
     +'If unclaimed, the landmark rotates every <b>30 minutes</b>.'
   );
@@ -5040,17 +5003,6 @@ function renderRules(){
     +(isCustomMap()?'You must be physically inside the zone to deposit.'
       :'You must be physically inside the zone and at least 100 feet (~30m) from any metro station. No depositing from trains or platforms.')+
     ' The team with the highest total deposit in a zone controls it.'
-  );
-
-  // ── Flop tiers ────────────────────────────────────────────────
-  addTitle('The Flop — Challenge Tiers');
-  addTableCard(
-    ['Coins','Difficulty','Examples'],
-    [
-      ['<span style="color:var(--accent);font-weight:700">coins 1</span>','Easy','Find a pun business name, stack a cairn, skip a full block, food truck selfie'],
-      ['<span style="color:var(--navy);font-weight:700">coinscoins 2</span>','Moderate','Mimic a statue, atlas obscura find, jump mid-air as a team, traverse monkey bars'],
-      ['<span style="color:var(--accent);font-weight:700">coinscoinscoins 3</span>','Hard / Physical','Four-leaf clover, 10 pull-ups, 15 burpees, handstand, working payphone'],
-    ]
   );
 
   // ── Shop ──────────────────────────────────────────────────────
