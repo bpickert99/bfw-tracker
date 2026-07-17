@@ -1398,7 +1398,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 const FB_URL='https://battle-for-washington-default-rtdb.firebaseio.com';
-const APP_VERSION='2.21';
+const APP_VERSION='2.22';
 
 // ── DIAGNOSTIC LOG ─────────────────────────────────────────────────
 // Ring buffer of app events + errors, persisted to localStorage.
@@ -2690,15 +2690,8 @@ async function rejoinConfirm(){
   LS.fbUrl=FB_URL;LS.gameCode=code;LS.playerName=player.name;LS.playerId=pid;
   LS.isHost=false;LS.mode='player';LS.myTeamIdx=player.teamIdx>=0?player.teamIdx:-1;
   saveL();startPoll();
-  if(G.started){
-    const cfg3=G.config||{};
-    const[sh3,sm3]=(cfg3.start||'00:00').split(':').map(Number);
-    const now3=new Date(),st3=new Date(now3);
-    st3.setHours(sh3,sm3,0,0);
-    if(st3>now3){ showPreGame(); } else { enterApp(); }
-  } else {
-    showPreGame();
-  }
+  if(G.started){ enterApp(); }
+  else { showPreGame(); }
 }
 
 async function joinGame(){
@@ -2928,11 +2921,9 @@ async function poll(){
       }
     }
     if(!prevStarted&&G.started){
-      const cfg2=G.config||{};
-      const[sh2,sm2]=(cfg2.start||'00:00').split(':').map(Number);
-      const now2=new Date(),st2=new Date(now2);
-      st2.setHours(sh2,sm2,0,0);
-      if(st2>now2){ showPreGame(); } else { enterApp(); }
+      // Game is live — enter the app immediately (even if the host started
+      // before the scheduled time). The scheduled time is only a label.
+      enterApp();
       showNotif('⚡ Game started! Get moving!');
       sendPN('Transit Tournament','The game has started! Get moving.');
     }
@@ -3211,16 +3202,7 @@ async function startGame(){
   regenerateFlop(false);
   logEv('🚀 Game started! Each team starts with '+startCoins+' coins. Good luck!');
   await pushState();
-  const cfg=G.config||{};
-  const[sh,sm]=(cfg.start||'00:00').split(':').map(Number);
-  const now=new Date();
-  const startTime=new Date(now);
-  startTime.setHours(sh,sm,0,0);
-  if(startTime>now){
-    showPreGame();
-  } else {
-    enterApp();
-  }
+  enterApp(); // live immediately, regardless of the scheduled start time
   sendPN('Transit Tournament','The game has started! Get moving.');
   // Increment play count for community maps
   if(G.config&&G.config.map&&G.config.mapId) _incrementMapPlayCount(G.config.mapId);
@@ -3404,7 +3386,9 @@ function startGameEarly(){
   if(!LS.isHost) return;
   if(_preGameCountdownIv){ clearInterval(_preGameCountdownIv); _preGameCountdownIv=null; }
   if(_preMap){ _preMap.remove(); _preMap=null; }
-  enterApp();
+  // Actually start the game (sets started, gives coins, pushes to everyone)
+  // rather than just entering the app on this device.
+  startGame();
 }
 
 async function cancelGame(){
@@ -5337,12 +5321,8 @@ async function _rejoinFromAuth(gameCode,playerId){
   LS.mode=foundPlayer.isHost?'host':'player';
   LS.myTeamIdx=foundPlayer.teamIdx>=0?foundPlayer.teamIdx:-1;
   saveL();startPoll();
-  if(G.started){
-    const cfg3=G.config||{};
-    const[sh3,sm3]=(cfg3.start||'00:00').split(':').map(Number);
-    const now3=new Date(),st3=new Date(now3);st3.setHours(sh3,sm3,0,0);
-    if(st3>now3){showPreGame();}else{enterApp();}
-  } else {
+  if(G.started){ enterApp(); }
+  else {
     if(foundPlayer.isHost){document.getElementById('lobbyCode').textContent=gameCode;renderLobby();showScreen('screenLobby');}
     else showPreGame();
   }
