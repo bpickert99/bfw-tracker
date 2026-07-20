@@ -268,3 +268,56 @@ body {
 .about code { background: var(--line); border-radius: 6px; padding: 1px 6px; font-size: 0.85em; }
 
 .lang-picker { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.switch-link { color: var(--blue); font-weight: 800; font-size: 0.85rem; text-decoration: none; }
+
+/* ---------- practice banner ---------- */
+.practice-banner {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; text-decoration: none; color: inherit; font-weight: 800;
+  margin-bottom: 6px;
+}
+.practice-banner.hot { border-color: var(--blue); box-shadow: 0 3px 0 var(--blue); }
+.practice-banner .pb-ico { font-size: 1.7rem; }
+.practice-banner .lc-sub { display: block; font-size: 0.8rem; color: var(--ink-soft); font-weight: 700; }
+.due-badge {
+  margin-left: auto; background: var(--red); color: #fff; font-weight: 900;
+  border-radius: 999px; min-width: 30px; height: 30px; display: flex;
+  align-items: center; justify-content: center; padding: 0 8px;
+}
+
+/* ---------- review chip ---------- */
+.review-chip {
+  display: inline-block; background: color-mix(in srgb, var(--blue) 14%, transparent);
+  color: var(--blue); font-size: 0.72rem; font-weight: 900; border-radius: 8px;
+  padding: 3px 10px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ---------- stats ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat-card {
+  background: var(--card); border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 14px 8px; text-align: center;
+}
+.stat-card b { display: block; font-size: 1.3rem; }
+.stat-card span { font-size: 0.72rem; color: var(--ink-soft); font-weight: 800; }
+.stat-card.hot { border-color: var(--red); }
+.muted { color: var(--ink-soft); font-size: 0.85rem; font-weight: 700; }
+
+.goalbar { height: 14px; background: var(--line); border-radius: 8px; overflow: hidden; margin: 10px 0 6px; }
+.goalbar > div { height: 100%; background: var(--gold); border-radius: 8px; transition: width 0.3s; }
+
+.weekchart { display: flex; align-items: flex-end; gap: 8px; margin-top: 14px; height: 96px; }
+.wc-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.wc-bar { width: 100%; max-width: 34px; background: var(--line); border-radius: 6px 6px 0 0; }
+.wc-bar.today { background: var(--green); }
+.wc-col span { font-size: 0.7rem; font-weight: 800; color: var(--ink-soft); }
+
+.word-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.word-row:last-of-type { border-bottom: none; }
+.word-row .target { font-weight: 700; min-width: 70px; }
+.strengthbar { flex: 1; height: 8px; background: var(--line); border-radius: 6px; overflow: hidden; }
+.strengthbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--gold), var(--green)); border-radius: 6px; }
+
+.sync-row { display: flex; gap: 8px; margin-top: 10px; }
+.sync-row .type-input { margin-bottom: 0; flex: 1; }

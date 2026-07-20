@@ -40,6 +40,38 @@ the site                         static app — no backend, progress in localSto
 
 That's it. The bundled Cherokee starter course works with zero setup.
 
+## How the learning engine works
+
+The app maintains a per-word learner model and schedules everything around it:
+
+- **Spaced repetition (FSRS)** — every exercise result updates the word's *stability*
+  and *difficulty* using the FSRS-4.5 algorithm (the modern scheduler behind Anki).
+  Words come due for review just before you'd forget them; research shows this class of
+  scheduler reaches the same retention as classic SM-2 with ~20–30% fewer reviews.
+- **Error targeting** — words you get wrong are re-queued within the session, boosted to
+  the front of the practice queue, and listed under "Needs attention" on the Stats page.
+- **Retrieval practice** — young words get recognition exercises (multiple choice,
+  listening); as a word matures the engine switches to production (typing), which builds
+  stronger memories.
+- **Interleaving** — every lesson opens with a short spaced-review warm-up of older
+  material, and Practice sessions deliberately mix units and topics.
+- **Controlled introduction** — lessons introduce at most a handful of new items, and
+  CEFR sections stay locked until the material below them exists.
+
+The **Stats** tab shows the whole model: words tracked/mastered, due-now counts, a
+review forecast, accuracy, streaks, daily-goal progress, and your weakest words.
+
+## Accounts & cloud sync
+
+Progress lives in your browser by default. Optionally, sign in from the **Stats** tab to
+back it up and sync across devices (Supabase, row-level security — each user can only
+touch their own row):
+
+- **Email code** sign-in works out of the box.
+- **Google** sign-in: enable the Google provider in the Supabase dashboard
+  (*Authentication → Providers → Google*, paste a Google OAuth client ID/secret) and the
+  existing "Continue with Google" button starts working — no code changes needed.
+
 ## Features
 
 - 📚 **Skill tree** — units grouped into CEFR sections A1→C2; sections stay locked until

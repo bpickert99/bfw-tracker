@@ -3,6 +3,9 @@ import { getXP, getStreak, getLang, setLang, unitProgress, isLessonComplete } fr
 import { renderLessonSession } from "./lesson.js";
 import { renderScriptPractice } from "./script-practice.js";
 import { renderCulture } from "./culture.js";
+import { renderStats } from "./stats.js";
+import { buildPracticeSession, buildWarmup, dueCount } from "./practice.js";
+import { initSync } from "./sync.js";
 import { ttsMode } from "./tts.js";
 
 const app = document.getElementById("app");
@@ -65,12 +68,23 @@ async function viewCourseMap() {
     ? `<p>🔊 Audio uses your browser's closest available voice — it is <b>approximate</b>, not a native speaker.</p>`
     : mode === "none" ? `<p>🔇 Your browser has no speech voices available; audio is disabled.</p>` : "";
 
+  const due = dueCount(course.code);
   let html = `
     <div class="lang-hero">
       <h1>${esc(course.name)} <span class="native">${esc(course.nativeName || "")}</span></h1>
       <p>${esc(course.description || "")}</p>
       ${ttsNote}
-    </div>`;
+      <p><a href="#/languages" class="switch-link">🌍 Switch language</a></p>
+    </div>
+    <a class="practice-banner ${due ? "hot" : ""}" href="#/practice">
+      <span class="pb-ico">🏋️</span>
+      <span><b>Practice</b>
+        <span class="lc-sub">${due
+          ? `${due} word${due === 1 ? "" : "s"} due for review — the algorithm says now is the time`
+          : "Smart review of your weakest words"}</span>
+      </span>
+      ${due ? `<span class="due-badge">${due}</span>` : ""}
+    </a>`;
 
   const unitsData = new Map();
   for (const section of course.sections) {
@@ -148,7 +162,32 @@ async function viewLesson(unitId, lessonIdx) {
   const data = await loadUnit(course.code, found.unit.file);
   const lesson = data.lessons[Number(lessonIdx)];
   if (!lesson) { location.hash = `#/unit/${unitId}`; return; }
-  renderLessonSession(app, course, unitId, lesson, updateStats);
+  // Interleave: lessons open with up to 3 spaced-review exercises.
+  const warmup = buildWarmup(course.code, 3);
+  renderLessonSession(app, course, unitId, lesson, updateStats, { warmup });
+}
+
+async function viewPractice() {
+  const course = await currentCourse();
+  if (!course) { location.hash = "#/"; return; }
+  const session = buildPracticeSession(course.code);
+  if (!session) {
+    app.innerHTML = `<div class="lang-hero"><h1>🏋️ Practice</h1>
+      <p>Nothing to practice yet — complete a lesson or two first, then this becomes a smart
+      review session targeting exactly the words you're about to forget.</p>
+      <a class="btn" href="#/">Back to course</a></div>`;
+    return;
+  }
+  renderLessonSession(app, course, "practice", session, updateStats, {
+    isPractice: true,
+    backHref: "#/",
+  });
+}
+
+async function viewStats() {
+  setNav("stats");
+  const course = await currentCourse();
+  renderStats(app, course);
 }
 
 async function viewScript() {
@@ -200,6 +239,8 @@ async function route() {
     if (parts[0] === "lesson") return await viewLesson(parts[1], parts[2]);
     if (parts[0] === "script") return await viewScript();
     if (parts[0] === "culture") return await viewCulture();
+    if (parts[0] === "practice") return await viewPractice();
+    if (parts[0] === "stats") return await viewStats();
     if (parts[0] === "about") return viewAbout();
     return await viewCourseMap();
   } catch (err) {
@@ -210,3 +251,4 @@ async function route() {
 
 window.addEventListener("hashchange", route);
 route();
+initSync();

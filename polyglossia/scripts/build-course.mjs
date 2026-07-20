@@ -311,6 +311,17 @@ Non-negotiable principles:
   "choices" (3-4) and integer "answer" index; "listen" needs "ttsText" (romanization to speak);
   "type" needs string "answer" (+ optional "accept" variants); "match" needs 2-5 "pairs".
   Exercises must only test material taught in the same or earlier lessons.
+- PEDAGOGY (research-backed; the app adds spaced repetition on top of what you author):
+  * Frequency first: order vocabulary by usefulness/frequency; teach high-frequency words
+    and formulaic chunks (greetings, "I want...", "where is...") before rare words.
+  * Cognitive load: 3-6 new items per lesson, no more.
+  * Retrieval practice: favor production ("type") and discrimination ("match") over pure
+    recognition; include at least one production exercise per lesson.
+  * Comprehensible input (i+1): where sources allow, include short example sentences that
+    combine one new element with already-taught words (teach items and cloze-style "mc"
+    exercises whose prompt is a sentence with a blank: "ᎠᎹ ___ = water, please").
+  * Explicit-but-brief grammar: one focused grammar note per lesson at most, with a small
+    table and a pattern the learner can generalize, not a lecture.
 - TTS: for languages with no real TTS voice, set tts.mode to "approximate", choose
   preferredLangs whose phonology best fits the romanization (often ["<iso>", "es", "it", "en"]),
   and provide "substitutions" - [from, to] pairs that rewrite romanization sequences a fallback
