@@ -20,7 +20,18 @@ const ROOT = new URL("..", import.meta.url).pathname;
 const SOURCES = join(ROOT, "sources");
 const DATA = join(ROOT, "data");
 
-const client = new Anthropic();
+let _client;
+function client() {
+  if (!_client) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error(
+        "ANTHROPIC_API_KEY is not set. Add it as a repository secret " +
+        "(Settings → Secrets and variables → Actions) so the course builder can call Claude.");
+    }
+    _client = new Anthropic();
+  }
+  return _client;
+}
 
 // ---------- helpers ----------
 
@@ -71,7 +82,7 @@ function docBlocks(files) {
 }
 
 async function ask(system, userBlocks, schema, maxTokens = 64000) {
-  const stream = client.messages.stream({
+  const stream = client().messages.stream({
     model: MODEL,
     max_tokens: maxTokens,
     thinking: { type: "adaptive" },
