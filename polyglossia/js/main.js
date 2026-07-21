@@ -168,6 +168,7 @@ async function viewLesson(unitId, lessonIdx) {
 }
 
 async function viewPractice() {
+  setNav("learn");
   const course = await currentCourse();
   if (!course) { location.hash = "#/"; return; }
   const session = buildPracticeSession(course.code);

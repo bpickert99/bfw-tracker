@@ -6,7 +6,7 @@ function esc(s) {
 }
 
 export async function renderScriptPractice(app, course) {
-  const script = course ? await loadScript(course.code) : null;
+  const script = course && course.script?.nonLatin !== false ? await loadScript(course.code) : null;
 
   if (!script || !script.groups?.length) {
     app.innerHTML = `

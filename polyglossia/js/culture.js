@@ -8,7 +8,9 @@ function paragraphs(text) {
   return String(text || "")
     .split(/\n+/)
     .filter((p) => p.trim())
-    .map((p) => `<p>${esc(p).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</p>`)
+    .map((p) => `<p>${esc(p)
+      .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+      .replace(/\*(.+?)\*/g, "<i>$1</i>")}</p>`)
     .join("");
 }
 
